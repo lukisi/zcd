@@ -7,9 +7,10 @@
     -w \
     $(pkg-config --cflags gobject-2.0 gee-0.8)
 
+    libtool --mode=link \
     gcc -o test_libs test_libs.o \
     $(pkg-config --libs gobject-2.0 gee-0.8) \
-	./libzcd.la
+    ./libzcd.la
 
 */
 

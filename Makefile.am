@@ -50,6 +50,43 @@ libzcd_la_LIBADD = \
 	$(builddir)/libmacgetter.la \
 	$(NULL)
 
+
+TESTS = \
+	test_libs \
+	$(NULL)
+
+check_PROGRAMS = \
+	test_libs \
+	$(NULL)
+
+test_libs_SOURCES = \
+	testsuites/test_libs/test_libs.vala \
+	zcd.vapi \
+	$(NULL)
+
+test_libs_VALAFLAGS = \
+	--pkg gio-2.0 \
+	--pkg gee-0.8 \
+	--pkg tasklet \
+	$(NULL)
+
+test_libs_CPPFLAGS = \
+	-w \
+	$(GOBJECT_CFLAGS) \
+	$(GIO_CFLAGS) \
+	$(GEE_CFLAGS) \
+	$(TASKLET_CFLAGS) \
+	$(NULL)
+
+test_libs_LDADD = -lm \
+	$(GOBJECT_LIBS) \
+	$(GIO_LIBS) \
+	$(GEE_LIBS) \
+	$(TASKLET_LIBS) \
+	$(builddir)/libzcd.la \
+	$(NULL)
+
+
 vapidir = $(datadir)/vala/vapi
 dist_vapi_DATA = \
 	zcd.vapi \

@@ -1,6 +1,6 @@
 public string test_libs(string a, string b)
 {
-    string ret = "";
+    string ret = "a";
     
     return ret;
 }

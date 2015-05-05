@@ -2,6 +2,7 @@ m4/*
 zcd.c
 zcd.h
 zcd.vapi
+testsuites/test_libs/test_libs.c
 Makefile.in
 Makefile
 *.lo
