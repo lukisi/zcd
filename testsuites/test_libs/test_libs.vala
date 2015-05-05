@@ -1,22 +1,17 @@
 /*
-    valac -C \
-    ../testsuites/test_libs/test_libs.vala \
-    ../zcd.vapi
-
-    gcc -c test_libs.c \
-    -w \
-    $(pkg-config --cflags gobject-2.0 gee-0.8)
-
-    libtool --mode=link \
-    gcc -o test_libs test_libs.o \
-    $(pkg-config --libs gobject-2.0 gee-0.8) \
-    ./libzcd.la
-
+    This program is to verify that we can link a program
+    to ZCD without having to include a direct dependency
+    on JsonGlib.
 */
 
 void main()
 {
-    string x = test_libs("{\"argument\":1}", "{\"argument\":null}");
-    assert(x != "");
+    string x;
+    try {
+        x = test_libs("{\"argument\":1}", "{\"argument\":null}");
+    } catch (Error e) {
+        assert_not_reached();
+    }
+    debug(x);
 }
 

@@ -32,6 +32,7 @@ libzcd_la_VALAFLAGS = \
 	--pkg tasklet \
 	--pkg gee-0.8 \
 	--pkg gio-2.0 \
+	--pkg json-glib-1.0 \
 	$(NULL)
 
 libzcd_la_CPPFLAGS = \
@@ -40,6 +41,7 @@ libzcd_la_CPPFLAGS = \
 	$(GEE_CFLAGS) \
 	$(GIO_CFLAGS) \
 	$(TASKLET_CFLAGS) \
+	$(JSON_CFLAGS) \
 	$(NULL)
 
 libzcd_la_LIBADD = \
@@ -47,6 +49,7 @@ libzcd_la_LIBADD = \
 	$(GEE_LIBS) \
 	$(GOBJECT_LIBS) \
 	$(TASKLET_LIBS) \
+	$(JSON_LIBS) \
 	$(builddir)/libmacgetter.la \
 	$(NULL)
 

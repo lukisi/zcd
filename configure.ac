@@ -21,6 +21,7 @@ PKG_CHECK_MODULES([GOBJECT], [gobject-2.0 glib-2.0])
 PKG_CHECK_MODULES([GIO], [gio-2.0])
 PKG_CHECK_MODULES([GEE], [gee-0.8])
 PKG_CHECK_MODULES([TASKLET], [tasklet >= 1.0.1])
+PKG_CHECK_MODULES([JSON], [json-glib-1.0])
 
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_FILES([Makefile zcd.pc])
