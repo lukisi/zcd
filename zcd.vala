@@ -1,2 +1,7 @@
-public void nop() {}
+public string test_libs(string a, string b)
+{
+    string ret = "";
+    
+    return ret;
+}
 

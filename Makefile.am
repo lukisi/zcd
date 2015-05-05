@@ -35,6 +35,7 @@ libzcd_la_VALAFLAGS = \
 	$(NULL)
 
 libzcd_la_CPPFLAGS = \
+	-w \
 	$(GOBJECT_CFLAGS) \
 	$(GEE_CFLAGS) \
 	$(GIO_CFLAGS) \
