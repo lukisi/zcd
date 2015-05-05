@@ -51,6 +51,25 @@ libzcd_la_LIBADD = \
 	$(builddir)/libmacgetter.la \
 	$(NULL)
 
+vapidir = $(datadir)/vala/vapi
+dist_vapi_DATA = \
+	zcd.vapi \
+	zcd.deps \
+	$(NULL)
+
+include_HEADERS = \
+	zcd.h \
+	$(NULL)
+
+pkgconfigdir = $(libdir)/pkgconfig
+pkgconfig_DATA = \
+	zcd.pc \
+	$(NULL)
+
+EXTRA_DIST = \
+	zcd.pc.in \
+	mac-getter/hw.h \
+	$(NULL)
 
 CLEANFILES = \
 	$(srcdir)/zcd.vapi \
@@ -59,6 +78,11 @@ CLEANFILES = \
 	$(srcdir)/zcd.c \
 	$(NULL)
 
-zcd.vapi: libzcd_la_vala.stamp
+DISTCLEANFILES = \
+	zcd.pc \
+	$(NULL)
+
+BUILT_SOURCES = \
+	libzcd_la_vala.stamp \
 	$(NULL)
 
