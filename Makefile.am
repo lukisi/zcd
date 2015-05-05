@@ -26,11 +26,9 @@ libzcd_la_SOURCES = \
 	config.vapi \
 	$(NULL)
 
-# TODO make it configurable the flag "-D linux"
 libzcd_la_VALAFLAGS = \
 	-H zcd.h \
 	--library zcd \
-	-D linux \
 	--pkg tasklet \
 	--pkg gee-0.8 \
 	--pkg gio-2.0 \
