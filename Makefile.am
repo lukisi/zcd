@@ -112,6 +112,8 @@ CLEANFILES = \
 	$(srcdir)/zcd.h \
 	$(srcdir)/libzcd_la_vala.stamp \
 	$(srcdir)/zcd.c \
+	$(srcdir)/testsuites/test_libs/test_libs.c \
+	$(builddir)/libmacgetter.la \
 	$(NULL)
 
 DISTCLEANFILES = \
