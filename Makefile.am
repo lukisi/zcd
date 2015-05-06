@@ -146,7 +146,7 @@ CLEANFILES = \
 	$(srcdir)/zcd.c \
 	$(srcdir)/testsuites/test_libs/test_libs.c \
 	$(srcdir)/check/server.c \
-	$(srcdir)/check/client.c \
+	$(builddir)/tcp_server \
 	$(builddir)/libmacgetter.la \
 	$(NULL)
 
