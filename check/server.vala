@@ -19,6 +19,8 @@
 using Gee;
 using Tasklets;
 
+// Simple TCP server. Use 'nc' as counterpart.
+
 void main(string[] args)
 {
     assert(Tasklet.init());
@@ -27,7 +29,13 @@ void main(string[] args)
         while (true)
         {
             IConnectedStreamSocket c = s.accept();
-            break;
+            uchar[] buf = c.recv(1024);
+            // ignore that the received maybe not complete.
+            string got = ((string)buf).substring(0,buf.length);
+            if (got == "quit" || got == "quit\n") break;
+            string ret = "hello " + got;
+            c.send((uchar[])ret.data);
+            c.close();
         }
     } catch (Error e) {
         error(e.message);
