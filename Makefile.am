@@ -9,6 +9,10 @@ EXTRA_LTLIBRARIES = \
 	libmacgetter.la \
 	$(NULL)
 
+EXTRA_PROGRAMS = \
+	tcp_server \
+	$(NULL)
+
 libmacgetter_la_SOURCES = \
 	mac-getter/hw.c \
 	$(NULL)
@@ -51,6 +55,31 @@ libzcd_la_LIBADD = \
 	$(TASKLET_LIBS) \
 	$(JSON_LIBS) \
 	$(builddir)/libmacgetter.la \
+	$(NULL)
+
+tcp_server_SOURCES = \
+	check/server.vala \
+	$(NULL)
+
+tcp_server_VALAFLAGS = \
+	--pkg tasklet \
+	--pkg gee-0.8 \
+	--pkg gio-2.0 \
+	$(NULL)
+
+tcp_server_CPPFLAGS = \
+	-w \
+	$(GOBJECT_CFLAGS) \
+	$(GEE_CFLAGS) \
+	$(GIO_CFLAGS) \
+	$(TASKLET_CFLAGS) \
+	$(NULL)
+
+tcp_server_LDADD = -lm \
+	$(GOBJECT_LIBS) \
+	$(GIO_LIBS) \
+	$(GEE_LIBS) \
+	$(TASKLET_LIBS) \
 	$(NULL)
 
 
@@ -116,6 +145,8 @@ CLEANFILES = \
 	$(srcdir)/libzcd_la_vala.stamp \
 	$(srcdir)/zcd.c \
 	$(srcdir)/testsuites/test_libs/test_libs.c \
+	$(srcdir)/check/server.c \
+	$(srcdir)/check/client.c \
 	$(builddir)/libmacgetter.la \
 	$(NULL)
 
