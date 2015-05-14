@@ -1,11 +1,15 @@
 NULL = 
 ACLOCAL_AMFLAGS = -I m4
 
+noinst_PROGRAMS = \
+	mod_main \
+	$(NULL)
+
 lib_LTLIBRARIES = \
 	libzcd.la \
 	$(NULL)
 
-EXTRA_LTLIBRARIES = \
+noinst_LTLIBRARIES = \
 	libmacgetter.la \
 	$(NULL)
 
@@ -15,6 +19,7 @@ EXTRA_PROGRAMS = \
 
 libmacgetter_la_SOURCES = \
 	mac-getter/hw.c \
+	mac-getter/hw.h \
 	$(NULL)
 
 libmacgetter_la_CPPFLAGS = \
@@ -80,6 +85,37 @@ tcp_server_LDADD = -lm \
 	$(GIO_LIBS) \
 	$(GEE_LIBS) \
 	$(TASKLET_LIBS) \
+	$(builddir)/libzcd.la \
+	$(NULL)
+
+mod_main_SOURCES = \
+	mod_main.vala \
+	mod_interfaces.vala \
+	mod_skeleton.vala \
+	mod_stub.vala \
+	zcd.vapi \
+	$(NULL)
+
+mod_main_VALAFLAGS = \
+	--pkg tasklet \
+	--pkg gee-0.8 \
+	--pkg gio-2.0 \
+	$(NULL)
+
+mod_main_CPPFLAGS = \
+	-w \
+	$(GOBJECT_CFLAGS) \
+	$(GEE_CFLAGS) \
+	$(GIO_CFLAGS) \
+	$(TASKLET_CFLAGS) \
+	$(NULL)
+
+mod_main_LDADD = -lm \
+	$(GOBJECT_LIBS) \
+	$(GIO_LIBS) \
+	$(GEE_LIBS) \
+	$(TASKLET_LIBS) \
+	$(builddir)/libzcd.la \
 	$(NULL)
 
 
@@ -136,25 +172,15 @@ pkgconfig_DATA = \
 
 EXTRA_DIST = \
 	zcd.pc.in \
-	mac-getter/hw.h \
 	$(NULL)
 
 CLEANFILES = \
-	$(srcdir)/zcd.vapi \
-	$(srcdir)/zcd.h \
-	$(srcdir)/libzcd_la_vala.stamp \
-	$(srcdir)/zcd.c \
-	$(srcdir)/testsuites/test_libs/test_libs.c \
-	$(srcdir)/check/server.c \
 	$(builddir)/tcp_server \
-	$(builddir)/libmacgetter.la \
 	$(NULL)
 
 DISTCLEANFILES = \
-	zcd.pc \
+	$(srcdir)/zcd.vapi \
 	$(NULL)
 
-BUILT_SOURCES = \
-	libzcd_la_vala.stamp \
-	$(NULL)
+zcd.vapi: libzcd_la_vala.stamp
 
