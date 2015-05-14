@@ -380,10 +380,9 @@ namespace zcd
                 connected = false;
                 throw new ZCDError.GENERIC("Trying to get response");
             }
-            
-            processing = false;
 
-            error("not implemented yet");
+            processing = false;
+            return result;
         }
     }
 
