@@ -76,7 +76,11 @@ namespace zcd
         public abstract IZcdTcpRequestHandler get_new_handler();
     }
 
-    public class TcpCallerInfo : Object
+    public interface IZcdCallerInfo : Object
+    {
+    }
+
+    public class TcpCallerInfo : Object, IZcdCallerInfo
     {
         public string my_addr;
         public string peer_addr;

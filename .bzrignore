@@ -2,6 +2,10 @@ m4/*
 zcd.c
 zcd.h
 zcd.vapi
+mod_interfaces.c
+mod_main.c
+mod_skeleton.c
+mod_stub.c
 check/server.c
 testsuites/test_libs/test_libs.c
 Makefile.in
