@@ -20,3 +20,10 @@ using Tasklets;
 using Gee;
 using zcd;
 
+namespace AppDomain
+{
+    namespace ModRpc
+    {
+    }
+}
+

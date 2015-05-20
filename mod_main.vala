@@ -18,10 +18,27 @@
 
 using Tasklets;
 using Gee;
+using AppDomain;
 
-void main()
+void main(string[] args)
 {
     assert(Tasklet.init());
+    string prgname = args[0];
+    if (prgname.has_suffix("server"))
+    {}
+    else if (prgname.has_suffix("client"))
+    {
+        client(args[1], 60296);
+    }
+    else if (prgname.has_suffix("both"))
+    {}
     assert(Tasklet.kill());
 }
+
+void client(string peer_ip, uint16 peer_port)
+{
+    //AppTcpClient c = ModRpc.tcp_client();
+}
+
+
 

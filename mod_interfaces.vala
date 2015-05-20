@@ -14,6 +14,25 @@
  *
  *  You should have received a copy of the GNU General Public License
  *  along with Netsukuku.  If not, see <http://www.gnu.org/licenses/>.
+
+interfaces.rpcidl
+==========================================
+NodeManager node
+ InfoManager info
+  string get_name()
+  void set_name(string name) throws AuthError, BadArgsError
+  int get_year()
+  bool set_year(int year)
+  License get_license()
+ Calculator calc
+  IDocument get_root()
+  Gee.List<IDocument> get_children(IDocument parent)
+  void add_children(IDocument parent, Gee.List<IDocument> children)
+Statistics stats
+ ChildrenViewer children_viewer
+  Gee.List<IDocument> list_leafs()
+
+==========================================
  */
 
 using Tasklets;
@@ -27,78 +46,26 @@ namespace AppDomain
         public void init()
         {
             // Register serializable types
-            typeof(HCoord).class_peek();
+            typeof(License).class_peek();
             //typeof(BroadcastID).class_peek();
             //typeof(UnicastID).class_peek();
         }
     }
 
-    public errordomain NeighborhoodRequestArcError {
-        NOT_SAME_NETWORK,
-        TOO_MANY_ARCS,
-        TWO_ARCS_ON_COLLISION_DOMAIN,
+    public errordomain AuthError {
         GENERIC
     }
 
-    /** ======================================================================
-      * Remote objects' interfaces
-      * ======================================================================
-      */
-
-    /** This is the interface for a root-dispatcher object
-      */
-    public interface IAddressManagerRootDispatcher : Object
-    {
-        public INeighborhoodManager neighborhood_manager {
-            get {
-                return this._neighborhood_manager_getter();
-            }
-        }
-        public abstract unowned INeighborhoodManager _neighborhood_manager_getter();
-
-        public IQspnManager qspn_manager {
-            get {
-                return this._qspn_manager_getter();
-            }
-        }
-        public abstract unowned IQspnManager _qspn_manager_getter();
+    public errordomain BadArgsError {
+        GENERIC
     }
 
-    public interface INeighborhoodManager : Object
-    {
-        public abstract void here_i_am(INeighborhoodNodeID my_id, string mac, string nic_addr,
-                        IZcdCallerInfo? _rpc_caller=null) /* throws ZCDError */;
-        public abstract void request_arc(INeighborhoodNodeID my_id, string mac, string nic_addr,
-                        IZcdCallerInfo? _rpc_caller=null) throws /* ZCDError, */ NeighborhoodRequestArcError;
-    }
-
-    public interface IQspnManager : Object
-    {
-        public abstract void send_etp(HCoord sample, bool is_full,
-                        IZcdCallerInfo? _rpc_caller=null) /* throws ZCDError */;
-    }
-
-    /** ======================================================================
-      * Serializables interfaces and classes
-      * ======================================================================
-      */
-
-    public interface INeighborhoodNodeID : Object
+    public class License : Object
     {
     }
 
-    /** Hierarchical coordinates of a gnode
-      * Used in module Qspn.
-      */
-    public class HCoord : Object
+    public interface IDocument : Object
     {
-        public int lvl {get; set;}
-        public int pos {get; set;}
-        public HCoord(int lvl, int pos)
-        {
-            this.lvl = lvl;
-            this.pos = pos;
-        }
     }
 
     /** ----------------------------------------------------------------------
@@ -110,24 +77,12 @@ namespace AppDomain
       */
     public class BroadcastID : Object
     {
-        public INeighborhoodNodeID? ignore_nodeid {get; set;}
-        public BroadcastID(INeighborhoodNodeID? ignore_nodeid=null)
-        {
-            this.ignore_nodeid = ignore_nodeid;
-        }
     }
 
     /** Identifies a node
       */
     public class UnicastID : Object
     {
-        public string mac {get; set;}
-        public INeighborhoodNodeID nodeid {get; set;}
-        public UnicastID(string mac, INeighborhoodNodeID nodeid)
-        {
-            this.mac = mac;
-            this.nodeid = nodeid;
-        }
     }
 }
 
