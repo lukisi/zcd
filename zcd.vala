@@ -22,20 +22,23 @@ using Tasklets;
 public string test_libs(string s1, string s2) throws Error
 {
     var b = new Json.Builder();
-    var p1 = new Json.Parser();
-    var p2 = new Json.Parser();
-    // the Parser must not be destructed until we generate the JSON output.
     b.begin_object()
         .set_member_name("return-value").begin_object()
             .set_member_name("number").add_int_value(3)
             .set_member_name("list").begin_array();
                 {
-                    p1.load_from_data(s1);
-                    b.add_value(p1.get_root());
+                    var p = new Json.Parser();
+                    p.load_from_data(s1);
+                    unowned Json.Node p_rootnode = p.get_root();
+                    Json.Node* cp = p_rootnode.copy();
+                    b.add_value(cp);
                 }
                 {
-                    p2.load_from_data(s2);
-                    b.add_value(p2.get_root());
+                    var p = new Json.Parser();
+                    p.load_from_data(s2);
+                    unowned Json.Node p_rootnode = p.get_root();
+                    Json.Node* cp = p_rootnode.copy();
+                    b.add_value(cp);
                 }
             b.end_array()
         .end_object()
@@ -189,9 +192,10 @@ namespace zcd
             bool wait_reply;
             string[] args;
             try {
+                // The parser must not be destructed until we finish with the reader.
                 Json.Parser p_buf = new Json.Parser();
                 p_buf.load_from_data((string)buf);
-                Json.Node buf_rootnode = p_buf.get_root();
+                unowned Json.Node buf_rootnode = p_buf.get_root();
                 Json.Reader r_buf = new Json.Reader(buf_rootnode);
                 if (!r_buf.is_object()) throw new MessageError.MALFORMED("root must be an object");
                 if (!r_buf.read_member("method-name")) throw new MessageError.MALFORMED("root must have method-name");
@@ -384,9 +388,10 @@ namespace zcd
             // Parse JSON
             string result;
             try {
+                // The parser must not be destructed until we finish with the reader.
                 Json.Parser p_buf = new Json.Parser();
                 p_buf.load_from_data((string)buf);
-                Json.Node buf_rootnode = p_buf.get_root();
+                unowned Json.Node buf_rootnode = p_buf.get_root();
                 Json.Reader r_buf = new Json.Reader(buf_rootnode);
                 if (!r_buf.is_object()) throw new MessageError.MALFORMED("root must be an object");
                 if (!r_buf.read_member("response")) throw new MessageError.MALFORMED("root must have response");
@@ -418,6 +423,8 @@ namespace zcd
 
         ~TcpClient()
         {
+            // TODO Make a testsuite to make sure that if a call is in progress
+            //  then this instance is not destroyed.
             if (connected)
             {
                 try {c.close();} catch (Error e) {}
@@ -517,23 +524,23 @@ namespace zcd
     {
         // build JSON message
         Json.Builder b = new Json.Builder();
-        Json.Parser[] p = new Json.Parser[arguments.size];
-        // the Parser must not be destructed until we generate the JSON output.
         b.begin_object()
             .set_member_name("method-name").add_string_value(m_name)
             .set_member_name("wait-reply").add_boolean_value(wait_reply)
             .set_member_name("arguments").begin_array();
                 for (int j = 0; j < arguments.size; j++)
                 {
-                    p[j] = new Json.Parser();
+                    var p = new Json.Parser();
                     try {
-                        p[j].load_from_data(arguments[j]);
+                        p.load_from_data(arguments[j]);
                     } catch (Error e) {
-                        warning(@"Error parsing JSON for argument: $(e.message)");
-                        warning(@" method-name: $(m_name)");
+                        critical(@"Error parsing JSON for argument: $(e.message)");
+                        critical(@" method-name: $(m_name)");
                         error(@" argument #$(j): $(arguments[j])");
                     }
-                    b.add_value(p[j].get_root());
+                    unowned Json.Node p_rootnode = p.get_root();
+                    Json.Node* cp = p_rootnode.copy();
+                    b.add_value(cp);
                 }
             b.end_array()
         .end_object();
@@ -548,7 +555,6 @@ namespace zcd
         // build JSON message
         Json.Builder b = new Json.Builder();
         Json.Parser p = new Json.Parser();
-        // the Parser must not be destructed until we generate the JSON output.
         b.begin_object()
             .set_member_name("response");
             try {
@@ -557,7 +563,9 @@ namespace zcd
                 warning(@"Error parsing JSON for response: $(e.message)");
                 error(@" response: $(result)");
             }
-            b.add_value(p.get_root())
+            unowned Json.Node p_rootnode = p.get_root();
+            Json.Node* cp = p_rootnode.copy();
+            b.add_value(cp)
         .end_object();
         var g = new Json.Generator();
         g.pretty = false;

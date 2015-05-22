@@ -26,18 +26,18 @@ namespace AppDomain
     {
         public interface IInfoManagerSkeleton : Object
         {
-            public abstract string get_name();
-            public abstract void set_name(string name) throws AuthError, BadArgsError;
-            public abstract int get_year();
-            public abstract bool set_year(int year);
-            public abstract License get_license();
+            public abstract string get_name(ModRpc.CallerInfo? caller=null);
+            public abstract void set_name(string name, ModRpc.CallerInfo? caller=null) throws AuthError, BadArgsError;
+            public abstract int get_year(ModRpc.CallerInfo? caller=null);
+            public abstract bool set_year(int year, ModRpc.CallerInfo? caller=null);
+            public abstract License get_license(ModRpc.CallerInfo? caller=null);
         }
 
         public interface ICalculatorSkeleton : Object
         {
-            public abstract IDocument get_root();
-            public abstract Gee.List<IDocument> get_children(IDocument parent);
-            public abstract void add_children(IDocument parent, Gee.List<IDocument> children);
+            public abstract IDocument get_root(ModRpc.CallerInfo? caller=null);
+            public abstract Gee.List<IDocument> get_children(IDocument parent, ModRpc.CallerInfo? caller=null);
+            public abstract void add_children(IDocument parent, Gee.List<IDocument> children, ModRpc.CallerInfo? caller=null);
         }
 
         public interface INodeManagerSkeleton : Object
@@ -50,7 +50,7 @@ namespace AppDomain
 
         public interface IChildrenViewerSkeleton : Object
         {
-            public abstract Gee.List<IDocument> list_leafs();
+            public abstract Gee.List<IDocument> list_leafs(ModRpc.CallerInfo? caller=null);
         }
 
         public interface IStatisticsSkeleton : Object
@@ -65,13 +65,17 @@ namespace AppDomain
 
         public interface IRpcDelegate : Object
         {
-            public abstract INodeManagerSkeleton get_node(CallerInfo caller);
-            public abstract IStatisticsSkeleton get_stats(CallerInfo caller);
+            public abstract INodeManagerSkeleton? get_node(CallerInfo caller);
+            public abstract IStatisticsSkeleton? get_stats(CallerInfo caller);
         }
 
         public interface IRpcErrorHandler : Object
         {
             public abstract void error_handler(Error e);
+        }
+
+        internal errordomain InSkeletonDeserializeError {
+            GENERIC
         }
 
         public class TcpCallerInfo : CallerInfo
@@ -131,7 +135,23 @@ namespace AppDomain
 
             public IZcdDispatcher? get_dispatcher()
             {
-                IZcdDispatcher ret = new ZcdDispatcher(dlg, m_name, args, caller_info);
+                IZcdDispatcher ret;
+                if (m_name.has_prefix("node."))
+                {
+                    INodeManagerSkeleton? node = dlg.get_node(caller_info);
+                    if (node == null) ret = null;
+                    else ret = new ZcdNodeManagerDispatcher(node, m_name, args, caller_info);
+                }
+                else if (m_name.has_prefix("stats."))
+                {
+                    IStatisticsSkeleton? stats = dlg.get_stats(caller_info);
+                    if (stats == null) ret = null;
+                    else ret = new ZcdStatisticsDispatcher(stats, m_name, args, caller_info);
+                }
+                else
+                {
+                    ret = new ZcdDispatcherForError("DeserializeError", "GENERIC", @"Unknown root in method name: \"$(m_name)\"");
+                }
                 args = new ArrayList<string>();
                 m_name = "";
                 caller_info = null;
@@ -140,15 +160,156 @@ namespace AppDomain
 
         }
 
-        internal class ZcdDispatcher : Object, IZcdDispatcher
+        internal class ZcdDispatcherForError : Object, IZcdDispatcher
         {
-            private IRpcDelegate dlg;
+            private string domain;
+            private string code;
+            private string message;
+            public ZcdDispatcherForError(string domain, string code, string message)
+            {
+                this.domain = domain;
+                this.code = code;
+                this.message = message;
+            }
+
+            public string execute()
+            {
+                return prepare_error(domain, code, message);
+            }
+        }
+
+        internal class ZcdNodeManagerDispatcher : Object, IZcdDispatcher
+        {
+            private INodeManagerSkeleton node;
             private string m_name;
             private ArrayList<string> args;
-            private TcpCallerInfo caller_info;
-            public ZcdDispatcher(IRpcDelegate dlg, string m_name, ArrayList<string> args, TcpCallerInfo caller_info)
+            private CallerInfo caller_info;
+            public ZcdNodeManagerDispatcher(INodeManagerSkeleton node, string m_name, ArrayList<string> args, CallerInfo caller_info)
             {
-                this.dlg = dlg;
+                this.node = node;
+                this.m_name = m_name;
+                this.args = new ArrayList<string>();
+                this.args.add_all(args);
+                this.caller_info = caller_info;
+            }
+
+            private string execute_or_throw_deserialize() throws InSkeletonDeserializeError
+            {
+                string ret;
+                if (m_name.has_prefix("node.info."))
+                {
+                    if (m_name == "node.info.get_name")
+                    {
+                        error("not implemented yet");
+                    }
+                    else if (m_name == "node.info.set_name")
+                    {
+                        if (args.size != 1) throw new InSkeletonDeserializeError.GENERIC(@"Wrong number of arguments for $(m_name)");
+
+                        var p = new Json.Parser[args.size];
+                        var r = new Json.Reader[args.size];
+                        int j;
+                        for (j = 0; j < args.size; j++)
+                        {
+                            p[j] = new Json.Parser();
+                            try {
+                                p[j].load_from_data(args[j]);
+                            } catch (Error e) {
+                                critical(@"Error parsing JSON for argument: $(e.message)");
+                                critical(@" method-name: $(m_name)");
+                                error(@" argument #$(j): $(args[j])");
+                            }
+                            r[j] = new Json.Reader(p[j].get_root());
+                        }
+                        string arg_name;
+                        string doing;
+                        j = 0;
+
+                        arg_name = "name";
+                        string name;
+                        Json.Reader rj = r[j];
+                        doing = @"Reading argument '$(arg_name)' for $(m_name)";
+                        if (!rj.is_object())
+                            throw new InSkeletonDeserializeError.GENERIC(@"$(doing): root JSON node must be an object");
+                        if (!rj.read_member("argument"))
+                            throw new InSkeletonDeserializeError.GENERIC(@"$(doing): root JSON node must have argument");
+                        if (rj.get_null_value())
+                            throw new InSkeletonDeserializeError.GENERIC(@"$(doing): argument is not nullable");
+                        if (!rj.is_value())
+                            throw new InSkeletonDeserializeError.GENERIC(@"$(doing): argument must be a string");
+                        if (rj.get_value().get_value_type() != typeof(string))
+                            throw new InSkeletonDeserializeError.GENERIC(@"$(doing): argument must be a string");
+                        name = rj.get_string_value();
+                        rj.end_member();
+                        j++;
+
+                        // arg_name = "another_arg"; ...
+
+                        try {
+                            node.info.set_name(name, caller_info);
+                            ret = prepare_return_value_null();
+                        } catch (AuthError e) {
+                            string code = "";
+                            if (e is AuthError.GENERIC) code = "GENERIC";
+                            assert(code != "");
+                            ret = prepare_error("AuthError", code, e.message);
+                        } catch (BadArgsError e) {
+                            string code = "";
+                            if (e is BadArgsError.GENERIC) code = "GENERIC";
+                            if (e is BadArgsError.NULL_NOT_ALLOWED) code = "NULL_NOT_ALLOWED";
+                            assert(code != "");
+                            ret = prepare_error("BadArgsError", code, e.message);
+                        }
+                    }
+                    else if (m_name == "node.info.get_year")
+                    {
+                        error("not implemented yet");
+                    }
+                    else if (m_name == "node.info.set_year")
+                    {
+                        error("not implemented yet");
+                    }
+                    else if (m_name == "node.info.get_license")
+                    {
+                        error("not implemented yet");
+                    }
+                    else
+                    {
+                        throw new InSkeletonDeserializeError.GENERIC(@"Unknown method in node.info: \"$(m_name)\"");
+                    }
+                }
+                else if (m_name.has_prefix("node.calc."))
+                {
+                    error("not implemented yet");
+                }
+                else
+                {
+                    throw new InSkeletonDeserializeError.GENERIC(@"Unknown module in node: \"$(m_name)\"");
+                }
+                return ret;
+            }
+
+            public string execute()
+            {
+                string ret;
+                try {
+                    ret = execute_or_throw_deserialize();
+                } catch(InSkeletonDeserializeError e) {
+                    ret = prepare_error("DeserializeError", "GENERIC", e.message);
+                }
+                return ret;
+            }
+        }
+
+        internal class ZcdStatisticsDispatcher : Object, IZcdDispatcher
+        {
+            private IStatisticsSkeleton stats;
+            private string m_name;
+            private ArrayList<string> args;
+            private CallerInfo caller_info;
+            public ZcdStatisticsDispatcher(IStatisticsSkeleton stats, string m_name, ArrayList<string> args, CallerInfo caller_info)
+            {
+                this.stats = stats;
                 this.m_name = m_name;
                 this.args = new ArrayList<string>();
                 this.args.add_all(args);
@@ -157,65 +318,7 @@ namespace AppDomain
 
             public string execute()
             {
-                string ret;
-                if (m_name.has_prefix("node."))
-                {
-                    INodeManagerSkeleton node = dlg.get_node(caller_info);
-                    if (m_name.has_prefix("node.info."))
-                    {
-                        if (m_name == "node.info.get_name")
-                        {
-                            error("not implemented yet");
-                        }
-                        else if (m_name == "node.info.set_name")
-                        {
-                            string name = "sample";
-                            try {
-                                node.info.set_name(name);
-                                ret = prepare_return_value_null();
-                            } catch (AuthError e) {
-                                // TODO discern error code
-                                ret = prepare_error("AuthError", "GENERIC", e.message);
-                            } catch (BadArgsError e) {
-                                error("not implemented yet");
-                            }
-                        }
-                        else if (m_name == "node.info.get_year")
-                        {
-                            error("not implemented yet");
-                        }
-                        else if (m_name == "node.info.set_year")
-                        {
-                            error("not implemented yet");
-                        }
-                        else if (m_name == "node.info.get_license")
-                        {
-                            error("not implemented yet");
-                        }
-                        else
-                        {
-                            ret = prepare_error("DeserializeError", "GENERIC", @"Unknown method in node.info: \"$(m_name)\"");
-                        }
-                    }
-                    else if (m_name.has_prefix("node.calc."))
-                    {
-                        error("not implemented yet");
-                    }
-                    else
-                    {
-                        ret = prepare_error("DeserializeError", "GENERIC", @"Unknown module in node: \"$(m_name)\"");
-                    }
-                }
-                else if (m_name.has_prefix("stats."))
-                {
-                    IStatisticsSkeleton stats = dlg.get_stats(caller_info);
-                    error("not implemented yet");
-                }
-                else
-                {
-                    ret = prepare_error("DeserializeError", "GENERIC", @"Unknown root in method name: \"$(m_name)\"");
-                }
-                return ret;
+                error("not implemented yet");
             }
 
         }
@@ -241,12 +344,28 @@ namespace AppDomain
 
         internal string prepare_return_value_null()
         {
-            error("not implemented yet");
+            var b = new Json.Builder();
+            b.begin_object()
+                .set_member_name("return-value").add_null_value()
+            .end_object();
+            var g = new Json.Generator();
+            g.pretty = false;
+            g.root = b.get_root();
+            return g.to_data(null);
         }
 
         internal string prepare_error(string domain, string code, string message)
         {
-            error("not implemented yet");
+            var b = new Json.Builder();
+            b.begin_object()
+                .set_member_name("error-domain").add_string_value(domain)
+                .set_member_name("error-code").add_string_value(code)
+                .set_member_name("error-message").add_string_value(message)
+            .end_object();
+            var g = new Json.Generator();
+            g.pretty = false;
+            g.root = b.get_root();
+            return g.to_data(null);
         }
     }
 }

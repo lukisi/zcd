@@ -31,6 +31,9 @@ NodeManager node
 Statistics stats
  ChildrenViewer children_viewer
   Gee.List<IDocument> list_leafs()
+Errors
+ AuthError(GENERIC)
+ BadArgsError(GENERIC,NULL_NOT_ALLOWED)
 
 ==========================================
  */
@@ -57,7 +60,8 @@ namespace AppDomain
     }
 
     public errordomain BadArgsError {
-        GENERIC
+        GENERIC,
+        NULL_NOT_ALLOWED
     }
 
     public class License : Object

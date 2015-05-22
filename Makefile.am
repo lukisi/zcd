@@ -100,6 +100,7 @@ mod_main_VALAFLAGS = \
 	--pkg tasklet \
 	--pkg gee-0.8 \
 	--pkg gio-2.0 \
+	--pkg json-glib-1.0 \
 	$(NULL)
 
 mod_main_CPPFLAGS = \
@@ -108,6 +109,7 @@ mod_main_CPPFLAGS = \
 	$(GEE_CFLAGS) \
 	$(GIO_CFLAGS) \
 	$(TASKLET_CFLAGS) \
+	$(JSON_CFLAGS) \
 	$(NULL)
 
 mod_main_LDADD = -lm \
@@ -115,6 +117,7 @@ mod_main_LDADD = -lm \
 	$(GIO_LIBS) \
 	$(GEE_LIBS) \
 	$(TASKLET_LIBS) \
+	$(JSON_LIBS) \
 	$(builddir)/libzcd.la \
 	$(NULL)
 
