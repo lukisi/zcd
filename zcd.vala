@@ -215,13 +215,17 @@ namespace zcd
                 {
                     r_buf.read_element(j);
                     if (!r_buf.is_object() && !r_buf.is_array()) throw new MessageError.MALFORMED("each argument must be a valid JSON tree");
-                    Json.Generator g = new Json.Generator();
-                    g.pretty = false;
-                    g.root = r_buf.get_value();
-                    args[j] = g.to_data(null);
                     r_buf.end_element();
                 }
                 r_buf.end_member();
+                for (int j = 0; j < args.length; j++)
+                {
+                    Json.Node cp = buf_rootnode.get_object().get_member("arguments").get_array().get_element(j).copy();
+                    Json.Generator g = new Json.Generator();
+                    g.pretty = false;
+                    g.root = cp;
+                    args[j] = g.to_data(null);
+                }
             } catch (Error e) {
                 // log message
                 warning(@"tcp_listen: Error parsing JSON of received message: $(e.message)");
@@ -396,11 +400,12 @@ namespace zcd
                 if (!r_buf.is_object()) throw new MessageError.MALFORMED("root must be an object");
                 if (!r_buf.read_member("response")) throw new MessageError.MALFORMED("root must have response");
                 if (!r_buf.is_object() && !r_buf.is_array()) throw new MessageError.MALFORMED("response must be a valid JSON tree");
+                r_buf.end_member();
+                Json.Node cp = buf_rootnode.get_object().get_member("response").copy();
                 Json.Generator g = new Json.Generator();
                 g.pretty = false;
-                g.root = r_buf.get_value();
+                g.root = cp;
                 result = g.to_data(null);
-                r_buf.end_member();
             } catch (Error e) {
                 // log message
                 warning(@"enqueue_call: Error parsing JSON of received response: $(e.message)");
