@@ -140,7 +140,7 @@ namespace AppDomain
                 this.peer_port = peer_port;
                 client = tcp_client(peer_address, peer_port);
                 hurry = false;
-                wait_reply = false;
+                wait_reply = true;
                 _info = new InfoManagerRemote(this.call);
             }
 
@@ -198,7 +198,7 @@ namespace AppDomain
             {
                 client = tcp_client(peer_address, peer_port);
                 hurry = false;
-                wait_reply = false;
+                wait_reply = true;
             }
 
             public bool hurry_getter()

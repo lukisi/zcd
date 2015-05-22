@@ -23,7 +23,7 @@ using AppDomain;
 void main(string[] args)
 {
     assert(Tasklet.init());
-    string prgname = args[0];
+    string prgname = args[1];
     if (prgname.has_suffix("server"))
     {
         server();
@@ -31,7 +31,7 @@ void main(string[] args)
     }
     else if (prgname.has_suffix("client"))
     {
-        client(args[1], 60296, args[2]);
+        client(args[2], 60296, args[3]);
     }
     else if (prgname.has_suffix("both"))
     {}
@@ -40,6 +40,7 @@ void main(string[] args)
 
 void client(string peer_ip, uint16 peer_port, string name)
 {
+    print("client\n");
     ModRpc.INodeManagerStub n = ModRpc.get_node_tcp_client(peer_ip, peer_port);
     try {
         if (n is ModRpc.ITcpClientRootStub)
@@ -66,6 +67,7 @@ void client(string peer_ip, uint16 peer_port, string name)
 
 void server()
 {
+    print("server\n");
     var del = new ServerSampleDelegate();
     var err = new ServerSampleErrorHandler();
     ModRpc.tcp_listen(del, err, 60296);
