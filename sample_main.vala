@@ -52,6 +52,13 @@ void main(string[] args)
     }
 
     assert(Tasklet.init());
+
+    // Initialize known serializable classes
+    typeof(License).class_peek();
+    typeof(UnicastID).class_peek();
+    typeof(BroadcastID).class_peek();
+    typeof(Document).class_peek();
+
     string mode = args[1];
     if (mode == "server")
     {
@@ -63,6 +70,10 @@ void main(string[] args)
         client(args[2], 60296, args[3]);
     }
     assert(Tasklet.kill());
+}
+
+class AppDomain.Document : Object, AppDomain.IDocument
+{
 }
 
 void client(string peer_ip, uint16 peer_port, string name)

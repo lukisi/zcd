@@ -2,7 +2,7 @@ NULL =
 ACLOCAL_AMFLAGS = -I m4
 
 noinst_PROGRAMS = \
-	mod_main \
+	sample_main \
 	$(NULL)
 
 lib_LTLIBRARIES = \
@@ -11,6 +11,7 @@ lib_LTLIBRARIES = \
 
 noinst_LTLIBRARIES = \
 	libmacgetter.la \
+	libsamplerpc.la \
 	$(NULL)
 
 EXTRA_PROGRAMS = \
@@ -88,22 +89,23 @@ tcp_server_LDADD = -lm \
 	$(builddir)/libzcd.la \
 	$(NULL)
 
-mod_main_SOURCES = \
-	mod_main.vala \
-	mod_interfaces.vala \
-	mod_skeleton.vala \
-	mod_stub.vala \
+libsamplerpc_la_SOURCES = \
+	sample_interfaces.vala \
+	sample_skeleton.vala \
+	sample_stub.vala \
 	zcd.vapi \
 	$(NULL)
 
-mod_main_VALAFLAGS = \
+libsamplerpc_la_VALAFLAGS = \
+	-H samplerpc.h \
+	--library samplerpc \
 	--pkg tasklet \
 	--pkg gee-0.8 \
 	--pkg gio-2.0 \
 	--pkg json-glib-1.0 \
 	$(NULL)
 
-mod_main_CPPFLAGS = \
+libsamplerpc_la_CPPFLAGS = \
 	-w \
 	$(GOBJECT_CFLAGS) \
 	$(GEE_CFLAGS) \
@@ -112,13 +114,43 @@ mod_main_CPPFLAGS = \
 	$(JSON_CFLAGS) \
 	$(NULL)
 
-mod_main_LDADD = -lm \
+libsamplerpc_la_LIBADD = \
 	$(GOBJECT_LIBS) \
 	$(GIO_LIBS) \
 	$(GEE_LIBS) \
 	$(TASKLET_LIBS) \
 	$(JSON_LIBS) \
 	$(builddir)/libzcd.la \
+	$(NULL)
+
+sample_main_SOURCES = \
+	sample_main.vala \
+	samplerpc.vapi \
+	$(NULL)
+
+sample_main_VALAFLAGS = \
+	--pkg tasklet \
+	--pkg gee-0.8 \
+	--pkg gio-2.0 \
+	--pkg json-glib-1.0 \
+	$(NULL)
+
+sample_main_CPPFLAGS = \
+	-w \
+	$(GOBJECT_CFLAGS) \
+	$(GEE_CFLAGS) \
+	$(GIO_CFLAGS) \
+	$(TASKLET_CFLAGS) \
+	$(JSON_CFLAGS) \
+	$(NULL)
+
+sample_main_LDADD = -lm \
+	$(GOBJECT_LIBS) \
+	$(GIO_LIBS) \
+	$(GEE_LIBS) \
+	$(TASKLET_LIBS) \
+	$(JSON_LIBS) \
+	$(builddir)/libsamplerpc.la \
 	$(NULL)
 
 
@@ -184,6 +216,8 @@ CLEANFILES = \
 DISTCLEANFILES = \
 	$(srcdir)/zcd.vapi \
 	$(NULL)
+
+samplerpc.vapi: libsamplerpc_la_vala.stamp
 
 zcd.vapi: libzcd_la_vala.stamp
 

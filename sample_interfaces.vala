@@ -44,17 +44,6 @@ using zcd;
 
 namespace AppDomain
 {
-    namespace ModRpc
-    {
-        public void init()
-        {
-            // Register serializable types
-            typeof(License).class_peek();
-            //typeof(BroadcastID).class_peek();
-            //typeof(UnicastID).class_peek();
-        }
-    }
-
     public errordomain AuthError {
         GENERIC
     }
