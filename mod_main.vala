@@ -20,21 +20,48 @@ using Tasklets;
 using Gee;
 using AppDomain;
 
+bool set_hurry;
+bool unset_wait_reply;
+bool throw_badargs_generic;
+bool throw_badargs_null;
+bool throw_auth_fail;
+
 void main(string[] args)
 {
+    set_hurry = false;
+    unset_wait_reply = false;
+    throw_badargs_generic = false;
+    throw_badargs_null = false;
+    throw_auth_fail = false;
+    OptionContext oc = new OptionContext("client/server server_ip name_to_set");
+    OptionEntry[] entries = new OptionEntry[6];
+    int index = 0;
+    entries[index++] = {"hurry", 0, 0, OptionArg.NONE, ref set_hurry, "Client: calls are urgents", null};
+    entries[index++] = {"dontwait", 0, 0, OptionArg.NONE, ref unset_wait_reply, "Client: don't wait for answer", null};
+    entries[index++] = {"badargs", 0, 0, OptionArg.NONE, ref throw_badargs_generic, "Server: throw BadArgsError GENERIC", null};
+    entries[index++] = {"null", 0, 0, OptionArg.NONE, ref throw_badargs_null, "Server: throw BadArgsError NULL_NOT_ALLOWED", null};
+    entries[index++] = {"auth", 0, 0, OptionArg.NONE, ref throw_auth_fail, "Server: throw AuthError GENERIC", null};
+    entries[index++] = { null };
+    oc.add_main_entries(entries, null);
+    try {
+        oc.parse(ref args);
+    }
+    catch (OptionError e) {
+        print(@"Error parsing options: $(e.message)\n");
+        return;
+    }
+
     assert(Tasklet.init());
-    string prgname = args[1];
-    if (prgname.has_suffix("server"))
+    string mode = args[1];
+    if (mode == "server")
     {
         server();
         ms_wait(10000);
     }
-    else if (prgname.has_suffix("client"))
+    else if (mode == "client")
     {
         client(args[2], 60296, args[3]);
     }
-    else if (prgname.has_suffix("both"))
-    {}
     assert(Tasklet.kill());
 }
 
@@ -42,24 +69,37 @@ void client(string peer_ip, uint16 peer_port, string name)
 {
     print("client\n");
     ModRpc.INodeManagerStub n = ModRpc.get_node_tcp_client(peer_ip, peer_port);
-    try {
-        if (n is ModRpc.ITcpClientRootStub)
+    if (n is ModRpc.ITcpClientRootStub)
+    {
+        unowned ModRpc.ITcpClientRootStub n_tcp = (ModRpc.ITcpClientRootStub)n;
+        print(@"hurry = $(n_tcp.hurry)\n");
+        if (set_hurry)
         {
-            unowned ModRpc.ITcpClientRootStub n_tcp = (ModRpc.ITcpClientRootStub)n;
-            print(@"hurry = $(n_tcp.hurry)\n");
-            print(@"wait_reply = $(n_tcp.wait_reply)\n");
+            n_tcp.hurry = true;
+            print(@"   changed: hurry = $(n_tcp.hurry)\n");
         }
+        print(@"wait_reply = $(n_tcp.wait_reply)\n");
+        if (unset_wait_reply)
+        {
+            n_tcp.wait_reply = false;
+            print(@"   changed: wait_reply = $(n_tcp.wait_reply)\n");
+        }
+    }
+    try {
         n.info.set_name(name);
         print("ok\n");
     } catch (AuthError e) {
         print(@"AuthError GENERIC $(e.message)\n");
     } catch (BadArgsError e) {
-        if (e is BadArgsError.GENERIC)
-            print(@"BadArgsError GENERIC $(e.message)\n");
-        else
+        if (e is BadArgsError.NULL_NOT_ALLOWED)
             print(@"BadArgsError NULL_NOT_ALLOWED $(e.message)\n");
+        else
+            print(@"BadArgsError GENERIC $(e.message)\n");
     } catch (ModRpc.StubError e) {
-        print(@"ModRpc.StubError GENERIC $(e.message)\n");
+        if (e is ModRpc.StubError.DID_NOT_WAIT_REPLY)
+            print(@"ModRpc.StubError DID_NOT_WAIT_REPLY $(e.message)\n");
+        else
+            print(@"ModRpc.StubError GENERIC $(e.message)\n");
     } catch (ModRpc.DeserializeError e) {
         print(@"ModRpc.DeserializeError GENERIC $(e.message)\n");
     }
@@ -137,7 +177,10 @@ class ServerSampleInfoManager : Object, ModRpc.IInfoManagerSkeleton
 
     public void set_name(string name, ModRpc.CallerInfo? caller=null) throws AuthError, BadArgsError
     {
-        // TODO
+        if (throw_auth_fail) throw new AuthError.GENERIC(@"I won't let you set name to $(name)");
+        if (throw_badargs_generic) throw new BadArgsError.GENERIC(@"'$(name)'? Seriously?");
+        if (throw_badargs_null) throw new BadArgsError.NULL_NOT_ALLOWED(@"NULL");
+        print(@"New value is $(name).\n");
     }
 
     public int get_year(ModRpc.CallerInfo? caller=null)

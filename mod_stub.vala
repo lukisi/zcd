@@ -26,6 +26,7 @@ namespace AppDomain
     {
         public errordomain StubError
         {
+            DID_NOT_WAIT_REPLY,
             GENERIC
         }
 
@@ -59,7 +60,7 @@ namespace AppDomain
             }
         }
 
-        internal delegate string FakeRmt(string m_name, Gee.List<string> arguments) throws ZCDError;
+        internal delegate string FakeRmt(string m_name, Gee.List<string> arguments) throws ZCDError, StubError;
 
         public interface IInfoManagerStub : Object
         {
@@ -174,7 +175,7 @@ namespace AppDomain
                 error("not implemented yet");
             }
 
-            private string call(string m_name, Gee.List<string> arguments) throws ZCDError
+            private string call(string m_name, Gee.List<string> arguments) throws ZCDError, StubError
             {
                 if (hurry && !client.is_queue_empty())
                 {
@@ -185,6 +186,7 @@ namespace AppDomain
                 //  local_reference is not needed.
                 TcpClient local_reference = client;
                 string ret = local_reference.enqueue_call(m_name, arguments, wait_reply);
+                if (!wait_reply) throw new StubError.DID_NOT_WAIT_REPLY(@"Didn't wait reply for a call to $(m_name)");
                 return ret;
             }
         }
@@ -257,6 +259,13 @@ namespace AppDomain
                     ret = rmt("node.info.set_name", args);
                 } catch (ZCDError e) {
                     throw new StubError.GENERIC(e.message);
+                } catch (StubError e) {
+                    if (e is StubError.DID_NOT_WAIT_REPLY)
+                    {
+                        // since return-value is void anyway...
+                        return;
+                    }
+                    else throw e;
                 }
                 // deserialize
                 Json.Parser p = new Json.Parser();
