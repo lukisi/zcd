@@ -239,7 +239,50 @@ namespace AppDomain
 
             public string get_name() throws StubError, DeserializeError
             {
-                error("not implemented yet");
+                string m_name = "node.info.get_name";
+                ArrayList<string> args = new ArrayList<string>();
+
+                string resp;
+                try {
+                    resp = rmt(m_name, args);
+                }
+                catch (ZCDError e) {
+                    throw new StubError.GENERIC(e.message);
+                }
+
+                // deserialize response
+                string ret = "";
+                bool ret_ok = false;
+                string? error_domain = null;
+                string? error_code = null;
+                string? error_message = null;
+                string doing = @"Reading return-value of $(m_name)";
+                deserialize_return_value(m_name, resp,
+                    (r) => {
+                        // response is a return-value
+                        if (r.get_null_value())
+                            throw new DeserializeError.GENERIC(@"$(doing): is not nullable");
+                        if (!r.is_value())
+                            throw new DeserializeError.GENERIC(@"$(doing): must be a string");
+                        if (r.get_value().get_value_type() != typeof(string))
+                            throw new DeserializeError.GENERIC(@"$(doing): must be a string");
+                        ret = r.get_string_value();
+                        ret_ok = true;
+                    },
+                    (_error_domain, _error_code, _error_message) => {
+                        // response is an error
+                        error_domain = _error_domain;
+                        error_code = _error_code;
+                        error_message = _error_message;
+                    }
+                );
+                if (error_domain != null)
+                {
+                    string error_domain_code = @"$(error_domain).$(error_code)";
+                    throw new DeserializeError.GENERIC(@"$(doing): unrecognized error $(error_domain_code) $(error_message)");
+                }
+                assert(ret_ok);
+                return ret;
             }
 
             public void set_name(string arg0) throws AuthError, BadArgsError, StubError, DeserializeError
@@ -278,7 +321,7 @@ namespace AppDomain
                     (r) => {
                         // response is a return-value
                         if (!r.get_null_value())
-                            throw new DeserializeError.GENERIC(@"$(doing): return-value must be null");
+                            throw new DeserializeError.GENERIC(@"$(doing): must be void");
                         ret_ok = true;
                     },
                     (_error_domain, _error_code, _error_message) => {
@@ -304,12 +347,112 @@ namespace AppDomain
 
             public int get_year() throws StubError, DeserializeError
             {
-                error("not implemented yet");
+                string m_name = "node.info.get_year";
+                ArrayList<string> args = new ArrayList<string>();
+
+                string resp;
+                try {
+                    resp = rmt(m_name, args);
+                }
+                catch (ZCDError e) {
+                    throw new StubError.GENERIC(e.message);
+                }
+
+                // deserialize response
+                int ret = 0;
+                bool ret_ok = false;
+                string? error_domain = null;
+                string? error_code = null;
+                string? error_message = null;
+                string doing = @"Reading return-value of $(m_name)";
+                deserialize_return_value(m_name, resp,
+                    (r) => {
+                        // response is a return-value
+                        if (r.get_null_value())
+                            throw new DeserializeError.GENERIC(@"$(doing): is not nullable");
+                        if (!r.is_value())
+                            throw new DeserializeError.GENERIC(@"$(doing): must be a int");
+                        if (r.get_value().get_value_type() != typeof(int64))
+                            throw new DeserializeError.GENERIC(@"$(doing): must be a int");
+                        int64 val = r.get_int_value();
+                        if (val > int.MAX || val < int.MIN)
+                            throw new DeserializeError.GENERIC(@"$(doing): overflows size of int");
+                        ret = (int)val;
+                        ret_ok = true;
+                    },
+                    (_error_domain, _error_code, _error_message) => {
+                        // response is an error
+                        error_domain = _error_domain;
+                        error_code = _error_code;
+                        error_message = _error_message;
+                    }
+                );
+                if (error_domain != null)
+                {
+                    string error_domain_code = @"$(error_domain).$(error_code)";
+                    throw new DeserializeError.GENERIC(@"$(doing): unrecognized error $(error_domain_code) $(error_message)");
+                }
+                assert(ret_ok);
+                return ret;
             }
 
-            public bool set_year(int year) throws StubError, DeserializeError
+            public bool set_year(int arg0) throws StubError, DeserializeError
             {
-                error("not implemented yet");
+                string m_name = "node.info.set_year";
+                ArrayList<string> args = new ArrayList<string>();
+                {
+                    // serialize arg0 (int year)
+                    Json.Builder b = new Json.Builder();
+                    b.begin_object()
+                        .set_member_name("argument").add_int_value(arg0)
+                    .end_object();
+                    Json.Generator g = new Json.Generator();
+                    g.pretty = false;
+                    g.root = b.get_root();
+                    args.add(g.to_data(null));
+                }
+
+                string resp;
+                try {
+                    resp = rmt(m_name, args);
+                }
+                catch (ZCDError e) {
+                    throw new StubError.GENERIC(e.message);
+                }
+
+                // deserialize response
+                bool ret = false;
+                bool ret_ok = false;
+                string? error_domain = null;
+                string? error_code = null;
+                string? error_message = null;
+                string doing = @"Reading return-value of $(m_name)";
+                deserialize_return_value(m_name, resp,
+                    (r) => {
+                        // response is a return-value
+                        if (r.get_null_value())
+                            throw new DeserializeError.GENERIC(@"$(doing): is not nullable");
+                        if (!r.is_value())
+                            throw new DeserializeError.GENERIC(@"$(doing): must be a boolean");
+                        if (r.get_value().get_value_type() != typeof(bool))
+                            throw new DeserializeError.GENERIC(@"$(doing): must be a boolean");
+                        ret = r.get_boolean_value();
+                        ret_ok = true;
+                    },
+                    (_error_domain, _error_code, _error_message) => {
+                        // response is an error
+                        error_domain = _error_domain;
+                        error_code = _error_code;
+                        error_message = _error_message;
+                    }
+                );
+                if (error_domain != null)
+                {
+                    string error_domain_code = @"$(error_domain).$(error_code)";
+                    throw new DeserializeError.GENERIC(@"$(doing): unrecognized error $(error_domain_code) $(error_message)");
+                }
+                assert(ret_ok);
+                return ret;
             }
 
             public License get_license() throws StubError, DeserializeError

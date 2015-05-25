@@ -200,7 +200,10 @@ namespace AppDomain
                 {
                     if (m_name == "node.info.get_name")
                     {
-                        error("not implemented yet");
+                        if (args.size != 0) throw new InSkeletonDeserializeError.GENERIC(@"Wrong number of arguments for $(m_name)");
+
+                        string result = node.info.get_name(caller_info);
+                        ret = prepare_return_value_string(result);
                     }
                     else if (m_name == "node.info.set_name")
                     {
@@ -263,11 +266,52 @@ namespace AppDomain
                     }
                     else if (m_name == "node.info.get_year")
                     {
-                        error("not implemented yet");
+                        if (args.size != 0) throw new InSkeletonDeserializeError.GENERIC(@"Wrong number of arguments for $(m_name)");
+
+                        int result = node.info.get_year(caller_info);
+                        ret = prepare_return_value_int64(result);
                     }
                     else if (m_name == "node.info.set_year")
                     {
-                        error("not implemented yet");
+                        if (args.size != 1) throw new InSkeletonDeserializeError.GENERIC(@"Wrong number of arguments for $(m_name)");
+
+                        // arguments:
+                        int year;
+                        // position:
+                        int j = 0;
+                        {
+                            // deserialize arg0 (int year)
+                            Json.Parser p = new Json.Parser();
+                            try {
+                                p.load_from_data(args[j]);
+                            } catch (Error e) {
+                                critical(@"Error parsing JSON for argument: $(e.message)");
+                                critical(@" method-name: $(m_name)");
+                                error(@" argument #$(j): $(args[j])");
+                            }
+                            Json.Reader r = new Json.Reader(p.get_root());
+                            string arg_name = "year";
+                            string doing = @"Reading argument '$(arg_name)' for $(m_name)";
+                            if (!r.is_object())
+                                throw new InSkeletonDeserializeError.GENERIC(@"$(doing): root JSON node must be an object");
+                            if (!r.read_member("argument"))
+                                throw new InSkeletonDeserializeError.GENERIC(@"$(doing): root JSON node must have argument");
+                            if (r.get_null_value())
+                                throw new InSkeletonDeserializeError.GENERIC(@"$(doing): argument is not nullable");
+                            if (!r.is_value())
+                                throw new InSkeletonDeserializeError.GENERIC(@"$(doing): argument must be a int");
+                            if (r.get_value().get_value_type() != typeof(int64))
+                                throw new InSkeletonDeserializeError.GENERIC(@"$(doing): argument must be a int");
+                            int64 val = r.get_int_value();
+                            if (val > int.MAX || val < int.MIN)
+                                throw new InSkeletonDeserializeError.GENERIC(@"$(doing): argument overflows size of int");
+                            year = (int)val;
+                            r.end_member();
+                            j++;
+                        }
+
+                        bool result = node.info.set_year(year, caller_info);
+                        ret = prepare_return_value_boolean(result);
                     }
                     else if (m_name == "node.info.get_license")
                     {

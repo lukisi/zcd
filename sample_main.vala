@@ -97,8 +97,21 @@ void client(string peer_ip, uint16 peer_port, string name)
         }
     }
     try {
+        print("calling set_name...\n");
         n.info.set_name(name);
         print("ok\n");
+        print("calling get_name...\n");
+        string _name = n.info.get_name();
+        print(@"name is '$(_name)'\n");
+        print("calling get_year...\n");
+        int _year = n.info.get_year();
+        print(@"year is $(_year)\n");
+        print("calling set_year(1971)...\n");
+        assert(n.info.set_year(1971));
+        print("ok\n");
+        print("calling get_year...\n");
+        _year = n.info.get_year();
+        print(@"year is $(_year)\n");
     } catch (AuthError e) {
         print(@"AuthError GENERIC $(e.message)\n");
     } catch (BadArgsError e) {
@@ -181,9 +194,11 @@ class ServerSampleNodeManager : Object, ModRpc.INodeManagerSkeleton
 
 class ServerSampleInfoManager : Object, ModRpc.IInfoManagerSkeleton
 {
+    private int year=0;
+    private string name="";
     public string get_name(ModRpc.CallerInfo? caller=null)
     {
-        error("not implemented yet");
+        return name;
     }
 
     public void set_name(string name, ModRpc.CallerInfo? caller=null) throws AuthError, BadArgsError
@@ -192,16 +207,18 @@ class ServerSampleInfoManager : Object, ModRpc.IInfoManagerSkeleton
         if (throw_badargs_generic) throw new BadArgsError.GENERIC(@"'$(name)'? Seriously?");
         if (throw_badargs_null) throw new BadArgsError.NULL_NOT_ALLOWED(@"NULL");
         print(@"New value is $(name).\n");
+        this.name = name;
     }
 
     public int get_year(ModRpc.CallerInfo? caller=null)
     {
-        error("not implemented yet");
+        return year;
     }
 
     public bool set_year(int year, ModRpc.CallerInfo? caller=null)
     {
-        error("not implemented yet");
+        this.year = year;
+        return true;
     }
 
     public License get_license(ModRpc.CallerInfo? caller=null)
