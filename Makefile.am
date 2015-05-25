@@ -11,6 +11,7 @@ lib_LTLIBRARIES = \
 
 noinst_LTLIBRARIES = \
 	libmacgetter.la \
+	libhelperrpc.la \
 	libsamplerpc.la \
 	$(NULL)
 
@@ -89,10 +90,38 @@ tcp_server_LDADD = -lm \
 	$(builddir)/libzcd.la \
 	$(NULL)
 
+libhelperrpc_la_SOURCES = \
+	sample_helpers.vala \
+	$(NULL)
+
+libhelperrpc_la_VALAFLAGS = \
+	-H helperrpc.h \
+	--library helperrpc \
+	--pkg gee-0.8 \
+	--pkg gio-2.0 \
+	--pkg json-glib-1.0 \
+	$(NULL)
+
+libhelperrpc_la_CPPFLAGS = \
+	-w \
+	$(GOBJECT_CFLAGS) \
+	$(GEE_CFLAGS) \
+	$(GIO_CFLAGS) \
+	$(JSON_CFLAGS) \
+	$(NULL)
+
+libhelperrpc_la_LIBADD = \
+	$(GOBJECT_LIBS) \
+	$(GIO_LIBS) \
+	$(GEE_LIBS) \
+	$(JSON_LIBS) \
+	$(NULL)
+
 libsamplerpc_la_SOURCES = \
 	sample_interfaces.vala \
 	sample_skeleton.vala \
 	sample_stub.vala \
+	helperrpc.vapi \
 	zcd.vapi \
 	$(NULL)
 
@@ -120,6 +149,7 @@ libsamplerpc_la_LIBADD = \
 	$(GEE_LIBS) \
 	$(TASKLET_LIBS) \
 	$(JSON_LIBS) \
+	$(builddir)/libhelperrpc.la \
 	$(builddir)/libzcd.la \
 	$(NULL)
 
@@ -214,8 +244,15 @@ CLEANFILES = \
 	$(NULL)
 
 DISTCLEANFILES = \
+	$(srcdir)/helperrpc.vapi \
+	$(srcdir)/samplerpc.vapi \
+	$(NULL)
+
+MAINTAINERCLEANFILES = \
 	$(srcdir)/zcd.vapi \
 	$(NULL)
+
+helperrpc.vapi: libhelperrpc_la_vala.stamp
 
 samplerpc.vapi: libsamplerpc_la_vala.stamp
 

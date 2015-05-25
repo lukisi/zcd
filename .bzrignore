@@ -2,6 +2,9 @@ m4/*
 zcd.c
 zcd.h
 zcd.vapi
+sample_helpers.c
+helperrpc.h
+helperrpc.vapi
 sample_interfaces.c
 sample_skeleton.c
 sample_stub.c

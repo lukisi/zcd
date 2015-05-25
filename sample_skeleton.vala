@@ -316,11 +316,21 @@ namespace AppDomain
                 this.caller_info = caller_info;
             }
 
-            public string execute()
+            private string execute_or_throw_deserialize() throws InSkeletonDeserializeError
             {
                 error("not implemented yet");
             }
 
+            public string execute()
+            {
+                string ret;
+                try {
+                    ret = execute_or_throw_deserialize();
+                } catch(InSkeletonDeserializeError e) {
+                    ret = prepare_error("DeserializeError", "GENERIC", e.message);
+                }
+                return ret;
+            }
         }
 
         internal class ZcdTcpAcceptErrorHandler : Object, IZcdTcpAcceptErrorHandler
@@ -340,32 +350,6 @@ namespace AppDomain
         public void tcp_listen(IRpcDelegate dlg, IRpcErrorHandler err, uint16 port, string? my_addr = null)
         {
             zcd.tcp_listen(new ZcdTcpDelegate(dlg), new ZcdTcpAcceptErrorHandler(err), port, my_addr);
-        }
-
-        internal string prepare_return_value_null()
-        {
-            var b = new Json.Builder();
-            b.begin_object()
-                .set_member_name("return-value").add_null_value()
-            .end_object();
-            var g = new Json.Generator();
-            g.pretty = false;
-            g.root = b.get_root();
-            return g.to_data(null);
-        }
-
-        internal string prepare_error(string domain, string code, string message)
-        {
-            var b = new Json.Builder();
-            b.begin_object()
-                .set_member_name("error-domain").add_string_value(domain)
-                .set_member_name("error-code").add_string_value(code)
-                .set_member_name("error-message").add_string_value(message)
-            .end_object();
-            var g = new Json.Generator();
-            g.pretty = false;
-            g.root = b.get_root();
-            return g.to_data(null);
         }
     }
 }
