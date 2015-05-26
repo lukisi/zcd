@@ -35,6 +35,11 @@ namespace AppDomain
             GENERIC
         }
 
+        public interface ISerializable : Object
+        {
+            public abstract bool check_serialization();
+        }
+
         public interface ITcpClientRootStub : Object
         {
             protected abstract bool hurry_getter();
@@ -394,7 +399,39 @@ namespace AppDomain
 
             public License get_license() throws StubError, DeserializeError
             {
-                error("not implemented yet");
+                string m_name = "node.info.get_license";
+                ArrayList<string> args = new ArrayList<string>();
+
+                string resp;
+                try {
+                    resp = rmt(m_name, args);
+                }
+                catch (ZCDError e) {
+                    throw new StubError.GENERIC(e.message);
+                }
+
+                // deserialize response
+                string? error_domain = null;
+                string? error_code = null;
+                string? error_message = null;
+                string doing = @"Reading return-value of $(m_name)";
+                Object ret;
+                try {
+                    ret = read_return_value_object_notnull(typeof(License), resp, out error_domain, out error_code, out error_message);
+                } catch (HelperNotJsonError e) {
+                    error(@"Error parsing JSON for return-value of $(m_name): $(e.message)");
+                } catch (HelperDeserializeError e) {
+                    throw new DeserializeError.GENERIC(@"$(doing): $(e.message)");
+                }
+                if (error_domain != null)
+                {
+                    string error_domain_code = @"$(error_domain).$(error_code)";
+                    throw new DeserializeError.GENERIC(@"$(doing): unrecognized error $(error_domain_code) $(error_message)");
+                }
+                if (ret is ISerializable)
+                    if (!((ISerializable)ret).check_serialization())
+                        throw new DeserializeError.GENERIC(@"$(doing): instance of $(ret.get_type().name()) has not been fully deserialized");
+                return (License)ret;
             }
         }
     }

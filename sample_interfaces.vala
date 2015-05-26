@@ -55,6 +55,7 @@ namespace AppDomain
 
     public class License : Object
     {
+        public string name {get; set;}
     }
 
     public interface IDocument : Object

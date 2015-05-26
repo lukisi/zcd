@@ -565,7 +565,7 @@ namespace zcd
             try {
                 p.load_from_data(result);
             } catch (Error e) {
-                warning(@"Error parsing JSON for response: $(e.message)");
+                critical(@"Error parsing JSON for response: $(e.message)");
                 error(@" response: $(result)");
             }
             unowned Json.Node p_rootnode = p.get_root();

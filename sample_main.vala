@@ -112,6 +112,8 @@ void client(string peer_ip, uint16 peer_port, string name)
         print("calling get_year...\n");
         _year = n.info.get_year();
         print(@"year is $(_year)\n");
+        License lc = n.info.get_license();
+        print(@"License name: $(lc.name)\n");
     } catch (AuthError e) {
         print(@"AuthError GENERIC $(e.message)\n");
     } catch (BadArgsError e) {
@@ -223,7 +225,9 @@ class ServerSampleInfoManager : Object, ModRpc.IInfoManagerSkeleton
 
     public License get_license(ModRpc.CallerInfo? caller=null)
     {
-        error("not implemented yet");
+        License r = new License();
+        r.name = "GPLv3";
+        return r;
     }
 
 }

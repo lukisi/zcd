@@ -285,7 +285,10 @@ namespace AppDomain
                     }
                     else if (m_name == "node.info.get_license")
                     {
-                        error("not implemented yet");
+                        if (args.size != 0) throw new InSkeletonDeserializeError.GENERIC(@"Wrong number of arguments for $(m_name)");
+
+                        License result = node.info.get_license(caller_info);
+                        ret = prepare_return_value_object(result);
                     }
                     else
                     {

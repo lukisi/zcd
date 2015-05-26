@@ -30,6 +30,12 @@ namespace AppDomain
             GENERIC
         }
 
+        public delegate
+         void ReadJsonNode(Json.Reader r) throws HelperDeserializeError;
+
+        public delegate
+         void BuildJsonNode(Json.Builder b);
+
         /* Helper functions to build JSON arguments */
 
         public string prepare_argument(BuildJsonNode cb)
@@ -80,10 +86,28 @@ namespace AppDomain
             });
         }
 
-        /* Helper functions to read JSON arguments */
+        public string prepare_argument_binary(uint8[] buf)
+        {
+            string s = Base64.encode((uchar[])buf);
+            return prepare_argument((b) => {
+                b.add_string_value(s);
+            });
+        }
 
-        public delegate
-         void ReadJsonNode(Json.Reader r) throws HelperDeserializeError;
+        public string prepare_argument_object(Object obj)
+        {
+            return prepare_argument((b) => {
+                b.begin_object();
+                b.set_member_name("typename");
+                b.add_string_value(obj.get_type().name());
+                b.set_member_name("value");
+                Json.Node* obj_n = Json.gobject_serialize(obj);
+                b.add_value(obj_n);
+                b.end_object();
+            });
+        }
+
+        /* Helper functions to read JSON arguments */
 
         public void read_argument(string js, ReadJsonNode cb) throws HelperDeserializeError, HelperNotJsonError
         {
@@ -136,6 +160,74 @@ namespace AppDomain
             return ret;
         }
 
+        public double? read_argument_double_maybe(string js) throws HelperDeserializeError, HelperNotJsonError
+        {
+            return read_argument_double(js, true);
+        }
+
+        public double read_argument_double_notnull(string js) throws HelperDeserializeError, HelperNotJsonError
+        {
+            return read_argument_double(js, false);
+        }
+
+        internal double? read_argument_double(string js, bool nullable) throws HelperDeserializeError, HelperNotJsonError
+        {
+            double? ret = null;
+            bool ret_ok = false;
+            read_argument(js, (r) => {
+                if (r.get_null_value())
+                {
+                    if (!nullable)
+                        throw new HelperDeserializeError.GENERIC(@"argument is not nullable");
+                    ret = null;
+                    ret_ok = true;
+                    return;
+                }
+                if (!r.is_value())
+                    throw new HelperDeserializeError.GENERIC(@"argument must be a int");
+                if (r.get_value().get_value_type() != typeof(double))
+                    throw new HelperDeserializeError.GENERIC(@"argument must be a int");
+                ret = r.get_double_value();
+                ret_ok = true;
+            });
+            assert(ret_ok);
+            return ret;
+        }
+
+        public bool? read_argument_bool_maybe(string js) throws HelperDeserializeError, HelperNotJsonError
+        {
+            return read_argument_bool(js, true);
+        }
+
+        public bool read_argument_bool_notnull(string js) throws HelperDeserializeError, HelperNotJsonError
+        {
+            return read_argument_bool(js, false);
+        }
+
+        internal bool? read_argument_bool(string js, bool nullable) throws HelperDeserializeError, HelperNotJsonError
+        {
+            bool? ret = null;
+            bool ret_ok = false;
+            read_argument(js, (r) => {
+                if (r.get_null_value())
+                {
+                    if (!nullable)
+                        throw new HelperDeserializeError.GENERIC(@"argument is not nullable");
+                    ret = null;
+                    ret_ok = true;
+                    return;
+                }
+                if (!r.is_value())
+                    throw new HelperDeserializeError.GENERIC(@"argument must be a int");
+                if (r.get_value().get_value_type() != typeof(int64))
+                    throw new HelperDeserializeError.GENERIC(@"argument must be a int");
+                ret = r.get_boolean_value();
+                ret_ok = true;
+            });
+            assert(ret_ok);
+            return ret;
+        }
+
         public string? read_argument_string_maybe(string js) throws HelperDeserializeError, HelperNotJsonError
         {
             return read_argument_string(js, true);
@@ -144,6 +236,21 @@ namespace AppDomain
         public string read_argument_string_notnull(string js) throws HelperDeserializeError, HelperNotJsonError
         {
             return read_argument_string(js, false);
+        }
+
+        public uint8[]? read_argument_binary_maybe(string js) throws HelperDeserializeError, HelperNotJsonError
+        {
+            string? s = read_argument_string(js, true);
+            if (s == null) return null;
+            uint8[] buf = (uint8[])Base64.decode(s);
+            return buf;
+        }
+
+        public uint8[] read_argument_binary_notnull(string js) throws HelperDeserializeError, HelperNotJsonError
+        {
+            string s = read_argument_string(js, false);
+            uint8[] buf = (uint8[])Base64.decode(s);
+            return buf;
         }
 
         internal string? read_argument_string(string js, bool nullable) throws HelperDeserializeError, HelperNotJsonError
@@ -170,10 +277,69 @@ namespace AppDomain
             return ret;
         }
 
-        /* Helper functions to return JSON responses */
+        public Object? read_argument_object_maybe(Type expected_type, string js) throws HelperDeserializeError, HelperNotJsonError
+        {
+            return read_argument_object(expected_type, js, true);
+        }
 
-        public delegate
-         void BuildJsonNode(Json.Builder b);
+        public Object read_argument_object_notnull(Type expected_type, string js) throws HelperDeserializeError, HelperNotJsonError
+        {
+            return read_argument_object(expected_type, js, false);
+        }
+
+        internal Object? read_argument_object
+         (Type expected_type, string js, bool nullable)
+         throws HelperDeserializeError, HelperNotJsonError
+        {
+            Object? ret = null;
+            bool ret_ok = false;
+            read_argument(js, (r) => {
+
+                if (r.get_null_value())
+                {
+                    if (!nullable)
+                        throw new HelperDeserializeError.GENERIC(@"argument is not nullable");
+                    ret = null;
+                    ret_ok = true;
+                    return;
+                }
+                if (!r.is_object())
+                    throw new HelperDeserializeError.GENERIC(@"argument must be an object");
+                string typename;
+                if (!r.read_member("typename"))
+                    throw new HelperDeserializeError.GENERIC("argument must have typename");
+                if (!r.is_value())
+                    throw new HelperDeserializeError.GENERIC("typename must be a string");
+                if (r.get_value().get_value_type() != typeof(string))
+                    throw new HelperDeserializeError.GENERIC("typename must be a string");
+                typename = r.get_string_value();
+                r.end_member();
+                Type type = Type.from_name(typename);
+                if (type == 0)
+                    throw new HelperDeserializeError.GENERIC(@"typename '$(typename)' unknown class");
+                if (!type.is_a(expected_type))
+                    throw new HelperDeserializeError.GENERIC(@"typename '$(typename)' is not a '$(expected_type.name())'");
+                if (!r.read_member("value"))
+                    throw new HelperDeserializeError.GENERIC("argument must have value");
+                r.end_member();
+                // find node, copy tree, deserialize
+                Json.Parser p = new Json.Parser();
+                try {
+                    p.load_from_data(js);
+                } catch (Error e) {
+                    assert_not_reached();
+                }
+                unowned Json.Node p_root = p.get_root();
+                unowned Json.Node p_value = p_root.get_object().get_member("argument").get_object().get_member("value");
+                Json.Node cp_value = p_value.copy();
+                ret = Json.gobject_deserialize(type, cp_value);
+                ret_ok = true;
+            });
+            assert(ret_ok);
+            return ret;
+        }
+
+        /* Helper functions to return JSON responses */
 
         public string prepare_return_value(BuildJsonNode cb)
         {
@@ -220,6 +386,27 @@ namespace AppDomain
         {
             return prepare_return_value((b) => {
                 b.add_string_value(s);
+            });
+        }
+
+        public string prepare_return_value_binary(uint8[] buf)
+        {
+            string s = Base64.encode((uchar[])buf);
+            return prepare_return_value((b) => {
+                b.add_string_value(s);
+            });
+        }
+
+        public string prepare_return_value_object(Object obj)
+        {
+            return prepare_return_value((b) => {
+                b.begin_object();
+                b.set_member_name("typename");
+                b.add_string_value(obj.get_type().name());
+                b.set_member_name("value");
+                Json.Node* obj_n = Json.gobject_serialize(obj);
+                b.add_value(obj_n);
+                b.end_object();
             });
         }
 
@@ -446,6 +633,25 @@ namespace AppDomain
             return read_return_value_string(js, false, out error_domain, out error_code, out error_message);
         }
 
+        public uint8[]? read_return_value_binary_maybe
+            (string js, out string? error_domain, out string? error_code, out string? error_message)
+            throws HelperDeserializeError, HelperNotJsonError
+        {
+            string? s = read_return_value_string(js, true, out error_domain, out error_code, out error_message);
+            if (s == null) return null;
+            uint8[] buf = (uint8[])Base64.decode(s);
+            return buf;
+        }
+
+        public uint8[] read_return_value_binary_notnull
+            (string js, out string? error_domain, out string? error_code, out string? error_message)
+            throws HelperDeserializeError, HelperNotJsonError
+        {
+            string s = read_return_value_string(js, false, out error_domain, out error_code, out error_message);
+            uint8[] buf = (uint8[])Base64.decode(s);
+            return buf;
+        }
+
         internal string? read_return_value_string
             (string js, bool nullable, out string? error_domain, out string? error_code, out string? error_message)
             throws HelperDeserializeError, HelperNotJsonError
@@ -466,6 +672,71 @@ namespace AppDomain
                 if (r.get_value().get_value_type() != typeof(string))
                     throw new HelperDeserializeError.GENERIC(@"return-value must be a string");
                 ret = r.get_string_value();
+                ret_ok = true;
+            }, out error_domain, out error_code, out error_message);
+            if (error_domain == null) assert(ret_ok);
+            return ret;
+        }
+
+        public Object? read_return_value_object_maybe
+            (Type expected_type, string js, out string? error_domain, out string? error_code, out string? error_message)
+            throws HelperDeserializeError, HelperNotJsonError
+        {
+            return read_return_value_object(expected_type, js, true, out error_domain, out error_code, out error_message);
+        }
+
+        public Object read_return_value_object_notnull
+            (Type expected_type, string js, out string? error_domain, out string? error_code, out string? error_message)
+            throws HelperDeserializeError, HelperNotJsonError
+        {
+            return read_return_value_object(expected_type, js, false, out error_domain, out error_code, out error_message);
+        }
+
+        internal Object? read_return_value_object
+            (Type expected_type, string js, bool nullable, out string? error_domain, out string? error_code, out string? error_message)
+            throws HelperDeserializeError, HelperNotJsonError
+        {
+            Object? ret = null;
+            bool ret_ok = false;
+            read_return_value(js, (r) => {
+                if (r.get_null_value())
+                {
+                    if (!nullable)
+                        throw new HelperDeserializeError.GENERIC(@"return-value is not nullable");
+                    ret = null;
+                    ret_ok = true;
+                    return;
+                }
+                if (!r.is_object())
+                    throw new HelperDeserializeError.GENERIC(@"return-value must be an object");
+                string typename;
+                if (!r.read_member("typename"))
+                    throw new HelperDeserializeError.GENERIC("return-value must have typename");
+                if (!r.is_value())
+                    throw new HelperDeserializeError.GENERIC("typename must be a string");
+                if (r.get_value().get_value_type() != typeof(string))
+                    throw new HelperDeserializeError.GENERIC("typename must be a string");
+                typename = r.get_string_value();
+                r.end_member();
+                Type type = Type.from_name(typename);
+                if (type == 0)
+                    throw new HelperDeserializeError.GENERIC(@"typename '$(typename)' unknown class");
+                if (!type.is_a(expected_type))
+                    throw new HelperDeserializeError.GENERIC(@"typename '$(typename)' is not a '$(expected_type.name())'");
+                if (!r.read_member("value"))
+                    throw new HelperDeserializeError.GENERIC("return-value must have value");
+                r.end_member();
+                // find node, copy tree, deserialize
+                Json.Parser p = new Json.Parser();
+                try {
+                    p.load_from_data(js);
+                } catch (Error e) {
+                    assert_not_reached();
+                }
+                unowned Json.Node p_root = p.get_root();
+                unowned Json.Node p_value = p_root.get_object().get_member("return-value").get_object().get_member("value");
+                Json.Node cp_value = p_value.copy();
+                ret = Json.gobject_deserialize(type, cp_value);
                 ret_ok = true;
             }, out error_domain, out error_code, out error_message);
             if (error_domain == null) assert(ret_ok);
