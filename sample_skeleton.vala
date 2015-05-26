@@ -209,47 +209,28 @@ namespace AppDomain
                     {
                         if (args.size != 1) throw new InSkeletonDeserializeError.GENERIC(@"Wrong number of arguments for $(m_name)");
 
-                        var p = new Json.Parser[args.size];
-                        var r = new Json.Reader[args.size];
-                        int j;
-                        for (j = 0; j < args.size; j++)
+                        // arguments:
+                        string arg0;
+                        // position:
+                        int j = 0;
                         {
-                            p[j] = new Json.Parser();
+                            // deserialize arg0 (string name)
+                            string arg_name = "name";
+                            string doing = @"Reading argument '$(arg_name)' for $(m_name)";
                             try {
-                                p[j].load_from_data(args[j]);
-                            } catch (Error e) {
+                                arg0 = read_argument_string_notnull(args[j]);
+                            } catch (HelperNotJsonError e) {
                                 critical(@"Error parsing JSON for argument: $(e.message)");
                                 critical(@" method-name: $(m_name)");
                                 error(@" argument #$(j): $(args[j])");
+                            } catch (HelperDeserializeError e) {
+                                throw new InSkeletonDeserializeError.GENERIC(@"$(doing): $(e.message)");
                             }
-                            r[j] = new Json.Reader(p[j].get_root());
+                            j++;
                         }
-                        string arg_name;
-                        string doing;
-                        j = 0;
-
-                        arg_name = "name";
-                        string name;
-                        Json.Reader rj = r[j];
-                        doing = @"Reading argument '$(arg_name)' for $(m_name)";
-                        if (!rj.is_object())
-                            throw new InSkeletonDeserializeError.GENERIC(@"$(doing): root JSON node must be an object");
-                        if (!rj.read_member("argument"))
-                            throw new InSkeletonDeserializeError.GENERIC(@"$(doing): root JSON node must have argument");
-                        if (rj.get_null_value())
-                            throw new InSkeletonDeserializeError.GENERIC(@"$(doing): argument is not nullable");
-                        if (!rj.is_value())
-                            throw new InSkeletonDeserializeError.GENERIC(@"$(doing): argument must be a string");
-                        if (rj.get_value().get_value_type() != typeof(string))
-                            throw new InSkeletonDeserializeError.GENERIC(@"$(doing): argument must be a string");
-                        name = rj.get_string_value();
-                        rj.end_member();
-                        j++;
-
-                        // arg_name = "another_arg"; ...
 
                         try {
-                            node.info.set_name(name, caller_info);
+                            node.info.set_name(arg0, caller_info);
                             ret = prepare_return_value_null();
                         } catch (AuthError e) {
                             string code = "";
@@ -276,41 +257,30 @@ namespace AppDomain
                         if (args.size != 1) throw new InSkeletonDeserializeError.GENERIC(@"Wrong number of arguments for $(m_name)");
 
                         // arguments:
-                        int year;
+                        int arg0;
                         // position:
                         int j = 0;
                         {
                             // deserialize arg0 (int year)
-                            Json.Parser p = new Json.Parser();
+                            string arg_name = "year";
+                            string doing = @"Reading argument '$(arg_name)' for $(m_name)";
+                            int64 val;
                             try {
-                                p.load_from_data(args[j]);
-                            } catch (Error e) {
+                                val = read_argument_int64_notnull(args[j]);
+                            } catch (HelperNotJsonError e) {
                                 critical(@"Error parsing JSON for argument: $(e.message)");
                                 critical(@" method-name: $(m_name)");
                                 error(@" argument #$(j): $(args[j])");
+                            } catch (HelperDeserializeError e) {
+                                throw new InSkeletonDeserializeError.GENERIC(@"$(doing): $(e.message)");
                             }
-                            Json.Reader r = new Json.Reader(p.get_root());
-                            string arg_name = "year";
-                            string doing = @"Reading argument '$(arg_name)' for $(m_name)";
-                            if (!r.is_object())
-                                throw new InSkeletonDeserializeError.GENERIC(@"$(doing): root JSON node must be an object");
-                            if (!r.read_member("argument"))
-                                throw new InSkeletonDeserializeError.GENERIC(@"$(doing): root JSON node must have argument");
-                            if (r.get_null_value())
-                                throw new InSkeletonDeserializeError.GENERIC(@"$(doing): argument is not nullable");
-                            if (!r.is_value())
-                                throw new InSkeletonDeserializeError.GENERIC(@"$(doing): argument must be a int");
-                            if (r.get_value().get_value_type() != typeof(int64))
-                                throw new InSkeletonDeserializeError.GENERIC(@"$(doing): argument must be a int");
-                            int64 val = r.get_int_value();
                             if (val > int.MAX || val < int.MIN)
                                 throw new InSkeletonDeserializeError.GENERIC(@"$(doing): argument overflows size of int");
-                            year = (int)val;
-                            r.end_member();
+                            arg0 = (int)val;
                             j++;
                         }
 
-                        bool result = node.info.set_year(year, caller_info);
+                        bool result = node.info.set_year(arg0, caller_info);
                         ret = prepare_return_value_boolean(result);
                     }
                     else if (m_name == "node.info.get_license")

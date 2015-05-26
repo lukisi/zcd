@@ -251,37 +251,23 @@ namespace AppDomain
                 }
 
                 // deserialize response
-                string ret = "";
-                bool ret_ok = false;
                 string? error_domain = null;
                 string? error_code = null;
                 string? error_message = null;
                 string doing = @"Reading return-value of $(m_name)";
-                deserialize_return_value(m_name, resp,
-                    (r) => {
-                        // response is a return-value
-                        if (r.get_null_value())
-                            throw new DeserializeError.GENERIC(@"$(doing): is not nullable");
-                        if (!r.is_value())
-                            throw new DeserializeError.GENERIC(@"$(doing): must be a string");
-                        if (r.get_value().get_value_type() != typeof(string))
-                            throw new DeserializeError.GENERIC(@"$(doing): must be a string");
-                        ret = r.get_string_value();
-                        ret_ok = true;
-                    },
-                    (_error_domain, _error_code, _error_message) => {
-                        // response is an error
-                        error_domain = _error_domain;
-                        error_code = _error_code;
-                        error_message = _error_message;
-                    }
-                );
+                string ret;
+                try {
+                    ret = read_return_value_string_notnull(resp, out error_domain, out error_code, out error_message);
+                } catch (HelperNotJsonError e) {
+                    error(@"Error parsing JSON for return-value of $(m_name): $(e.message)");
+                } catch (HelperDeserializeError e) {
+                    throw new DeserializeError.GENERIC(@"$(doing): $(e.message)");
+                }
                 if (error_domain != null)
                 {
                     string error_domain_code = @"$(error_domain).$(error_code)";
                     throw new DeserializeError.GENERIC(@"$(doing): unrecognized error $(error_domain_code) $(error_message)");
                 }
-                assert(ret_ok);
                 return ret;
             }
 
@@ -291,14 +277,7 @@ namespace AppDomain
                 ArrayList<string> args = new ArrayList<string>();
                 {
                     // serialize arg0 (string name)
-                    Json.Builder b = new Json.Builder();
-                    b.begin_object()
-                        .set_member_name("argument").add_string_value(arg0)
-                    .end_object();
-                    Json.Generator g = new Json.Generator();
-                    g.pretty = false;
-                    g.root = b.get_root();
-                    args.add(g.to_data(null));
+                    args.add(prepare_argument_string(arg0));
                 }
 
                 string resp;
@@ -312,25 +291,17 @@ namespace AppDomain
                 catch (StubError.DID_NOT_WAIT_REPLY e) {return;}
 
                 // deserialize response
-                bool ret_ok = false;
                 string? error_domain = null;
                 string? error_code = null;
                 string? error_message = null;
                 string doing = @"Reading return-value of $(m_name)";
-                deserialize_return_value(m_name, resp,
-                    (r) => {
-                        // response is a return-value
-                        if (!r.get_null_value())
-                            throw new DeserializeError.GENERIC(@"$(doing): must be void");
-                        ret_ok = true;
-                    },
-                    (_error_domain, _error_code, _error_message) => {
-                        // response is an error
-                        error_domain = _error_domain;
-                        error_code = _error_code;
-                        error_message = _error_message;
-                    }
-                );
+                try {
+                    read_return_value_void(resp, out error_domain, out error_code, out error_message);
+                } catch (HelperNotJsonError e) {
+                    error(@"Error parsing JSON for return-value of $(m_name): $(e.message)");
+                } catch (HelperDeserializeError e) {
+                    throw new DeserializeError.GENERIC(@"$(doing): $(e.message)");
+                }
                 if (error_domain != null)
                 {
                     string error_domain_code = @"$(error_domain).$(error_code)";
@@ -342,7 +313,7 @@ namespace AppDomain
                         throw new BadArgsError.NULL_NOT_ALLOWED(error_message);
                     throw new DeserializeError.GENERIC(@"$(doing): unrecognized error $(error_domain_code) $(error_message)");
                 }
-                assert(ret_ok);
+                return;
             }
 
             public int get_year() throws StubError, DeserializeError
@@ -359,40 +330,27 @@ namespace AppDomain
                 }
 
                 // deserialize response
-                int ret = 0;
-                bool ret_ok = false;
                 string? error_domain = null;
                 string? error_code = null;
                 string? error_message = null;
                 string doing = @"Reading return-value of $(m_name)";
-                deserialize_return_value(m_name, resp,
-                    (r) => {
-                        // response is a return-value
-                        if (r.get_null_value())
-                            throw new DeserializeError.GENERIC(@"$(doing): is not nullable");
-                        if (!r.is_value())
-                            throw new DeserializeError.GENERIC(@"$(doing): must be a int");
-                        if (r.get_value().get_value_type() != typeof(int64))
-                            throw new DeserializeError.GENERIC(@"$(doing): must be a int");
-                        int64 val = r.get_int_value();
-                        if (val > int.MAX || val < int.MIN)
-                            throw new DeserializeError.GENERIC(@"$(doing): overflows size of int");
-                        ret = (int)val;
-                        ret_ok = true;
-                    },
-                    (_error_domain, _error_code, _error_message) => {
-                        // response is an error
-                        error_domain = _error_domain;
-                        error_code = _error_code;
-                        error_message = _error_message;
-                    }
-                );
+                int ret;
+                int64 val;
+                try {
+                    val = read_return_value_int64_notnull(resp, out error_domain, out error_code, out error_message);
+                } catch (HelperNotJsonError e) {
+                    error(@"Error parsing JSON for return-value of $(m_name): $(e.message)");
+                } catch (HelperDeserializeError e) {
+                    throw new DeserializeError.GENERIC(@"$(doing): $(e.message)");
+                }
                 if (error_domain != null)
                 {
                     string error_domain_code = @"$(error_domain).$(error_code)";
                     throw new DeserializeError.GENERIC(@"$(doing): unrecognized error $(error_domain_code) $(error_message)");
                 }
-                assert(ret_ok);
+                if (val > int.MAX || val < int.MIN)
+                    throw new DeserializeError.GENERIC(@"$(doing): return-value overflows size of int");
+                ret = (int)val;
                 return ret;
             }
 
@@ -402,14 +360,7 @@ namespace AppDomain
                 ArrayList<string> args = new ArrayList<string>();
                 {
                     // serialize arg0 (int year)
-                    Json.Builder b = new Json.Builder();
-                    b.begin_object()
-                        .set_member_name("argument").add_int_value(arg0)
-                    .end_object();
-                    Json.Generator g = new Json.Generator();
-                    g.pretty = false;
-                    g.root = b.get_root();
-                    args.add(g.to_data(null));
+                    args.add(prepare_argument_int64(arg0));
                 }
 
                 string resp;
@@ -421,104 +372,29 @@ namespace AppDomain
                 }
 
                 // deserialize response
-                bool ret = false;
-                bool ret_ok = false;
                 string? error_domain = null;
                 string? error_code = null;
                 string? error_message = null;
                 string doing = @"Reading return-value of $(m_name)";
-                deserialize_return_value(m_name, resp,
-                    (r) => {
-                        // response is a return-value
-                        if (r.get_null_value())
-                            throw new DeserializeError.GENERIC(@"$(doing): is not nullable");
-                        if (!r.is_value())
-                            throw new DeserializeError.GENERIC(@"$(doing): must be a boolean");
-                        if (r.get_value().get_value_type() != typeof(bool))
-                            throw new DeserializeError.GENERIC(@"$(doing): must be a boolean");
-                        ret = r.get_boolean_value();
-                        ret_ok = true;
-                    },
-                    (_error_domain, _error_code, _error_message) => {
-                        // response is an error
-                        error_domain = _error_domain;
-                        error_code = _error_code;
-                        error_message = _error_message;
-                    }
-                );
+                bool ret;
+                try {
+                    ret = read_return_value_bool_notnull(resp, out error_domain, out error_code, out error_message);
+                } catch (HelperNotJsonError e) {
+                    error(@"Error parsing JSON for return-value of $(m_name): $(e.message)");
+                } catch (HelperDeserializeError e) {
+                    throw new DeserializeError.GENERIC(@"$(doing): $(e.message)");
+                }
                 if (error_domain != null)
                 {
                     string error_domain_code = @"$(error_domain).$(error_code)";
                     throw new DeserializeError.GENERIC(@"$(doing): unrecognized error $(error_domain_code) $(error_message)");
                 }
-                assert(ret_ok);
                 return ret;
             }
 
             public License get_license() throws StubError, DeserializeError
             {
                 error("not implemented yet");
-            }
-        }
-
-        internal delegate
-         void DeserializeReturnValue
-         (Json.Reader r)
-         throws DeserializeError;
-        internal delegate
-         void DeserializeExpectedError
-         (string error_domain, string error_code, string error_message)
-         throws DeserializeError;
-        internal void deserialize_return_value
-         (string m_name, string ser, DeserializeReturnValue cb_ret, DeserializeExpectedError cb_err)
-         throws DeserializeError
-        {
-            Json.Parser p = new Json.Parser();
-            try {
-                p.load_from_data(ser);
-            } catch (Error e) {
-                error(@"Error parsing JSON for return-value of $(m_name): $(e.message)");
-            }
-            Json.Reader r = new Json.Reader(p.get_root());
-            string doing = @"Reading return-value of $(m_name)";
-            if (!r.is_object())
-                throw new DeserializeError.GENERIC(@"$(doing): root JSON node must be an object");
-            string[] members = r.list_members();
-            if ("return-value" in members)
-            {
-                
-                r.read_member("return-value");
-                cb_ret(r);
-                r.end_member();
-            }
-            else if (("error-domain" in members) && ("error-code" in members) && ("error-message" in members))
-            {
-                r.read_member("error-domain");
-                if (!r.is_value())
-                    throw new DeserializeError.GENERIC(@"$(doing): error-domain must be a string");
-                if (r.get_value().get_value_type() != typeof(string))
-                    throw new DeserializeError.GENERIC(@"$(doing): error-domain must be a string");
-                string error_domain = r.get_string_value();
-                r.end_member();
-                r.read_member("error-code");
-                if (!r.is_value())
-                    throw new DeserializeError.GENERIC(@"$(doing): error-code must be a string");
-                if (r.get_value().get_value_type() != typeof(string))
-                    throw new DeserializeError.GENERIC(@"$(doing): error-code must be a string");
-                string error_code = r.get_string_value();
-                r.end_member();
-                r.read_member("error-message");
-                if (!r.is_value())
-                    throw new DeserializeError.GENERIC(@"$(doing): error-message must be a string");
-                if (r.get_value().get_value_type() != typeof(string))
-                    throw new DeserializeError.GENERIC(@"$(doing): error-message must be a string");
-                string error_message = r.get_string_value();
-                r.end_member();
-                cb_err(error_domain, error_code, error_message);
-            }
-            else
-            {
-                throw new DeserializeError.GENERIC(@"$(doing): root JSON node must have return-value or error-*");
             }
         }
     }
