@@ -121,6 +121,12 @@ void client(string peer_ip, uint16 peer_port, string name)
             unowned MyDocumentClass d = (MyDocumentClass)rootdoc;
             print(@"Root doc text: $(d.text)\n");
         }
+        Gee.List<IDocument> lst = n.calc.get_children(rootdoc);
+        foreach (IDocument childdoc in lst) if (childdoc is MyDocumentClass)
+        {
+            unowned MyDocumentClass d = (MyDocumentClass)childdoc;
+            print(@"Child doc text: $(d.text)\n");
+        }
     } catch (AuthError e) {
         print(@"AuthError GENERIC $(e.message)\n");
     } catch (BadArgsError e) {
@@ -243,20 +249,28 @@ class ServerSampleInfoManager : Object, ModRpc.IInfoManagerSkeleton
 class ServerSampleCalculator : Object, ModRpc.ICalculatorSkeleton
 {
     private MyDocumentClass root;
+    private ArrayList<MyDocumentClass> children;
     public ServerSampleCalculator()
     {
         root = new MyDocumentClass();
         root.text = "I am the one";
+        children = new ArrayList<MyDocumentClass>();
+        children.add(new MyDocumentClass());
+        children.add(new MyDocumentClass());
+        children.add(new MyDocumentClass());
+        children[0].text = "first doc";
+        children[1].text = "second one";
+        children[2].text = "third and last doc";
     }
 
     public IDocument get_root(ModRpc.CallerInfo? caller=null)
     {
-       return root;
+        return root;
     }
 
     public Gee.List<IDocument> get_children(IDocument parent, ModRpc.CallerInfo? caller=null)
     {
-        error("not implemented yet");
+        return children;
     }
 
     public void add_children(IDocument parent, Gee.List<IDocument> children, ModRpc.CallerInfo? caller=null)

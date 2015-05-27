@@ -306,7 +306,51 @@ namespace AppDomain
                     }
                     else if (m_name == "node.calc.get_children")
                     {
-                        error("not implemented yet");
+                        if (args.size != 1) throw new InSkeletonDeserializeError.GENERIC(@"Wrong number of arguments for $(m_name)");
+
+                        // arguments:
+                        IDocument arg0;
+                        // position:
+                        int j = 0;
+                        {
+                            // deserialize arg0 (IDocument parent)
+                            string arg_name = "parent";
+                            string doing = @"Reading argument '$(arg_name)' for $(m_name)";
+                            Object val;
+                            try {
+                                val = read_argument_object_notnull(typeof(IDocument), args[j]);
+                            } catch (HelperNotJsonError e) {
+                                critical(@"Error parsing JSON for argument: $(e.message)");
+                                critical(@" method-name: $(m_name)");
+                                error(@" argument #$(j): $(args[j])");
+                            } catch (HelperDeserializeError e) {
+                                throw new InSkeletonDeserializeError.GENERIC(@"$(doing): $(e.message)");
+                            }
+                            if (val is ISerializable)
+                                if (!((ISerializable)val).check_serialization())
+                                    throw new InSkeletonDeserializeError.GENERIC(@"$(doing): instance of $(val.get_type().name()) has not been fully deserialized");
+                            arg0 = (IDocument)val;
+                            j++;
+                        }
+
+                        Gee.List<IDocument> result = node.calc.get_children(arg0, caller_info);
+                        ret = prepare_return_value((_b) => {
+                            unowned Json.Builder b = _b;
+                            // Callback for an array non null
+                            b.begin_array();
+                            foreach (IDocument el in result)
+                            {
+                                // Callback for an object non null
+                                b.begin_object();
+                                b.set_member_name("typename");
+                                b.add_string_value(el.get_type().name());
+                                b.set_member_name("value");
+                                Json.Node* obj_n = Json.gobject_serialize(el);
+                                b.add_value(obj_n);
+                                b.end_object();
+                            }
+                            b.end_array();
+                        });
                     }
                     else if (m_name == "node.calc.add_children")
                     {
