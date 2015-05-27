@@ -140,6 +140,7 @@ namespace AppDomain
             private bool hurry;
             private bool wait_reply;
             private InfoManagerRemote _info;
+            private CalculatorRemote _calc;
             public NodeManagerTcpClientRootStub(string peer_address, uint16 peer_port)
             {
                 this.peer_address = peer_address;
@@ -148,6 +149,7 @@ namespace AppDomain
                 hurry = false;
                 wait_reply = true;
                 _info = new InfoManagerRemote(this.call);
+                _calc = new CalculatorRemote(this.call);
             }
 
             public bool hurry_getter()
@@ -177,7 +179,7 @@ namespace AppDomain
 
             protected unowned ICalculatorStub calc_getter()
             {
-                error("not implemented yet");
+                return _calc;
             }
 
             private string call(string m_name, Gee.List<string> arguments) throws ZCDError, StubError
@@ -199,13 +201,19 @@ namespace AppDomain
         internal class StatisticsTcpClientRootStub : Object, IStatisticsStub, ITcpClientRootStub
         {
             private TcpClient client;
+            private string peer_address;
+            private uint16 peer_port;
             private bool hurry;
             private bool wait_reply;
+            private ChildrenViewerRemote _children_viewer;
             public StatisticsTcpClientRootStub(string peer_address, uint16 peer_port)
             {
+                this.peer_address = peer_address;
+                this.peer_port = peer_port;
                 client = tcp_client(peer_address, peer_port);
                 hurry = false;
                 wait_reply = true;
+                _children_viewer = new ChildrenViewerRemote(this.call);
             }
 
             public bool hurry_getter()
@@ -231,6 +239,21 @@ namespace AppDomain
             protected unowned IChildrenViewerStub children_viewer_getter()
             {
                 error("not implemented yet");
+            }
+
+            private string call(string m_name, Gee.List<string> arguments) throws ZCDError, StubError
+            {
+                if (hurry && !client.is_queue_empty())
+                {
+                    client = tcp_client(peer_address, peer_port);
+                }
+                // TODO See destructor of TcpClient. If the low level library ZCD is able to ensure
+                //  that the destructor is not called when a call is in progress, then this
+                //  local_reference is not needed.
+                TcpClient local_reference = client;
+                string ret = local_reference.enqueue_call(m_name, arguments, wait_reply);
+                if (!wait_reply) throw new StubError.DID_NOT_WAIT_REPLY(@"Didn't wait reply for a call to $(m_name)");
+                return ret;
             }
         }
 
@@ -432,6 +455,76 @@ namespace AppDomain
                     if (!((ISerializable)ret).check_serialization())
                         throw new DeserializeError.GENERIC(@"$(doing): instance of $(ret.get_type().name()) has not been fully deserialized");
                 return (License)ret;
+            }
+        }
+
+        internal class CalculatorRemote : Object, ICalculatorStub
+        {
+            private unowned FakeRmt rmt;
+            public CalculatorRemote(FakeRmt rmt)
+            {
+                this.rmt = rmt;
+            }
+
+            public IDocument get_root() throws StubError, DeserializeError
+            {
+                string m_name = "node.calc.get_root";
+                ArrayList<string> args = new ArrayList<string>();
+
+                string resp;
+                try {
+                    resp = rmt(m_name, args);
+                }
+                catch (ZCDError e) {
+                    throw new StubError.GENERIC(e.message);
+                }
+
+                // deserialize response
+                string? error_domain = null;
+                string? error_code = null;
+                string? error_message = null;
+                string doing = @"Reading return-value of $(m_name)";
+                Object ret;
+                try {
+                    ret = read_return_value_object_notnull(typeof(IDocument), resp, out error_domain, out error_code, out error_message);
+                } catch (HelperNotJsonError e) {
+                    error(@"Error parsing JSON for return-value of $(m_name): $(e.message)");
+                } catch (HelperDeserializeError e) {
+                    throw new DeserializeError.GENERIC(@"$(doing): $(e.message)");
+                }
+                if (error_domain != null)
+                {
+                    string error_domain_code = @"$(error_domain).$(error_code)";
+                    throw new DeserializeError.GENERIC(@"$(doing): unrecognized error $(error_domain_code) $(error_message)");
+                }
+                if (ret is ISerializable)
+                    if (!((ISerializable)ret).check_serialization())
+                        throw new DeserializeError.GENERIC(@"$(doing): instance of $(ret.get_type().name()) has not been fully deserialized");
+                return (IDocument)ret;
+            }
+
+            public Gee.List<IDocument> get_children(IDocument parent) throws StubError, DeserializeError
+            {
+                error("not implemented yet");
+            }
+
+            public void add_children(IDocument parent, Gee.List<IDocument> children) throws StubError, DeserializeError
+            {
+                error("not implemented yet");
+            }
+        }
+
+        internal class ChildrenViewerRemote : Object, IChildrenViewerStub
+        {
+            private unowned FakeRmt rmt;
+            public ChildrenViewerRemote(FakeRmt rmt)
+            {
+                this.rmt = rmt;
+            }
+
+            public Gee.List<IDocument> list_leafs() throws StubError, DeserializeError
+            {
+                error("not implemented yet");
             }
         }
     }

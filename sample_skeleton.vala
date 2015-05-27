@@ -297,7 +297,25 @@ namespace AppDomain
                 }
                 else if (m_name.has_prefix("node.calc."))
                 {
-                    error("not implemented yet");
+                    if (m_name == "node.calc.get_root")
+                    {
+                        if (args.size != 0) throw new InSkeletonDeserializeError.GENERIC(@"Wrong number of arguments for $(m_name)");
+
+                        IDocument result = node.calc.get_root(caller_info);
+                        ret = prepare_return_value_object(result);
+                    }
+                    else if (m_name == "node.calc.get_children")
+                    {
+                        error("not implemented yet");
+                    }
+                    else if (m_name == "node.calc.add_children")
+                    {
+                        error("not implemented yet");
+                    }
+                    else
+                    {
+                        throw new InSkeletonDeserializeError.GENERIC(@"Unknown method in node.calc: \"$(m_name)\"");
+                    }
                 }
                 else
                 {

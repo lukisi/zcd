@@ -58,6 +58,7 @@ void main(string[] args)
     typeof(UnicastID).class_peek();
     typeof(BroadcastID).class_peek();
     typeof(Document).class_peek();
+    typeof(MyDocumentClass).class_peek();
 
     string mode = args[1];
     if (mode == "server")
@@ -114,6 +115,12 @@ void client(string peer_ip, uint16 peer_port, string name)
         print(@"year is $(_year)\n");
         License lc = n.info.get_license();
         print(@"License name: $(lc.name)\n");
+        IDocument rootdoc = n.calc.get_root();
+        if (rootdoc is MyDocumentClass)
+        {
+            unowned MyDocumentClass d = (MyDocumentClass)rootdoc;
+            print(@"Root doc text: $(d.text)\n");
+        }
     } catch (AuthError e) {
         print(@"AuthError GENERIC $(e.message)\n");
     } catch (BadArgsError e) {
@@ -178,9 +185,11 @@ class ServerSampleErrorHandler : Object, ModRpc.IRpcErrorHandler
 class ServerSampleNodeManager : Object, ModRpc.INodeManagerSkeleton
 {
     private ServerSampleInfoManager real_info;
+    private ServerSampleCalculator real_calc;
     public ServerSampleNodeManager()
     {
         real_info = new ServerSampleInfoManager();
+        real_calc = new ServerSampleCalculator();
     }
 
     protected unowned ModRpc.IInfoManagerSkeleton info_getter()
@@ -190,7 +199,7 @@ class ServerSampleNodeManager : Object, ModRpc.INodeManagerSkeleton
 
     protected unowned ModRpc.ICalculatorSkeleton calc_getter()
     {
-        error("not implemented yet");
+        return real_calc;
     }
 }
 
@@ -229,6 +238,40 @@ class ServerSampleInfoManager : Object, ModRpc.IInfoManagerSkeleton
         r.name = "GPLv3";
         return r;
     }
-
 }
+
+class ServerSampleCalculator : Object, ModRpc.ICalculatorSkeleton
+{
+    private MyDocumentClass root;
+    public ServerSampleCalculator()
+    {
+        root = new MyDocumentClass();
+        root.text = "I am the one";
+    }
+
+    public IDocument get_root(ModRpc.CallerInfo? caller=null)
+    {
+       return root;
+    }
+
+    public Gee.List<IDocument> get_children(IDocument parent, ModRpc.CallerInfo? caller=null)
+    {
+        error("not implemented yet");
+    }
+
+    public void add_children(IDocument parent, Gee.List<IDocument> children, ModRpc.CallerInfo? caller=null)
+    {
+        error("not implemented yet");
+    }
+}
+
+class MyDocumentClass : Object, IDocument, ModRpc.ISerializable
+{
+    public string text {get; set; default="";}
+    public bool check_serialization()
+    {
+        return text != "";
+    }
+}
+
 
