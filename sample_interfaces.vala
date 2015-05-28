@@ -30,7 +30,7 @@ NodeManager node
   void add_children(IDocument parent, Gee.List<IDocument> children)
 Statistics stats
  ChildrenViewer children_viewer
-  Gee.List<IDocument> list_leafs()
+  Gee.List<IDocument> list_leaves()
 Errors
  AuthError(GENERIC)
  BadArgsError(GENERIC,NULL_NOT_ALLOWED)

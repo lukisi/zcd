@@ -30,20 +30,335 @@ namespace AppDomain
             GENERIC
         }
 
-        public delegate
-         void ReadJsonNode(Json.Reader r) throws HelperDeserializeError;
+        /* Internal Helper functions to build JSON element */
 
-        public delegate
-         void BuildJsonNode(Json.Builder b);
+        internal interface IJsonBuilderElement : Object {
+            public abstract void execute(Json.Builder b);
+        }
+
+        internal class JsonBuilderNull : Object, IJsonBuilderElement
+        {
+            public JsonBuilderNull() {}
+            public void execute(Json.Builder b) {
+                b.add_null_value();
+            }
+        }
+
+        internal class JsonBuilderInt64 : Object, IJsonBuilderElement
+        {
+            private int64 i;
+            public JsonBuilderInt64(int64 i) {
+                this.i = i;
+            }
+            public void execute(Json.Builder b) {
+                b.add_int_value(i);
+            }
+        }
+
+        internal class JsonBuilderDouble : Object, IJsonBuilderElement
+        {
+            private double d;
+            public JsonBuilderDouble(double d) {
+                this.d = d;
+            }
+            public void execute(Json.Builder b) {
+                b.add_double_value(d);
+            }
+        }
+
+        internal class JsonBuilderBool : Object, IJsonBuilderElement
+        {
+            private bool b0;
+            public JsonBuilderBool(bool b0) {
+                this.b0 = b0;
+            }
+            public void execute(Json.Builder b) {
+                b.add_boolean_value(b0);
+            }
+        }
+
+        internal class JsonBuilderString : Object, IJsonBuilderElement
+        {
+            private string s;
+            public JsonBuilderString(string s) {
+                this.s = s;
+            }
+            public void execute(Json.Builder b) {
+                b.add_string_value(s);
+            }
+        }
+
+        internal class JsonBuilderBinary : Object, IJsonBuilderElement
+        {
+            private string s;
+            public JsonBuilderBinary(uint8[] buf) {
+                s = Base64.encode((uchar[])buf);
+            }
+            public void execute(Json.Builder b) {
+                b.add_string_value(s);
+            }
+        }
+
+        internal class JsonBuilderObject : Object, IJsonBuilderElement
+        {
+            private Object obj;
+            public JsonBuilderObject(Object obj) {
+                this.obj = obj;
+            }
+            public void execute(Json.Builder b) {
+                b.begin_object();
+                b.set_member_name("typename");
+                b.add_string_value(obj.get_type().name());
+                b.set_member_name("value");
+                Json.Node* obj_n = Json.gobject_serialize(obj);
+                b.add_value(obj_n);
+                b.end_object();
+            }
+        }
+
+        internal class JsonBuilderArray : Object, IJsonBuilderElement
+        {
+            private ArrayList<IJsonBuilderElement> lst;
+            public JsonBuilderArray(Gee.List<IJsonBuilderElement> lst) {
+                this.lst = new ArrayList<IJsonBuilderElement>();
+                this.lst.add_all(lst);
+            }
+            public void execute(Json.Builder b) {
+                b.begin_array();
+                foreach (IJsonBuilderElement el in lst)
+                {
+                    el.execute(b);
+                }
+                b.end_array();
+            }
+        }
+
+        /* Internal Helper functions to read JSON element */
+
+        internal interface IJsonReaderElement : Object {
+            public abstract void execute(Json.Reader r) throws HelperDeserializeError;
+        }
+
+        internal class JsonReaderVoid : Object, IJsonReaderElement
+        {
+            public bool ret_ok;
+            public JsonReaderVoid() {
+                ret_ok = false;
+            }
+            public void execute(Json.Reader r) throws HelperDeserializeError {
+                if (!r.get_null_value())
+                    throw new HelperDeserializeError.GENERIC("element must be void");
+                ret_ok = true;
+            }
+        }
+
+        internal class JsonReaderInt64 : Object, IJsonReaderElement
+        {
+            public bool ret_ok;
+            public bool nullable;
+            public int64? ret;
+            public JsonReaderInt64(bool nullable) {
+                ret_ok = false;
+                this.nullable = nullable;
+            }
+            public void execute(Json.Reader r) throws HelperDeserializeError {
+                if (r.get_null_value())
+                {
+                    if (!nullable)
+                        throw new HelperDeserializeError.GENERIC("element is not nullable");
+                    ret = null;
+                    ret_ok = true;
+                    return;
+                }
+                if (!r.is_value())
+                    throw new HelperDeserializeError.GENERIC("element must be a int");
+                if (r.get_value().get_value_type() != typeof(int64))
+                    throw new HelperDeserializeError.GENERIC("element must be a int");
+                ret = r.get_int_value();
+                ret_ok = true;
+            }
+        }
+
+        internal class JsonReaderDouble : Object, IJsonReaderElement
+        {
+            public bool ret_ok;
+            public bool nullable;
+            public double? ret;
+            public JsonReaderDouble(bool nullable) {
+                ret_ok = false;
+                this.nullable = nullable;
+            }
+            public void execute(Json.Reader r) throws HelperDeserializeError {
+                if (r.get_null_value())
+                {
+                    if (!nullable)
+                        throw new HelperDeserializeError.GENERIC("element is not nullable");
+                    ret = null;
+                    ret_ok = true;
+                    return;
+                }
+                if (!r.is_value())
+                    throw new HelperDeserializeError.GENERIC("element must be a double");
+                if (r.get_value().get_value_type() != typeof(double))
+                    throw new HelperDeserializeError.GENERIC("element must be a double");
+                ret = r.get_double_value();
+                ret_ok = true;
+            }
+        }
+
+        internal class JsonReaderBool : Object, IJsonReaderElement
+        {
+            public bool ret_ok;
+            public bool nullable;
+            public bool? ret;
+            public JsonReaderBool(bool nullable) {
+                ret_ok = false;
+                this.nullable = nullable;
+            }
+            public void execute(Json.Reader r) throws HelperDeserializeError {
+                if (r.get_null_value())
+                {
+                    if (!nullable)
+                        throw new HelperDeserializeError.GENERIC("element is not nullable");
+                    ret = null;
+                    ret_ok = true;
+                    return;
+                }
+                if (!r.is_value())
+                    throw new HelperDeserializeError.GENERIC("element must be a boolean");
+                if (r.get_value().get_value_type() != typeof(bool))
+                    throw new HelperDeserializeError.GENERIC("element must be a boolean");
+                ret = r.get_boolean_value();
+                ret_ok = true;
+            }
+        }
+
+        internal class JsonReaderString : Object, IJsonReaderElement
+        {
+            public bool ret_ok;
+            public bool nullable;
+            public string? ret;
+            public JsonReaderString(bool nullable) {
+                ret_ok = false;
+                this.nullable = nullable;
+            }
+            public void execute(Json.Reader r) throws HelperDeserializeError {
+                if (r.get_null_value())
+                {
+                    if (!nullable)
+                        throw new HelperDeserializeError.GENERIC("element is not nullable");
+                    ret = null;
+                    ret_ok = true;
+                    return;
+                }
+                if (!r.is_value())
+                    throw new HelperDeserializeError.GENERIC("element must be a string");
+                if (r.get_value().get_value_type() != typeof(string))
+                    throw new HelperDeserializeError.GENERIC("element must be a string");
+                ret = r.get_string_value();
+                ret_ok = true;
+            }
+        }
+
+        internal delegate unowned Json.Node JsonExecPath(Json.Node root);
+        internal class JsonReaderObject : Object, IJsonReaderElement
+        {
+            public bool ret_ok;
+            public Type expected_type;
+            public bool nullable;
+            private bool is_null;
+            private Type type;
+            public JsonReaderObject(Type expected_type, bool nullable) {
+                ret_ok = false;
+                this.expected_type = expected_type;
+                this.nullable = nullable;
+            }
+            public void execute(Json.Reader r) throws HelperDeserializeError {
+                if (r.get_null_value())
+                {
+                    if (!nullable)
+                        throw new HelperDeserializeError.GENERIC("element is not nullable");
+                    is_null = true;
+                    ret_ok = true;
+                    return;
+                }
+                if (!r.is_object())
+                    throw new HelperDeserializeError.GENERIC("element must be an object");
+                string typename;
+                if (!r.read_member("typename"))
+                    throw new HelperDeserializeError.GENERIC("element must have typename");
+                if (!r.is_value())
+                    throw new HelperDeserializeError.GENERIC("typename must be a string");
+                if (r.get_value().get_value_type() != typeof(string))
+                    throw new HelperDeserializeError.GENERIC("typename must be a string");
+                typename = r.get_string_value();
+                r.end_member();
+                type = Type.from_name(typename);
+                if (type == 0)
+                    throw new HelperDeserializeError.GENERIC(@"typename '$(typename)' unknown class");
+                if (!type.is_a(expected_type))
+                    throw new HelperDeserializeError.GENERIC(@"typename '$(typename)' is not a '$(expected_type.name())'");
+                if (!r.read_member("value"))
+                    throw new HelperDeserializeError.GENERIC("element must have value");
+                r.end_member();
+                is_null = false;
+                ret_ok = true;
+            }
+            public Object? deserialize_or_null(string js, JsonExecPath exec_path) throws HelperDeserializeError
+            {
+                assert(ret_ok);
+                if (is_null) return null;
+                // find node, copy tree, deserialize
+                Json.Parser p = new Json.Parser();
+                try {
+                    p.load_from_data(js);
+                } catch (Error e) {
+                    error(@"Parser error: This string should have been already parsed: $(e.message) - '$(js)'");
+                }
+                unowned Json.Node p_root = p.get_root();
+                unowned Json.Node p_value = exec_path(p_root).get_object().get_member("value");
+                Json.Node cp_value = p_value.copy();
+                return Json.gobject_deserialize(type, cp_value);
+            }
+        }
+
+        internal delegate void JsonReadElement(Json.Reader r, int index) throws HelperDeserializeError;
+        internal class JsonReaderArrayObject : Object, IJsonReaderElement
+        {
+            public bool ret_ok;
+            public Gee.List<Object> ret;
+            private unowned JsonReadElement cb;
+            public JsonReaderArrayObject() {
+                ret_ok = false;
+                ret = new ArrayList<Object>();
+            }
+            public void init(JsonReadElement cb) {
+                this.cb = cb;
+            }
+            public void execute(Json.Reader r) throws HelperDeserializeError {
+                if (r.get_null_value())
+                    throw new HelperDeserializeError.GENERIC("element is not nullable");
+                if (!r.is_array())
+                    throw new HelperDeserializeError.GENERIC("element must be an array");
+                int l = r.count_elements();
+                for (int j = 0; j < l; j++)
+                {
+                    r.read_element(j);
+                    cb(r, j);
+                    r.end_element();
+                }
+                ret_ok = true;
+            }
+        }
 
         /* Helper functions to build JSON arguments */
 
-        public string prepare_argument(BuildJsonNode cb)
+        internal string prepare_argument(IJsonBuilderElement cb)
         {
             var b = new Json.Builder();
             b.begin_object();
             b.set_member_name("argument");
-            cb(b);
+            cb.execute(b);
             b.end_object();
             var g = new Json.Generator();
             g.pretty = false;
@@ -53,63 +368,50 @@ namespace AppDomain
 
         public string prepare_argument_null()
         {
-            return prepare_argument((b) => {
-                b.add_null_value();
-            });
+            return prepare_argument(new JsonBuilderNull());
         }
 
         public string prepare_argument_int64(int64 i)
         {
-            return prepare_argument((b) => {
-                b.add_int_value(i);
-            });
+            return prepare_argument(new JsonBuilderInt64(i));
         }
 
         public string prepare_argument_double(double d)
         {
-            return prepare_argument((b) => {
-                b.add_double_value(d);
-            });
+            return prepare_argument(new JsonBuilderDouble(d));
         }
 
         public string prepare_argument_boolean(bool b0)
         {
-            return prepare_argument((b) => {
-                b.add_boolean_value(b0);
-            });
+            return prepare_argument(new JsonBuilderBool(b0));
         }
 
         public string prepare_argument_string(string s)
         {
-            return prepare_argument((b) => {
-                b.add_string_value(s);
-            });
+            return prepare_argument(new JsonBuilderString(s));
         }
 
         public string prepare_argument_binary(uint8[] buf)
         {
-            string s = Base64.encode((uchar[])buf);
-            return prepare_argument((b) => {
-                b.add_string_value(s);
-            });
+            return prepare_argument(new JsonBuilderBinary(buf));
         }
 
         public string prepare_argument_object(Object obj)
         {
-            return prepare_argument((b) => {
-                b.begin_object();
-                b.set_member_name("typename");
-                b.add_string_value(obj.get_type().name());
-                b.set_member_name("value");
-                Json.Node* obj_n = Json.gobject_serialize(obj);
-                b.add_value(obj_n);
-                b.end_object();
-            });
+            return prepare_argument(new JsonBuilderObject(obj));
+        }
+
+        public string prepare_argument_array_of_object(Gee.List<Object> lst)
+        {
+            ArrayList<IJsonBuilderElement> lst_b = new ArrayList<IJsonBuilderElement>();
+            foreach (Object obj in lst) lst_b.add(new JsonBuilderObject(obj));
+            JsonBuilderArray b = new JsonBuilderArray(lst_b);
+            return prepare_argument(b);
         }
 
         /* Helper functions to read JSON arguments */
 
-        public void read_argument(string js, ReadJsonNode cb) throws HelperDeserializeError, HelperNotJsonError
+        internal void read_argument(string js, IJsonReaderElement cb) throws HelperDeserializeError, HelperNotJsonError
         {
             Json.Parser p = new Json.Parser();
             try {
@@ -122,7 +424,7 @@ namespace AppDomain
                 throw new HelperDeserializeError.GENERIC(@"root JSON node must be an object");
             if (!r.read_member("argument"))
                 throw new HelperDeserializeError.GENERIC(@"root JSON node must have argument");
-            cb(r);
+            cb.execute(r);
             r.end_member();
         }
 
@@ -138,26 +440,10 @@ namespace AppDomain
 
         internal int64? read_argument_int64(string js, bool nullable) throws HelperDeserializeError, HelperNotJsonError
         {
-            int64? ret = null;
-            bool ret_ok = false;
-            read_argument(js, (r) => {
-                if (r.get_null_value())
-                {
-                    if (!nullable)
-                        throw new HelperDeserializeError.GENERIC(@"argument is not nullable");
-                    ret = null;
-                    ret_ok = true;
-                    return;
-                }
-                if (!r.is_value())
-                    throw new HelperDeserializeError.GENERIC(@"argument must be a int");
-                if (r.get_value().get_value_type() != typeof(int64))
-                    throw new HelperDeserializeError.GENERIC(@"argument must be a int");
-                ret = r.get_int_value();
-                ret_ok = true;
-            });
-            assert(ret_ok);
-            return ret;
+            JsonReaderInt64 cb = new JsonReaderInt64(nullable);
+            read_argument(js, cb);
+            assert(cb.ret_ok);
+            return cb.ret;
         }
 
         public double? read_argument_double_maybe(string js) throws HelperDeserializeError, HelperNotJsonError
@@ -172,26 +458,10 @@ namespace AppDomain
 
         internal double? read_argument_double(string js, bool nullable) throws HelperDeserializeError, HelperNotJsonError
         {
-            double? ret = null;
-            bool ret_ok = false;
-            read_argument(js, (r) => {
-                if (r.get_null_value())
-                {
-                    if (!nullable)
-                        throw new HelperDeserializeError.GENERIC(@"argument is not nullable");
-                    ret = null;
-                    ret_ok = true;
-                    return;
-                }
-                if (!r.is_value())
-                    throw new HelperDeserializeError.GENERIC(@"argument must be a int");
-                if (r.get_value().get_value_type() != typeof(double))
-                    throw new HelperDeserializeError.GENERIC(@"argument must be a int");
-                ret = r.get_double_value();
-                ret_ok = true;
-            });
-            assert(ret_ok);
-            return ret;
+            JsonReaderDouble cb = new JsonReaderDouble(nullable);
+            read_argument(js, cb);
+            assert(cb.ret_ok);
+            return cb.ret;
         }
 
         public bool? read_argument_bool_maybe(string js) throws HelperDeserializeError, HelperNotJsonError
@@ -206,26 +476,10 @@ namespace AppDomain
 
         internal bool? read_argument_bool(string js, bool nullable) throws HelperDeserializeError, HelperNotJsonError
         {
-            bool? ret = null;
-            bool ret_ok = false;
-            read_argument(js, (r) => {
-                if (r.get_null_value())
-                {
-                    if (!nullable)
-                        throw new HelperDeserializeError.GENERIC(@"argument is not nullable");
-                    ret = null;
-                    ret_ok = true;
-                    return;
-                }
-                if (!r.is_value())
-                    throw new HelperDeserializeError.GENERIC(@"argument must be a int");
-                if (r.get_value().get_value_type() != typeof(int64))
-                    throw new HelperDeserializeError.GENERIC(@"argument must be a int");
-                ret = r.get_boolean_value();
-                ret_ok = true;
-            });
-            assert(ret_ok);
-            return ret;
+            JsonReaderBool cb = new JsonReaderBool(nullable);
+            read_argument(js, cb);
+            assert(cb.ret_ok);
+            return cb.ret;
         }
 
         public string? read_argument_string_maybe(string js) throws HelperDeserializeError, HelperNotJsonError
@@ -255,26 +509,10 @@ namespace AppDomain
 
         internal string? read_argument_string(string js, bool nullable) throws HelperDeserializeError, HelperNotJsonError
         {
-            string? ret = null;
-            bool ret_ok = false;
-            read_argument(js, (r) => {
-                if (r.get_null_value())
-                {
-                    if (!nullable)
-                        throw new HelperDeserializeError.GENERIC(@"argument is not nullable");
-                    ret = null;
-                    ret_ok = true;
-                    return;
-                }
-                if (!r.is_value())
-                    throw new HelperDeserializeError.GENERIC(@"argument must be a string");
-                if (r.get_value().get_value_type() != typeof(string))
-                    throw new HelperDeserializeError.GENERIC(@"argument must be a string");
-                ret = r.get_string_value();
-                ret_ok = true;
-            });
-            assert(ret_ok);
-            return ret;
+            JsonReaderString cb = new JsonReaderString(nullable);
+            read_argument(js, cb);
+            assert(cb.ret_ok);
+            return cb.ret;
         }
 
         public Object? read_argument_object_maybe(Type expected_type, string js) throws HelperDeserializeError, HelperNotJsonError
@@ -291,62 +529,41 @@ namespace AppDomain
          (Type expected_type, string js, bool nullable)
          throws HelperDeserializeError, HelperNotJsonError
         {
-            Object? ret = null;
-            bool ret_ok = false;
-            read_argument(js, (r) => {
-
-                if (r.get_null_value())
-                {
-                    if (!nullable)
-                        throw new HelperDeserializeError.GENERIC(@"argument is not nullable");
-                    ret = null;
-                    ret_ok = true;
-                    return;
-                }
-                if (!r.is_object())
-                    throw new HelperDeserializeError.GENERIC(@"argument must be an object");
-                string typename;
-                if (!r.read_member("typename"))
-                    throw new HelperDeserializeError.GENERIC("argument must have typename");
-                if (!r.is_value())
-                    throw new HelperDeserializeError.GENERIC("typename must be a string");
-                if (r.get_value().get_value_type() != typeof(string))
-                    throw new HelperDeserializeError.GENERIC("typename must be a string");
-                typename = r.get_string_value();
-                r.end_member();
-                Type type = Type.from_name(typename);
-                if (type == 0)
-                    throw new HelperDeserializeError.GENERIC(@"typename '$(typename)' unknown class");
-                if (!type.is_a(expected_type))
-                    throw new HelperDeserializeError.GENERIC(@"typename '$(typename)' is not a '$(expected_type.name())'");
-                if (!r.read_member("value"))
-                    throw new HelperDeserializeError.GENERIC("argument must have value");
-                r.end_member();
-                // find node, copy tree, deserialize
-                Json.Parser p = new Json.Parser();
-                try {
-                    p.load_from_data(js);
-                } catch (Error e) {
-                    assert_not_reached();
-                }
-                unowned Json.Node p_root = p.get_root();
-                unowned Json.Node p_value = p_root.get_object().get_member("argument").get_object().get_member("value");
-                Json.Node cp_value = p_value.copy();
-                ret = Json.gobject_deserialize(type, cp_value);
-                ret_ok = true;
+            JsonReaderObject cb = new JsonReaderObject(expected_type, nullable);
+            read_argument(js, cb);
+            assert(cb.ret_ok);
+            return cb.deserialize_or_null(js, (root) => {
+                return root.get_object().get_member("argument");
             });
-            assert(ret_ok);
-            return ret;
+        }
+
+        public Gee.List<Object> read_argument_array_of_object
+            (Type expected_type, string js)
+            throws HelperDeserializeError, HelperNotJsonError
+        {
+            JsonReaderArrayObject cb = new JsonReaderArrayObject();
+            cb.init((r, j) => {
+                JsonReaderObject cb2 = new JsonReaderObject(expected_type, false);
+                cb2.execute(r);
+                Object el = cb2.deserialize_or_null(js, (root) => {
+                    return root.get_object().get_member("argument")
+                                .get_array().get_element(j);
+                });
+                cb.ret.add(el);
+            });
+            read_argument(js, cb);
+            assert(cb.ret_ok);
+            return cb.ret;
         }
 
         /* Helper functions to return JSON responses */
 
-        public string prepare_return_value(BuildJsonNode cb)
+        internal string prepare_return_value(IJsonBuilderElement cb)
         {
             var b = new Json.Builder();
             b.begin_object();
             b.set_member_name("return-value");
-            cb(b);
+            cb.execute(b);
             b.end_object();
             var g = new Json.Generator();
             g.pretty = false;
@@ -356,58 +573,45 @@ namespace AppDomain
 
         public string prepare_return_value_null()
         {
-            return prepare_return_value((b) => {
-                b.add_null_value();
-            });
+            return prepare_return_value(new JsonBuilderNull());
         }
 
         public string prepare_return_value_int64(int64 i)
         {
-            return prepare_return_value((b) => {
-                b.add_int_value(i);
-            });
+            return prepare_return_value(new JsonBuilderInt64(i));
         }
 
         public string prepare_return_value_double(double d)
         {
-            return prepare_return_value((b) => {
-                b.add_double_value(d);
-            });
+            return prepare_return_value(new JsonBuilderDouble(d));
         }
 
         public string prepare_return_value_boolean(bool b0)
         {
-            return prepare_return_value((b) => {
-                b.add_boolean_value(b0);
-            });
+            return prepare_return_value(new JsonBuilderBool(b0));
         }
 
         public string prepare_return_value_string(string s)
         {
-            return prepare_return_value((b) => {
-                b.add_string_value(s);
-            });
+            return prepare_return_value(new JsonBuilderString(s));
         }
 
         public string prepare_return_value_binary(uint8[] buf)
         {
-            string s = Base64.encode((uchar[])buf);
-            return prepare_return_value((b) => {
-                b.add_string_value(s);
-            });
+            return prepare_return_value(new JsonBuilderBinary(buf));
         }
 
         public string prepare_return_value_object(Object obj)
         {
-            return prepare_return_value((b) => {
-                b.begin_object();
-                b.set_member_name("typename");
-                b.add_string_value(obj.get_type().name());
-                b.set_member_name("value");
-                Json.Node* obj_n = Json.gobject_serialize(obj);
-                b.add_value(obj_n);
-                b.end_object();
-            });
+            return prepare_return_value(new JsonBuilderObject(obj));
+        }
+
+        public string prepare_return_value_array_of_object(Gee.List<Object> lst)
+        {
+            ArrayList<IJsonBuilderElement> lst_b = new ArrayList<IJsonBuilderElement>();
+            foreach (Object obj in lst) lst_b.add(new JsonBuilderObject(obj));
+            JsonBuilderArray b = new JsonBuilderArray(lst_b);
+            return prepare_return_value(b);
         }
 
         public string prepare_error(string domain, string code, string message)
@@ -426,8 +630,8 @@ namespace AppDomain
 
         /* Helper functions to read JSON responses */
 
-        public void read_return_value
-         (string js, ReadJsonNode cb, out string? error_domain, out string? error_code, out string? error_message)
+        internal void read_return_value
+         (string js, IJsonReaderElement cb, out string? error_domain, out string? error_code, out string? error_message)
          throws HelperDeserializeError, HelperNotJsonError
         {
             Json.Parser p = new Json.Parser();
@@ -446,7 +650,7 @@ namespace AppDomain
                 error_code = null;
                 error_message = null;
                 r.read_member("return-value");
-                cb(r);
+                cb.execute(r);
                 r.end_member();
             }
             else if (("error-domain" in members) && ("error-code" in members) && ("error-message" in members))
@@ -489,13 +693,9 @@ namespace AppDomain
             (string js, out string? error_domain, out string? error_code, out string? error_message)
             throws HelperDeserializeError, HelperNotJsonError
         {
-            bool ret_ok = false;
-            read_return_value(js, (r) => {
-                if (!r.get_null_value())
-                    throw new HelperDeserializeError.GENERIC(@"return-value must be void");
-                ret_ok = true;
-            }, out error_domain, out error_code, out error_message);
-            if (error_domain == null) assert(ret_ok);
+            JsonReaderVoid cb = new JsonReaderVoid();
+            read_return_value(js, cb, out error_domain, out error_code, out error_message);
+            if (error_domain == null) assert(cb.ret_ok);
             return;
         }
 
@@ -517,26 +717,10 @@ namespace AppDomain
             (string js, bool nullable, out string? error_domain, out string? error_code, out string? error_message)
             throws HelperDeserializeError, HelperNotJsonError
         {
-            int64? ret = 0;
-            bool ret_ok = false;
-            read_return_value(js, (r) => {
-                if (r.get_null_value())
-                {
-                    if (!nullable)
-                        throw new HelperDeserializeError.GENERIC(@"return-value is not nullable");
-                    ret = null;
-                    ret_ok = true;
-                    return;
-                }
-                if (!r.is_value())
-                    throw new HelperDeserializeError.GENERIC(@"return-value must be a int");
-                if (r.get_value().get_value_type() != typeof(int64))
-                    throw new HelperDeserializeError.GENERIC(@"return-value must be a int");
-                ret = r.get_int_value();
-                ret_ok = true;
-            }, out error_domain, out error_code, out error_message);
-            if (error_domain == null) assert(ret_ok);
-            return ret;
+            JsonReaderInt64 cb = new JsonReaderInt64(nullable);
+            read_return_value(js, cb, out error_domain, out error_code, out error_message);
+            if (error_domain == null) assert(cb.ret_ok);
+            return cb.ret;
         }
 
         public double? read_return_value_double_maybe
@@ -557,26 +741,10 @@ namespace AppDomain
             (string js, bool nullable, out string? error_domain, out string? error_code, out string? error_message)
             throws HelperDeserializeError, HelperNotJsonError
         {
-            double? ret = 0.0;
-            bool ret_ok = false;
-            read_return_value(js, (r) => {
-                if (r.get_null_value())
-                {
-                    if (!nullable)
-                        throw new HelperDeserializeError.GENERIC(@"return-value is not nullable");
-                    ret = null;
-                    ret_ok = true;
-                    return;
-                }
-                if (!r.is_value())
-                    throw new HelperDeserializeError.GENERIC(@"return-value must be a double");
-                if (r.get_value().get_value_type() != typeof(double))
-                    throw new HelperDeserializeError.GENERIC(@"return-value must be a double");
-                ret = r.get_double_value();
-                ret_ok = true;
-            }, out error_domain, out error_code, out error_message);
-            if (error_domain == null) assert(ret_ok);
-            return ret;
+            JsonReaderDouble cb = new JsonReaderDouble(nullable);
+            read_return_value(js, cb, out error_domain, out error_code, out error_message);
+            if (error_domain == null) assert(cb.ret_ok);
+            return cb.ret;
         }
 
         public bool? read_return_value_bool_maybe
@@ -597,26 +765,10 @@ namespace AppDomain
             (string js, bool nullable, out string? error_domain, out string? error_code, out string? error_message)
             throws HelperDeserializeError, HelperNotJsonError
         {
-            bool? ret = false;
-            bool ret_ok = false;
-            read_return_value(js, (r) => {
-                if (r.get_null_value())
-                {
-                    if (!nullable)
-                        throw new HelperDeserializeError.GENERIC(@"return-value is not nullable");
-                    ret = null;
-                    ret_ok = true;
-                    return;
-                }
-                if (!r.is_value())
-                    throw new HelperDeserializeError.GENERIC(@"return-value must be a boolean");
-                if (r.get_value().get_value_type() != typeof(bool))
-                    throw new HelperDeserializeError.GENERIC(@"return-value must be a boolean");
-                ret = r.get_boolean_value();
-                ret_ok = true;
-            }, out error_domain, out error_code, out error_message);
-            if (error_domain == null) assert(ret_ok);
-            return ret;
+            JsonReaderBool cb = new JsonReaderBool(nullable);
+            read_return_value(js, cb, out error_domain, out error_code, out error_message);
+            if (error_domain == null) assert(cb.ret_ok);
+            return cb.ret;
         }
 
         public string? read_return_value_string_maybe
@@ -656,26 +808,10 @@ namespace AppDomain
             (string js, bool nullable, out string? error_domain, out string? error_code, out string? error_message)
             throws HelperDeserializeError, HelperNotJsonError
         {
-            string? ret = "";
-            bool ret_ok = false;
-            read_return_value(js, (r) => {
-                if (r.get_null_value())
-                {
-                    if (!nullable)
-                        throw new HelperDeserializeError.GENERIC(@"return-value is not nullable");
-                    ret = null;
-                    ret_ok = true;
-                    return;
-                }
-                if (!r.is_value())
-                    throw new HelperDeserializeError.GENERIC(@"return-value must be a string");
-                if (r.get_value().get_value_type() != typeof(string))
-                    throw new HelperDeserializeError.GENERIC(@"return-value must be a string");
-                ret = r.get_string_value();
-                ret_ok = true;
-            }, out error_domain, out error_code, out error_message);
-            if (error_domain == null) assert(ret_ok);
-            return ret;
+            JsonReaderString cb = new JsonReaderString(nullable);
+            read_return_value(js, cb, out error_domain, out error_code, out error_message);
+            if (error_domain == null) assert(cb.ret_ok);
+            return cb.ret;
         }
 
         public Object? read_return_value_object_maybe
@@ -696,51 +832,39 @@ namespace AppDomain
             (Type expected_type, string js, bool nullable, out string? error_domain, out string? error_code, out string? error_message)
             throws HelperDeserializeError, HelperNotJsonError
         {
-            Object? ret = null;
-            bool ret_ok = false;
-            read_return_value(js, (r) => {
-                if (r.get_null_value())
-                {
-                    if (!nullable)
-                        throw new HelperDeserializeError.GENERIC(@"return-value is not nullable");
-                    ret = null;
-                    ret_ok = true;
-                    return;
-                }
-                if (!r.is_object())
-                    throw new HelperDeserializeError.GENERIC(@"return-value must be an object");
-                string typename;
-                if (!r.read_member("typename"))
-                    throw new HelperDeserializeError.GENERIC("return-value must have typename");
-                if (!r.is_value())
-                    throw new HelperDeserializeError.GENERIC("typename must be a string");
-                if (r.get_value().get_value_type() != typeof(string))
-                    throw new HelperDeserializeError.GENERIC("typename must be a string");
-                typename = r.get_string_value();
-                r.end_member();
-                Type type = Type.from_name(typename);
-                if (type == 0)
-                    throw new HelperDeserializeError.GENERIC(@"typename '$(typename)' unknown class");
-                if (!type.is_a(expected_type))
-                    throw new HelperDeserializeError.GENERIC(@"typename '$(typename)' is not a '$(expected_type.name())'");
-                if (!r.read_member("value"))
-                    throw new HelperDeserializeError.GENERIC("return-value must have value");
-                r.end_member();
-                // find node, copy tree, deserialize
-                Json.Parser p = new Json.Parser();
-                try {
-                    p.load_from_data(js);
-                } catch (Error e) {
-                    assert_not_reached();
-                }
-                unowned Json.Node p_root = p.get_root();
-                unowned Json.Node p_value = p_root.get_object().get_member("return-value").get_object().get_member("value");
-                Json.Node cp_value = p_value.copy();
-                ret = Json.gobject_deserialize(type, cp_value);
-                ret_ok = true;
-            }, out error_domain, out error_code, out error_message);
-            if (error_domain == null) assert(ret_ok);
-            return ret;
+            JsonReaderObject cb = new JsonReaderObject(expected_type, nullable);
+            read_return_value(js, cb, out error_domain, out error_code, out error_message);
+            if (error_domain == null)
+            {
+                assert(cb.ret_ok);
+                return cb.deserialize_or_null(js, (root) => {
+                    return root.get_object().get_member("return-value");
+                });
+            }
+            return null;
+        }
+
+        public Gee.List<Object> read_return_value_array_of_object
+            (Type expected_type, string js, out string? error_domain, out string? error_code, out string? error_message)
+            throws HelperDeserializeError, HelperNotJsonError
+        {
+            JsonReaderArrayObject cb = new JsonReaderArrayObject();
+            cb.init((r, j) => {
+                JsonReaderObject cb2 = new JsonReaderObject(expected_type, false);
+                cb2.execute(r);
+                Object el = cb2.deserialize_or_null(js, (root) => {
+                    return root.get_object().get_member("return-value")
+                                .get_array().get_element(j);
+                });
+                cb.ret.add(el);
+            });
+            read_return_value(js, cb, out error_domain, out error_code, out error_message);
+            if (error_domain == null)
+            {
+                assert(cb.ret_ok);
+                return cb.ret;
+            }
+            return cb.ret;
         }
     }
 }

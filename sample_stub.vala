@@ -93,7 +93,7 @@ namespace AppDomain
 
         public interface IChildrenViewerStub : Object
         {
-            public abstract Gee.List<IDocument> list_leafs() throws StubError, DeserializeError;
+            public abstract Gee.List<IDocument> list_leaves() throws StubError, DeserializeError;
         }
 
         public interface IStatisticsStub : Object
@@ -525,64 +525,11 @@ namespace AppDomain
                 string? error_code = null;
                 string? error_message = null;
                 string doing = @"Reading return-value of $(m_name)";
-                Gee.List<IDocument> ret = new ArrayList<IDocument>();
+                Gee.List<IDocument> ret;
                 try {
-                    read_return_value(resp, (_r) => {
-                        // Callback for an array non nullable
-                        unowned Json.Reader r = (Json.Reader)_r;
-                        if (r.get_null_value())
-                            throw new HelperDeserializeError.GENERIC(@"return-value is not nullable");
-                        if (!r.is_array())
-                            throw new HelperDeserializeError.GENERIC(@"return-value must be an array");
-                        int l = r.count_elements();
-                        for (int j = 0; j < l; j++)
-                        {
-                            r.read_element(j);
-                            {
-                                // Callback for an object non nullable of type IDocument
-                                if (r.get_null_value())
-                                    throw new HelperDeserializeError.GENERIC(@"each element is not nullable");
-                                if (!r.is_object())
-                                    throw new HelperDeserializeError.GENERIC(@"each element must be an object");
-                                string typename;
-                                if (!r.read_member("typename"))
-                                    throw new HelperDeserializeError.GENERIC("each element must have typename");
-                                if (!r.is_value())
-                                    throw new HelperDeserializeError.GENERIC("typename must be a string");
-                                if (r.get_value().get_value_type() != typeof(string))
-                                    throw new HelperDeserializeError.GENERIC("typename must be a string");
-                                typename = r.get_string_value();
-                                r.end_member();
-                                Type type = Type.from_name(typename);
-                                if (type == 0)
-                                    throw new HelperDeserializeError.GENERIC(@"typename '$(typename)' unknown class");
-                                if (!type.is_a(typeof(IDocument)))
-                                    throw new HelperDeserializeError.GENERIC(@"typename '$(typename)' is not a '$(typeof(IDocument).name())'");
-                                if (!r.read_member("value"))
-                                    throw new HelperDeserializeError.GENERIC("each element must have value");
-                                r.end_member();
-                                // find node, copy tree, deserialize
-                                Json.Parser p = new Json.Parser();
-                                try {
-                                    p.load_from_data(resp);
-                                } catch (Error e) {
-                                    assert_not_reached();
-                                }
-                                unowned Json.Node p_root = p.get_root();
-                                unowned Json.Node p_value = p_root.get_object().get_member("return-value")
-                                    .get_array().get_element(j)
-                                    .get_object().get_member("value");
-                                Json.Node cp_value = p_value.copy();
-                                Object el_obj = Json.gobject_deserialize(type, cp_value);
-                                if (el_obj is ISerializable)
-                                    if (!((ISerializable)el_obj).check_serialization())
-                                        throw new HelperDeserializeError.GENERIC(@"instance of $(typeof(IDocument).name()) has not been fully deserialized");
-                                IDocument el = (IDocument)el_obj;
-                                ret.add(el);
-                            }
-                            r.end_element();
-                        }
-                    }, out error_domain, out error_code, out error_message);
+                    ret = (Gee.List<IDocument>)
+                        read_return_value_array_of_object
+                        (typeof(IDocument), resp, out error_domain, out error_code, out error_message);
                 } catch (HelperNotJsonError e) {
                     error(@"Error parsing JSON for return-value of $(m_name): $(e.message)");
                 } catch (HelperDeserializeError e) {
@@ -601,8 +548,7 @@ namespace AppDomain
                 }
                 {
                     // serialize arg1 (Gee.List<IDocument> children)
-                    error("not implemented yet");
-                    //args.add(prepare_argument_array(arg1, (el) => {}));
+                    args.add(prepare_argument_array_of_object(arg1));
                 }
 
                 string resp;
@@ -612,9 +558,27 @@ namespace AppDomain
                 catch (ZCDError e) {
                     throw new StubError.GENERIC(e.message);
                 }
+                // The following catch is to be added only for methods that return void.
+                catch (StubError.DID_NOT_WAIT_REPLY e) {return;}
 
                 // deserialize response
-                error("not implemented yet");
+                string? error_domain = null;
+                string? error_code = null;
+                string? error_message = null;
+                string doing = @"Reading return-value of $(m_name)";
+                try {
+                    read_return_value_void(resp, out error_domain, out error_code, out error_message);
+                } catch (HelperNotJsonError e) {
+                    error(@"Error parsing JSON for return-value of $(m_name): $(e.message)");
+                } catch (HelperDeserializeError e) {
+                    throw new DeserializeError.GENERIC(@"$(doing): $(e.message)");
+                }
+                if (error_domain != null)
+                {
+                    string error_domain_code = @"$(error_domain).$(error_code)";
+                    throw new DeserializeError.GENERIC(@"$(doing): unrecognized error $(error_domain_code) $(error_message)");
+                }
+                return;
             }
         }
 
@@ -626,7 +590,7 @@ namespace AppDomain
                 this.rmt = rmt;
             }
 
-            public Gee.List<IDocument> list_leafs() throws StubError, DeserializeError
+            public Gee.List<IDocument> list_leaves() throws StubError, DeserializeError
             {
                 error("not implemented yet");
             }

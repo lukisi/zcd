@@ -127,6 +127,7 @@ void client(string peer_ip, uint16 peer_port, string name)
             unowned MyDocumentClass d = (MyDocumentClass)childdoc;
             print(@"Child doc text: $(d.text)\n");
         }
+        n.calc.add_children(rootdoc, lst);
     } catch (AuthError e) {
         print(@"AuthError GENERIC $(e.message)\n");
     } catch (BadArgsError e) {
@@ -275,7 +276,10 @@ class ServerSampleCalculator : Object, ModRpc.ICalculatorSkeleton
 
     public void add_children(IDocument parent, Gee.List<IDocument> children, ModRpc.CallerInfo? caller=null)
     {
-        error("not implemented yet");
+        print("Was to add children:\n");
+        print(@"Parent: '$((parent as MyDocumentClass).text)'\n");
+        foreach (var child in children)
+            print(@"Child: '$((child as MyDocumentClass).text)'\n");
     }
 }
 
