@@ -323,14 +323,14 @@ namespace AppDomain
         }
 
         internal delegate void JsonReadElement(Json.Reader r, int index) throws HelperDeserializeError;
-        internal class JsonReaderArrayObject : Object, IJsonReaderElement
+        internal class JsonReaderArray<T> : Object, IJsonReaderElement
         {
             public bool ret_ok;
-            public Gee.List<Object> ret;
+            public Gee.List<T> ret;
             private unowned JsonReadElement cb;
-            public JsonReaderArrayObject() {
+            public JsonReaderArray() {
                 ret_ok = false;
-                ret = new ArrayList<Object>();
+                ret = new ArrayList<T>();
             }
             public void init(JsonReadElement cb) {
                 this.cb = cb;
@@ -405,6 +405,26 @@ namespace AppDomain
         {
             ArrayList<IJsonBuilderElement> lst_b = new ArrayList<IJsonBuilderElement>();
             foreach (Object obj in lst) lst_b.add(new JsonBuilderObject(obj));
+            JsonBuilderArray b = new JsonBuilderArray(lst_b);
+            return prepare_argument(b);
+        }
+
+        public string prepare_argument_array_of_int64(Gee.List<int64?> lst)
+        {
+            ArrayList<IJsonBuilderElement> lst_b = new ArrayList<IJsonBuilderElement>();
+            foreach (int64? val in lst)
+            {
+                if (val == null) error("MOD-RPC: null not allowed in array");
+                lst_b.add(new JsonBuilderInt64(val));
+            }
+            JsonBuilderArray b = new JsonBuilderArray(lst_b);
+            return prepare_argument(b);
+        }
+
+        public string prepare_argument_array_of_string(Gee.List<string> lst)
+        {
+            ArrayList<IJsonBuilderElement> lst_b = new ArrayList<IJsonBuilderElement>();
+            foreach (string val in lst) lst_b.add(new JsonBuilderString(val));
             JsonBuilderArray b = new JsonBuilderArray(lst_b);
             return prepare_argument(b);
         }
@@ -541,7 +561,7 @@ namespace AppDomain
             (Type expected_type, string js)
             throws HelperDeserializeError, HelperNotJsonError
         {
-            JsonReaderArrayObject cb = new JsonReaderArrayObject();
+            JsonReaderArray<Object> cb = new JsonReaderArray<Object>();
             cb.init((r, j) => {
                 JsonReaderObject cb2 = new JsonReaderObject(expected_type, false);
                 cb2.execute(r);
@@ -550,6 +570,32 @@ namespace AppDomain
                                 .get_array().get_element(j);
                 });
                 cb.ret.add(el);
+            });
+            read_argument(js, cb);
+            assert(cb.ret_ok);
+            return cb.ret;
+        }
+
+        public Gee.List<int64?> read_argument_array_of_int64(string js) throws HelperDeserializeError, HelperNotJsonError
+        {
+            JsonReaderArray<int64?> cb = new JsonReaderArray<int64?>();
+            cb.init((r, j) => {
+                JsonReaderInt64 cb2 = new JsonReaderInt64(false);
+                cb2.execute(r);
+                cb.ret.add(cb2.ret);
+            });
+            read_argument(js, cb);
+            assert(cb.ret_ok);
+            return cb.ret;
+        }
+
+        public Gee.List<string> read_argument_array_of_string(string js) throws HelperDeserializeError, HelperNotJsonError
+        {
+            JsonReaderArray<string> cb = new JsonReaderArray<string>();
+            cb.init((r, j) => {
+                JsonReaderString cb2 = new JsonReaderString(false);
+                cb2.execute(r);
+                cb.ret.add(cb2.ret);
             });
             read_argument(js, cb);
             assert(cb.ret_ok);
@@ -610,6 +656,26 @@ namespace AppDomain
         {
             ArrayList<IJsonBuilderElement> lst_b = new ArrayList<IJsonBuilderElement>();
             foreach (Object obj in lst) lst_b.add(new JsonBuilderObject(obj));
+            JsonBuilderArray b = new JsonBuilderArray(lst_b);
+            return prepare_return_value(b);
+        }
+
+        public string prepare_return_value_array_of_int64(Gee.List<int64?> lst)
+        {
+            ArrayList<IJsonBuilderElement> lst_b = new ArrayList<IJsonBuilderElement>();
+            foreach (int64? val in lst)
+            {
+                if (val == null) error("MOD-RPC: null not allowed in array");
+                lst_b.add(new JsonBuilderInt64(val));
+            }
+            JsonBuilderArray b = new JsonBuilderArray(lst_b);
+            return prepare_return_value(b);
+        }
+
+        public string prepare_return_value_array_of_string(Gee.List<string> lst)
+        {
+            ArrayList<IJsonBuilderElement> lst_b = new ArrayList<IJsonBuilderElement>();
+            foreach (string val in lst) lst_b.add(new JsonBuilderString(val));
             JsonBuilderArray b = new JsonBuilderArray(lst_b);
             return prepare_return_value(b);
         }
@@ -848,7 +914,7 @@ namespace AppDomain
             (Type expected_type, string js, out string? error_domain, out string? error_code, out string? error_message)
             throws HelperDeserializeError, HelperNotJsonError
         {
-            JsonReaderArrayObject cb = new JsonReaderArrayObject();
+            JsonReaderArray<Object> cb = new JsonReaderArray<Object>();
             cb.init((r, j) => {
                 JsonReaderObject cb2 = new JsonReaderObject(expected_type, false);
                 cb2.execute(r);
@@ -857,6 +923,44 @@ namespace AppDomain
                                 .get_array().get_element(j);
                 });
                 cb.ret.add(el);
+            });
+            read_return_value(js, cb, out error_domain, out error_code, out error_message);
+            if (error_domain == null)
+            {
+                assert(cb.ret_ok);
+                return cb.ret;
+            }
+            return cb.ret;
+        }
+
+        public Gee.List<int64?> read_return_value_array_of_int64
+            (string js, out string? error_domain, out string? error_code, out string? error_message)
+            throws HelperDeserializeError, HelperNotJsonError
+        {
+            JsonReaderArray<int64?> cb = new JsonReaderArray<int64?>();
+            cb.init((r, j) => {
+                JsonReaderInt64 cb2 = new JsonReaderInt64(false);
+                cb2.execute(r);
+                cb.ret.add(cb2.ret);
+            });
+            read_return_value(js, cb, out error_domain, out error_code, out error_message);
+            if (error_domain == null)
+            {
+                assert(cb.ret_ok);
+                return cb.ret;
+            }
+            return cb.ret;
+        }
+
+        public Gee.List<string> read_return_value_array_of_string
+            (string js, out string? error_domain, out string? error_code, out string? error_message)
+            throws HelperDeserializeError, HelperNotJsonError
+        {
+            JsonReaderArray<string> cb = new JsonReaderArray<string>();
+            cb.init((r, j) => {
+                JsonReaderString cb2 = new JsonReaderString(false);
+                cb2.execute(r);
+                cb.ret.add(cb2.ret);
             });
             read_return_value(js, cb, out error_domain, out error_code, out error_message);
             if (error_domain == null)

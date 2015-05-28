@@ -93,7 +93,7 @@ namespace AppDomain
 
         public interface IChildrenViewerStub : Object
         {
-            public abstract Gee.List<IDocument> list_leaves() throws StubError, DeserializeError;
+            public abstract Gee.List<string> int_to_string(Gee.List<int> lst) throws StubError, DeserializeError;
         }
 
         public interface IStatisticsStub : Object
@@ -119,7 +119,7 @@ namespace AppDomain
 
         public IStatisticsStub get_stats_tcp_client(string peer_address, uint16 peer_port)
         {
-            error("not implemented yet");
+            return new StatisticsTcpClientRootStub(peer_address, peer_port);
         }
 
         public IStatisticsStub get_stats_unicast(string dev, uint16 port, UnicastID unicast_id)
@@ -238,7 +238,7 @@ namespace AppDomain
 
             protected unowned IChildrenViewerStub children_viewer_getter()
             {
-                error("not implemented yet");
+                return _children_viewer;
             }
 
             private string call(string m_name, Gee.List<string> arguments) throws ZCDError, StubError
@@ -590,9 +590,40 @@ namespace AppDomain
                 this.rmt = rmt;
             }
 
-            public Gee.List<IDocument> list_leaves() throws StubError, DeserializeError
+            public Gee.List<string> int_to_string(Gee.List<int> arg0) throws StubError, DeserializeError
             {
-                error("not implemented yet");
+                string m_name = "stats.children_viewer.int_to_string";
+                ArrayList<string> args = new ArrayList<string>();
+                {
+                    // serialize arg0 (Gee.List<int> lst)
+                    ArrayList<int64?> lst = new ArrayList<int64?>();
+                    foreach (int el_i in arg0) lst.add(el_i);
+                    args.add(prepare_argument_array_of_int64(lst));
+                }
+
+                string resp;
+                try {
+                    resp = rmt(m_name, args);
+                }
+                catch (ZCDError e) {
+                    throw new StubError.GENERIC(e.message);
+                }
+
+                // deserialize response
+                string? error_domain = null;
+                string? error_code = null;
+                string? error_message = null;
+                string doing = @"Reading return-value of $(m_name)";
+                Gee.List<string> ret;
+                try {
+                    ret = read_return_value_array_of_string
+                        (resp, out error_domain, out error_code, out error_message);
+                } catch (HelperNotJsonError e) {
+                    error(@"Error parsing JSON for return-value of $(m_name): $(e.message)");
+                } catch (HelperDeserializeError e) {
+                    throw new DeserializeError.GENERIC(@"$(doing): $(e.message)");
+                }
+                return ret;
             }
         }
     }

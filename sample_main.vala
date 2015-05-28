@@ -97,6 +97,19 @@ void client(string peer_ip, uint16 peer_port, string name)
             print(@"   changed: wait_reply = $(n_tcp.wait_reply)\n");
         }
     }
+    ModRpc.IStatisticsStub s = ModRpc.get_stats_tcp_client(peer_ip, peer_port);
+    if (s is ModRpc.ITcpClientRootStub)
+    {
+        unowned ModRpc.ITcpClientRootStub s_tcp = (ModRpc.ITcpClientRootStub)s;
+        if (set_hurry)
+        {
+            s_tcp.hurry = true;
+        }
+        if (unset_wait_reply)
+        {
+            s_tcp.wait_reply = false;
+        }
+    }
     try {
         print("calling set_name...\n");
         n.info.set_name(name);
@@ -128,6 +141,10 @@ void client(string peer_ip, uint16 peer_port, string name)
             print(@"Child doc text: $(d.text)\n");
         }
         n.calc.add_children(rootdoc, lst);
+        ArrayList<int> lst_i = new ArrayList<int>.wrap({1,2,3,4,2,3,1});
+        foreach (int el_i in lst_i) print(@" * $(el_i)\n");
+        Gee.List<string> lst_s = s.children_viewer.int_to_string(lst_i);
+        foreach (string el_s in lst_s) print(@" * '$(el_s)'\n");
     } catch (AuthError e) {
         print(@"AuthError GENERIC $(e.message)\n");
     } catch (BadArgsError e) {
@@ -156,9 +173,11 @@ void server()
 class ServerSampleDelegate : Object, ModRpc.IRpcDelegate
 {
     private ServerSampleNodeManager real_node;
+    private ServerSampleStatistics real_stats;
     public ServerSampleDelegate()
     {
         real_node = new ServerSampleNodeManager();
+        real_stats = new ServerSampleStatistics();
     }
 
     public ModRpc.INodeManagerSkeleton? get_node(ModRpc.CallerInfo caller)
@@ -177,7 +196,16 @@ class ServerSampleDelegate : Object, ModRpc.IRpcDelegate
 
     public ModRpc.IStatisticsSkeleton? get_stats(ModRpc.CallerInfo caller)
     {
-        error("not implemented yet");
+        if (caller is ModRpc.TcpCallerInfo)
+        {
+            ModRpc.TcpCallerInfo c = (ModRpc.TcpCallerInfo)caller;
+            print(@"request for 'stats' from $(c.peer_address) to $(c.my_address)\n");
+            return real_stats;
+        }
+        else
+        {
+            error("not implemented yet");
+        }
     }
 }
 
@@ -207,6 +235,20 @@ class ServerSampleNodeManager : Object, ModRpc.INodeManagerSkeleton
     protected unowned ModRpc.ICalculatorSkeleton calc_getter()
     {
         return real_calc;
+    }
+}
+
+class ServerSampleStatistics : Object, ModRpc.IStatisticsSkeleton
+{
+    private ServerSampleChildrenViewer real_children_viewer;
+    public ServerSampleStatistics()
+    {
+        real_children_viewer = new ServerSampleChildrenViewer();
+    }
+
+    protected unowned ModRpc.IChildrenViewerSkeleton children_viewer_getter()
+    {
+        return real_children_viewer;
     }
 }
 
@@ -280,6 +322,16 @@ class ServerSampleCalculator : Object, ModRpc.ICalculatorSkeleton
         print(@"Parent: '$((parent as MyDocumentClass).text)'\n");
         foreach (var child in children)
             print(@"Child: '$((child as MyDocumentClass).text)'\n");
+    }
+}
+
+class ServerSampleChildrenViewer : Object, ModRpc.IChildrenViewerSkeleton
+{
+    public Gee.List<string> int_to_string(Gee.List<int> lst, ModRpc.CallerInfo? caller=null)
+    {
+        ArrayList<string> ret = new ArrayList<string>();
+        foreach (int i in lst) ret.add(@"$(i)");
+        return ret;
     }
 }
 

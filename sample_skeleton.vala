@@ -50,7 +50,7 @@ namespace AppDomain
 
         public interface IChildrenViewerSkeleton : Object
         {
-            public abstract Gee.List<IDocument> list_leaves(ModRpc.CallerInfo? caller=null);
+            public abstract Gee.List<string> int_to_string(Gee.List<int> lst, ModRpc.CallerInfo? caller=null);
         }
 
         public interface IStatisticsSkeleton : Object
@@ -433,9 +433,40 @@ namespace AppDomain
                 string ret;
                 if (m_name.has_prefix("stats.children_viewer."))
                 {
-                    if (m_name == "stats.children_viewer.list_leaves")
+                    if (m_name == "stats.children_viewer.int_to_string")
                     {
-                        error("not implemented yet");
+                        if (args.size != 1) throw new InSkeletonDeserializeError.GENERIC(@"Wrong number of arguments for $(m_name)");
+
+                        // arguments:
+                        Gee.List<int> arg0;
+                        // position:
+                        int j = 0;
+                        {
+                            // deserialize arg0 (Gee.List<int> lst)
+                            string arg_name = "lst";
+                            string doing = @"Reading argument '$(arg_name)' for $(m_name)";
+                            Gee.List<int64?> values;
+                            try {
+                                values = read_argument_array_of_int64(args[j]);
+                            } catch (HelperNotJsonError e) {
+                                critical(@"Error parsing JSON for argument: $(e.message)");
+                                critical(@" method-name: $(m_name)");
+                                error(@" argument #$(j): $(args[j])");
+                            } catch (HelperDeserializeError e) {
+                                throw new InSkeletonDeserializeError.GENERIC(@"$(doing): $(e.message)");
+                            }
+                            arg0 = new ArrayList<int>();
+                            foreach (int64 val in values)
+                            {
+                                if (val > int.MAX || val < int.MIN)
+                                    throw new InSkeletonDeserializeError.GENERIC(@"$(doing): argument overflows size of int");
+                                arg0.add((int)val);
+                            }
+                            j++;
+                        }
+
+                        Gee.List<string> result = stats.children_viewer.int_to_string(arg0, caller_info);
+                        ret = prepare_return_value_array_of_string(result);
                     }
                     else
                     {
