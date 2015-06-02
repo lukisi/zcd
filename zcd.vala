@@ -17,7 +17,6 @@
  */
 
 using Gee;
-using Tasklets;
 
 public string test_libs(string s1, string s2) throws Error
 {
@@ -54,6 +53,13 @@ namespace zcd
     public string get_mac(string iface)
     {
         return macgetter.get_mac(iface);
+    }
+
+    internal IZcdTasklet tasklet;
+
+    public void init_tasklet_system(IZcdTasklet _tasklet)
+    {
+        tasklet = _tasklet;
     }
 
     public errordomain ZCDError {
@@ -121,164 +127,168 @@ namespace zcd
         t.err = err;
         t.port = port;
         t.my_addr = my_addr;
-        Tasklet.tasklet_callback((_t) => {
-            TcpListenTasklet t_t = (TcpListenTasklet) _t;
-            tcp_listen_tasklet(t_t.del, t_t.err, t_t.port, t_t.my_addr);
-        }, t);
+        tasklet.spawn(t);
     }
-    internal class TcpListenTasklet : Object
+    internal class TcpListenTasklet : Object, IZcdTaskletSpawnable
     {
         public IZcdTcpDelegate del;
         public IZcdTcpAcceptErrorHandler err;
         public uint16 port;
         public string? my_addr;
-    }
-    internal void tcp_listen_tasklet(IZcdTcpDelegate del, IZcdTcpAcceptErrorHandler err, uint16 port, string? my_addr)
-    {
-        try {
-            ServerStreamSocket s = new ServerStreamSocket(port, 5, my_addr);
-            debug(@"tcp_listen: Listening on port $(port) at address $(my_addr == null ? "any" : my_addr)");
-            while (true) {
-                IConnectedStreamSocket c = s.accept();
-                debug(@"tcp_listen: got a connection");
-                var req = del.get_new_handler();
-                TcpAcceptTasklet t = new TcpAcceptTasklet();
-                t.c = c;
-                t.req = req;
-                Tasklet.tasklet_callback((_t) => {
-                    TcpAcceptTasklet t_t = (TcpAcceptTasklet) _t;
-                    tcp_accept_tasklet(t_t.c, t_t.req);
-                }, t);
-            }
-        } catch (Error e) {
-            err.error_handler(e.copy());
-        }
-    }
-    internal class TcpAcceptTasklet : Object
-    {
-        public IConnectedStreamSocket c;
-        public IZcdTcpRequestHandler req;
-    }
-    internal void tcp_accept_tasklet(IConnectedStreamSocket c, IZcdTcpRequestHandler req)
-    {
-        while (true)
+        public void * func()
         {
-            // Get one message
-            void * m;
-            size_t s;
             try {
-                bool got = get_one_message(c, out m, out s);
-                if (!got)
-                {
-                    // closed normally
-                    debug("tcp_listen: connection closed by client.");
-                    return;
-                }
-            } catch (RecvMessageError e) {
-                // log message
-                warning(@"tcp_listen: $(e.message)");
-                // close connection
-                try {c.close();} catch (Error e) {}
-                // abort tasklet
-                if (m != null) free(m);
-                return;
-            }
-            unowned uint8[] buf;
-            buf = (uint8[])m;
-            buf.length = (int)s;
-
-            // Parse JSON
-            string method_name;
-            bool wait_reply;
-            string[] args;
-            try {
-                // The parser must not be destructed until we finish with the reader.
-                Json.Parser p_buf = new Json.Parser();
-                p_buf.load_from_data((string)buf);
-                unowned Json.Node buf_rootnode = p_buf.get_root();
-                Json.Reader r_buf = new Json.Reader(buf_rootnode);
-                if (!r_buf.is_object()) throw new MessageError.MALFORMED("root must be an object");
-                if (!r_buf.read_member("method-name")) throw new MessageError.MALFORMED("root must have method-name");
-                if (!r_buf.is_value()) throw new MessageError.MALFORMED("method-name must be a string");
-                if (r_buf.get_value().get_value_type() != typeof(string)) throw new MessageError.MALFORMED("method-name must be a string");
-                method_name = r_buf.get_string_value();
-                r_buf.end_member();
-                if (!r_buf.read_member("wait-reply")) throw new MessageError.MALFORMED("root must have wait-reply");
-                if (!r_buf.is_value()) throw new MessageError.MALFORMED("wait-reply must be a boolean");
-                if (r_buf.get_value().get_value_type() != typeof(bool)) throw new MessageError.MALFORMED("wait-reply must be a boolean");
-                wait_reply = r_buf.get_boolean_value();
-                r_buf.end_member();
-                if (!r_buf.read_member("arguments")) throw new MessageError.MALFORMED("root must have arguments");
-                if (!r_buf.is_array()) throw new MessageError.MALFORMED("arguments must be an array");
-                args = new string[r_buf.count_elements()];
-                for (int j = 0; j < args.length; j++)
-                {
-                    r_buf.read_element(j);
-                    if (!r_buf.is_object() && !r_buf.is_array()) throw new MessageError.MALFORMED("each argument must be a valid JSON tree");
-                    r_buf.end_element();
-                }
-                r_buf.end_member();
-                for (int j = 0; j < args.length; j++)
-                {
-                    Json.Node cp = buf_rootnode.get_object().get_member("arguments").get_array().get_element(j).copy();
-                    Json.Generator g = new Json.Generator();
-                    g.pretty = false;
-                    g.root = cp;
-                    args[j] = g.to_data(null);
+                IZcdServerStreamSocket s = tasklet.get_server_stream_socket(port, my_addr);
+                debug(@"tcp_listen: Listening on port $(port) at address $(my_addr == null ? "any" : my_addr)");
+                while (true) {
+                    IZcdConnectedStreamSocket c = s.accept();
+                    debug(@"tcp_listen: got a connection");
+                    var req = del.get_new_handler();
+                    TcpAcceptTasklet t = new TcpAcceptTasklet();
+                    t.c = c;
+                    t.req = req;
+                    tasklet.spawn(t);
                 }
             } catch (Error e) {
-                // log message
-                warning(@"tcp_listen: Error parsing JSON of received message: $(e.message)");
-                // close connection
-                try {c.close();} catch (Error e) {}
-                // abort tasklet
-                if (m != null) free(m);
-                return;
+                err.error_handler(e.copy());
             }
-
-            // Get dispatcher
-            TcpCallerInfo caller = new TcpCallerInfo(c.my_address, c.peer_address);
-            req.set_method_name(method_name);
-            foreach (string arg in args) req.add_argument(arg);
-            req.set_caller_info(caller);
-            IZcdDispatcher? disp = req.get_dispatcher();
-            if (disp == null)
+            return null;
+        }
+    }
+    internal class TcpAcceptTasklet : Object, IZcdTaskletSpawnable
+    {
+        public IZcdConnectedStreamSocket c;
+        public IZcdTcpRequestHandler req;
+        public void * func()
+        {
+            while (true)
             {
-                // log message
-                warning("tcp_listen: Delegate did not return a dispatcher for a received message.");
-                // close connection
-                try {c.close();} catch (Error e) {}
-                // abort tasklet
-                if (m != null) free(m);
-                return;
-            }
-
-            // Execute
-            if (wait_reply)
-            {
-                string resp = disp.execute();
-                string ret_s = build_json_response(resp);
-                // Send response
+                // Get one message
+                void * m;
+                size_t s;
                 try {
-                    send_one_message(c, ret_s);
-                } catch (SendMessageError e) {
+                    bool got = get_one_message(c, out m, out s);
+                    if (!got)
+                    {
+                        // closed normally
+                        debug("tcp_listen: connection closed by client.");
+                        return null;
+                    }
+                } catch (RecvMessageError e) {
                     // log message
-                    warning(@"tcp_listen: Error sending JSON of response: $(e.message)");
+                    warning(@"tcp_listen: $(e.message)");
                     // close connection
                     try {c.close();} catch (Error e) {}
                     // abort tasklet
                     if (m != null) free(m);
-                    return;
+                    return null;
                 }
+                unowned uint8[] buf;
+                buf = (uint8[])m;
+                buf.length = (int)s;
+
+                // Parse JSON
+                string method_name;
+                bool wait_reply;
+                string[] args;
+                try {
+                    // The parser must not be destructed until we finish with the reader.
+                    Json.Parser p_buf = new Json.Parser();
+                    p_buf.load_from_data((string)buf);
+                    unowned Json.Node buf_rootnode = p_buf.get_root();
+                    Json.Reader r_buf = new Json.Reader(buf_rootnode);
+                    if (!r_buf.is_object()) throw new MessageError.MALFORMED("root must be an object");
+                    if (!r_buf.read_member("method-name")) throw new MessageError.MALFORMED("root must have method-name");
+                    if (!r_buf.is_value()) throw new MessageError.MALFORMED("method-name must be a string");
+                    if (r_buf.get_value().get_value_type() != typeof(string)) throw new MessageError.MALFORMED("method-name must be a string");
+                    method_name = r_buf.get_string_value();
+                    r_buf.end_member();
+                    if (!r_buf.read_member("wait-reply")) throw new MessageError.MALFORMED("root must have wait-reply");
+                    if (!r_buf.is_value()) throw new MessageError.MALFORMED("wait-reply must be a boolean");
+                    if (r_buf.get_value().get_value_type() != typeof(bool)) throw new MessageError.MALFORMED("wait-reply must be a boolean");
+                    wait_reply = r_buf.get_boolean_value();
+                    r_buf.end_member();
+                    if (!r_buf.read_member("arguments")) throw new MessageError.MALFORMED("root must have arguments");
+                    if (!r_buf.is_array()) throw new MessageError.MALFORMED("arguments must be an array");
+                    args = new string[r_buf.count_elements()];
+                    for (int j = 0; j < args.length; j++)
+                    {
+                        r_buf.read_element(j);
+                        if (!r_buf.is_object() && !r_buf.is_array()) throw new MessageError.MALFORMED("each argument must be a valid JSON tree");
+                        r_buf.end_element();
+                    }
+                    r_buf.end_member();
+                    for (int j = 0; j < args.length; j++)
+                    {
+                        Json.Node cp = buf_rootnode.get_object().get_member("arguments").get_array().get_element(j).copy();
+                        Json.Generator g = new Json.Generator();
+                        g.pretty = false;
+                        g.root = cp;
+                        args[j] = g.to_data(null);
+                    }
+                } catch (Error e) {
+                    // log message
+                    warning(@"tcp_listen: Error parsing JSON of received message: $(e.message)");
+                    // close connection
+                    try {c.close();} catch (Error e) {}
+                    // abort tasklet
+                    if (m != null) free(m);
+                    return null;
+                }
+
+                // Get dispatcher
+                TcpCallerInfo caller = new TcpCallerInfo(c.my_address, c.peer_address);
+                req.set_method_name(method_name);
+                foreach (string arg in args) req.add_argument(arg);
+                req.set_caller_info(caller);
+                IZcdDispatcher? disp = req.get_dispatcher();
+                if (disp == null)
+                {
+                    // log message
+                    warning("tcp_listen: Delegate did not return a dispatcher for a received message.");
+                    // close connection
+                    try {c.close();} catch (Error e) {}
+                    // abort tasklet
+                    if (m != null) free(m);
+                    return null;
+                }
+
+                // Execute
+                if (wait_reply)
+                {
+                    string resp = disp.execute();
+                    string ret_s = build_json_response(resp);
+                    // Send response
+                    try {
+                        send_one_message(c, ret_s);
+                    } catch (SendMessageError e) {
+                        // log message
+                        warning(@"tcp_listen: Error sending JSON of response: $(e.message)");
+                        // close connection
+                        try {c.close();} catch (Error e) {}
+                        // abort tasklet
+                        if (m != null) free(m);
+                        return null;
+                    }
+                }
+                else
+                {
+                    TcpDispatchTasklet t = new TcpDispatchTasklet();
+                    t.disp = disp;
+                    tasklet.spawn(t);
+                }
+                if (m != null) free(m);
             }
-            else
-            {
-                Tasklet.tasklet_callback((_disp) => {
-                    IZcdDispatcher t_disp = (IZcdDispatcher)_disp;
-                    t_disp.execute();
-                }, disp);
-            }
-            if (m != null) free(m);
+            // assert_not_reached ??
+        }
+    }
+    internal class TcpDispatchTasklet : Object, IZcdTaskletSpawnable
+    {
+        public IZcdDispatcher disp;
+        public void * func()
+        {
+            disp.execute();
+            return null;
         }
     }
 
@@ -291,8 +301,7 @@ namespace zcd
     {
         private string addr;
         private uint16 port;
-        private ClientStreamSocket? s;
-        private IConnectedStreamSocket? c;
+        private IZcdConnectedStreamSocket? c;
         private bool connected;
         private bool processing;
         private ArrayList<int> queue;
@@ -300,9 +309,6 @@ namespace zcd
         {
             this.addr = addr;
             this.port = port;
-            try {
-                s = new ClientStreamSocket();
-            } catch (Error e) {error(e.message);}
             c = null;
             connected = false;
             processing = false;
@@ -320,25 +326,21 @@ namespace zcd
         {
             int id = Random.int_range(0, int.MAX);
             queue.add(id);
-            while (processing || queue[0] != id) ms_wait(10);
+            while (processing || queue[0] != id) tasklet.ms_wait(10);
             processing = true;
             queue.remove_at(0);
             if (!connected)
             {
                 try {
-                    c = s.socket_connect(addr, port);
+                    c = tasklet.get_client_stream_socket(addr, port);
                 } catch (Error e) {
                     // log message
                     warning(@"enqueue_call: could not connect to $(addr):$(port) - $(e.message)");
-                    // new socket for future tentatives
-                    try {
-                        s = new ClientStreamSocket();
-                    } catch (Error e) {error(e.message);}
+                    c = null;
                     // return error
                     processing = false;
                     throw new ZCDError.GENERIC("Trying to connect");
                 }
-                s = null;
                 connected = true;
             }
             // build JSON message
@@ -349,10 +351,6 @@ namespace zcd
             } catch (SendMessageError e) {
                 // log message
                 warning(@"enqueue_call: Error sending JSON of message: $(e.message)");
-                // new socket for future tentatives
-                try {
-                    s = new ClientStreamSocket();
-                } catch (Error e) {error(e.message);}
                 // close connection
                 try {c.close();} catch (Error e) {}
                 c = null;
@@ -373,10 +371,6 @@ namespace zcd
             } catch (RecvMessageError e) {
                 // log message
                 warning(@"enqueue_call: $(e.message)");
-                // new socket for future tentatives
-                try {
-                    s = new ClientStreamSocket();
-                } catch (Error e) {error(e.message);}
                 // close connection
                 try {c.close();} catch (Error e) {}
                 c = null;
@@ -409,10 +403,6 @@ namespace zcd
             } catch (Error e) {
                 // log message
                 warning(@"enqueue_call: Error parsing JSON of received response: $(e.message)");
-                // new socket for future tentatives
-                try {
-                    s = new ClientStreamSocket();
-                } catch (Error e) {error(e.message);}
                 // close connection
                 try {c.close();} catch (Error e) {}
                 c = null;
@@ -437,7 +427,7 @@ namespace zcd
         }
     }
 
-    internal void send_one_message(IConnectedStreamSocket c, string msg) throws SendMessageError
+    internal void send_one_message(IZcdConnectedStreamSocket c, string msg) throws SendMessageError
     {
         size_t len = msg.length;
         assert(len <= uint32.MAX);
@@ -453,15 +443,15 @@ namespace zcd
         len /= 256;
         buf_numbytes[0] = (uint8)(len % 256);
         try {
-            c.send_new(buf_numbytes, 4);
-            c.send_new(msg.data, msg.length);
+            c.send(buf_numbytes, 4);
+            c.send(msg.data, msg.length);
         } catch (Error e) {
             throw new SendMessageError.GENERIC(@"$(e.message)");
         }
     }
 
     // the caller has to free m.
-    internal bool get_one_message(IConnectedStreamSocket c, out void * m, out size_t s) throws RecvMessageError
+    internal bool get_one_message(IZcdConnectedStreamSocket c, out void * m, out size_t s) throws RecvMessageError
     {
         // Get one message
         m = null;
@@ -474,7 +464,7 @@ namespace zcd
         while (maxlen > 0)
         {
             try {
-                ssize_t len = c.recv_new(b, maxlen);
+                ssize_t len = c.recv(b, maxlen);
                 maxlen -= len;
                 b += len;
             } catch (Error e) {
@@ -511,7 +501,7 @@ namespace zcd
         while (maxlen > 0)
         {
             try {
-                ssize_t len = c.recv_new(b, maxlen);
+                ssize_t len = c.recv(b, maxlen);
                 maxlen -= len;
                 b += len;
             } catch (Error e) {

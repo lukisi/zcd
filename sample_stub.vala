@@ -16,7 +16,6 @@
  *  along with Netsukuku.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-using Tasklets;
 using Gee;
 using zcd;
 

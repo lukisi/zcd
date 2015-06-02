@@ -1,4 +1,7 @@
 m4/*
+zcd_tasklet.c
+zcd-tasklet-system.h
+zcd-tasklet-system.vapi
 zcd.c
 zcd.h
 zcd.vapi

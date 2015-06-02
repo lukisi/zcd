@@ -59,6 +59,8 @@ void main(string[] args)
     typeof(BroadcastID).class_peek();
     typeof(Document).class_peek();
     typeof(MyDocumentClass).class_peek();
+    // Initialize tasklet system
+    ModRpc.init_tasklet_system(null);
 
     string mode = args[1];
     if (mode == "server")

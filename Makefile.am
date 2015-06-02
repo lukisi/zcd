@@ -1,11 +1,9 @@
 NULL = 
 ACLOCAL_AMFLAGS = -I m4
-
-noinst_PROGRAMS = \
-	sample_main \
-	$(NULL)
+.PHONY: check
 
 lib_LTLIBRARIES = \
+	libzcd-tasklet-system.la \
 	libzcd.la \
 	$(NULL)
 
@@ -13,6 +11,10 @@ noinst_LTLIBRARIES = \
 	libmacgetter.la \
 	libhelperrpc.la \
 	libsamplerpc.la \
+	$(NULL)
+
+noinst_PROGRAMS = \
+	sample_main \
 	$(NULL)
 
 EXTRA_PROGRAMS = \
@@ -30,9 +32,27 @@ libmacgetter_la_CPPFLAGS = \
 libmacgetter_la_LIBADD = \
 	$(NULL)
 
+libzcd_tasklet_system_la_SOURCES = \
+	zcd_tasklet.vala \
+	$(NULL)
+
+libzcd_tasklet_system_la_VALAFLAGS = \
+	-H zcd-tasklet-system.h \
+	--library zcd-tasklet-system \
+	$(NULL)
+
+libzcd_tasklet_system_la_CPPFLAGS = \
+	-w \
+	$(GOBJECT_CFLAGS) \
+	$(NULL)
+
+libzcd_tasklet_system_la_LIBADD = \
+	$(GIO_LIBS) \
+	$(NULL)
 
 libzcd_la_SOURCES = \
 	zcd.vala \
+	zcd-tasklet-system.vapi \
 	mac-getter/hw.vapi \
 	config.vapi \
 	$(NULL)
@@ -40,7 +60,6 @@ libzcd_la_SOURCES = \
 libzcd_la_VALAFLAGS = \
 	-H zcd.h \
 	--library zcd \
-	--pkg tasklet \
 	--pkg gee-0.8 \
 	--pkg gio-2.0 \
 	--pkg json-glib-1.0 \
@@ -51,7 +70,6 @@ libzcd_la_CPPFLAGS = \
 	$(GOBJECT_CFLAGS) \
 	$(GEE_CFLAGS) \
 	$(GIO_CFLAGS) \
-	$(TASKLET_CFLAGS) \
 	$(JSON_CFLAGS) \
 	$(NULL)
 
@@ -59,8 +77,8 @@ libzcd_la_LIBADD = \
 	$(GIO_LIBS) \
 	$(GEE_LIBS) \
 	$(GOBJECT_LIBS) \
-	$(TASKLET_LIBS) \
 	$(JSON_LIBS) \
+	$(builddir)/libzcd-tasklet-system.la \
 	$(builddir)/libmacgetter.la \
 	$(NULL)
 
@@ -122,13 +140,13 @@ libsamplerpc_la_SOURCES = \
 	sample_skeleton.vala \
 	sample_stub.vala \
 	helperrpc.vapi \
+	zcd-tasklet-system.vapi \
 	zcd.vapi \
 	$(NULL)
 
 libsamplerpc_la_VALAFLAGS = \
 	-H samplerpc.h \
 	--library samplerpc \
-	--pkg tasklet \
 	--pkg gee-0.8 \
 	--pkg gio-2.0 \
 	--pkg json-glib-1.0 \
@@ -139,7 +157,6 @@ libsamplerpc_la_CPPFLAGS = \
 	$(GOBJECT_CFLAGS) \
 	$(GEE_CFLAGS) \
 	$(GIO_CFLAGS) \
-	$(TASKLET_CFLAGS) \
 	$(JSON_CFLAGS) \
 	$(NULL)
 
@@ -147,14 +164,15 @@ libsamplerpc_la_LIBADD = \
 	$(GOBJECT_LIBS) \
 	$(GIO_LIBS) \
 	$(GEE_LIBS) \
-	$(TASKLET_LIBS) \
 	$(JSON_LIBS) \
 	$(builddir)/libhelperrpc.la \
+	$(builddir)/libzcd-tasklet-system.la \
 	$(builddir)/libzcd.la \
 	$(NULL)
 
 sample_main_SOURCES = \
 	sample_main.vala \
+	zcd-tasklet-system.vapi \
 	samplerpc.vapi \
 	$(NULL)
 
@@ -180,6 +198,7 @@ sample_main_LDADD = -lm \
 	$(GEE_LIBS) \
 	$(TASKLET_LIBS) \
 	$(JSON_LIBS) \
+	$(builddir)/libzcd-tasklet-system.la \
 	$(builddir)/libsamplerpc.la \
 	$(NULL)
 
@@ -195,6 +214,7 @@ check_PROGRAMS = \
 test_libs_SOURCES = \
 	testsuites/test_libs/test_libs.vala \
 	zcd.vapi \
+	zcd-tasklet-system.vapi \
 	$(NULL)
 
 test_libs_VALAFLAGS = \
@@ -216,6 +236,7 @@ test_libs_LDADD = -lm \
 	$(GIO_LIBS) \
 	$(GEE_LIBS) \
 	$(TASKLET_LIBS) \
+	$(builddir)/libzcd-tasklet-system.la \
 	$(builddir)/libzcd.la \
 	$(NULL)
 
@@ -243,12 +264,10 @@ CLEANFILES = \
 	$(builddir)/tcp_server \
 	$(NULL)
 
-DISTCLEANFILES = \
+MAINTAINERCLEANFILES = \
 	$(srcdir)/helperrpc.vapi \
 	$(srcdir)/samplerpc.vapi \
-	$(NULL)
-
-MAINTAINERCLEANFILES = \
+	$(srcdir)/zcd-tasklet-system.vapi \
 	$(srcdir)/zcd.vapi \
 	$(NULL)
 
@@ -257,4 +276,6 @@ helperrpc.vapi: libhelperrpc_la_vala.stamp
 samplerpc.vapi: libsamplerpc_la_vala.stamp
 
 zcd.vapi: libzcd_la_vala.stamp
+
+zcd-tasklet-system.vapi: libzcd_tasklet_system_la_vala.stamp
 

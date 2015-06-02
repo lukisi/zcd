@@ -16,7 +16,6 @@
  *  along with Netsukuku.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-using Tasklets;
 using Gee;
 using zcd;
 
@@ -24,6 +23,11 @@ namespace AppDomain
 {
     namespace ModRpc
     {
+        public void init_tasklet_system(zcd.IZcdTasklet _tasklet)
+        {
+            zcd.init_tasklet_system(_tasklet);
+        }
+
         public interface IInfoManagerSkeleton : Object
         {
             public abstract string get_name(ModRpc.CallerInfo? caller=null);
