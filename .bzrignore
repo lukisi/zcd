@@ -14,6 +14,7 @@ sample_stub.c
 samplerpc.h
 samplerpc.vapi
 sample_main.c
+sample_tasklet.c
 check/server.c
 testsuites/test_libs/test_libs.c
 Makefile.in

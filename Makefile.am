@@ -47,7 +47,7 @@ libzcd_tasklet_system_la_CPPFLAGS = \
 	$(NULL)
 
 libzcd_tasklet_system_la_LIBADD = \
-	$(GIO_LIBS) \
+	$(GOBJECT_LIBS) \
 	$(NULL)
 
 libzcd_la_SOURCES = \
@@ -246,19 +246,23 @@ vapidir = $(datadir)/vala/vapi
 dist_vapi_DATA = \
 	zcd.vapi \
 	zcd.deps \
+	zcd-tasklet-system.vapi \
 	$(NULL)
 
 include_HEADERS = \
 	zcd.h \
+	zcd-tasklet-system.h \
 	$(NULL)
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = \
 	zcd.pc \
+	zcd-tasklet-system.pc \
 	$(NULL)
 
 EXTRA_DIST = \
 	zcd.pc.in \
+	zcd-tasklet-system.pc.in \
 	$(NULL)
 
 CLEANFILES = \
