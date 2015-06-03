@@ -172,6 +172,7 @@ libsamplerpc_la_LIBADD = \
 
 sample_main_SOURCES = \
 	sample_main.vala \
+	sample_tasklet.vala \
 	zcd-tasklet-system.vapi \
 	samplerpc.vapi \
 	$(NULL)

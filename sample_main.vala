@@ -16,7 +16,6 @@
  *  along with Netsukuku.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-using Tasklets;
 using Gee;
 using AppDomain;
 
@@ -25,6 +24,8 @@ bool unset_wait_reply;
 bool throw_badargs_generic;
 bool throw_badargs_null;
 bool throw_auth_fail;
+
+zcd.IZcdTasklet tasklet;
 
 void main(string[] args)
 {
@@ -51,7 +52,8 @@ void main(string[] args)
         return;
     }
 
-    assert(Tasklet.init());
+    // Initialize tasklet system
+    tasklet = MyTaskletSystem.init();
 
     // Initialize known serializable classes
     typeof(License).class_peek();
@@ -59,20 +61,20 @@ void main(string[] args)
     typeof(BroadcastID).class_peek();
     typeof(Document).class_peek();
     typeof(MyDocumentClass).class_peek();
-    // Initialize tasklet system
-    ModRpc.init_tasklet_system(null);
+    // Pass tasklet system to ModRpc (and ZCD)
+    ModRpc.init_tasklet_system(tasklet);
 
     string mode = args[1];
     if (mode == "server")
     {
         server();
-        ms_wait(10000);
+        tasklet.ms_wait(10000);
     }
     else if (mode == "client")
     {
         client(args[2], 60296, args[3]);
     }
-    assert(Tasklet.kill());
+    MyTaskletSystem.kill();
 }
 
 class AppDomain.Document : Object, AppDomain.IDocument
