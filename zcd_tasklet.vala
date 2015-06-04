@@ -58,7 +58,7 @@ namespace zcd
 
     public interface IZcdServerDatagramSocket : Object
     {
-        public abstract ssize_t recvfrom(uint8* b, size_t maxlen, out uint16 rmt_ip, out uint16 rmt_port) throws Error;
+        public abstract ssize_t recvfrom(uint8* b, size_t maxlen, out string rmt_ip, out uint16 rmt_port) throws Error;
         public abstract void close() throws Error;
     }
 

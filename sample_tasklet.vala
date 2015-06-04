@@ -199,9 +199,9 @@ namespace MyTaskletSystem
                 this.c = c;
             }
 
-            public ssize_t recvfrom(uint8* b, size_t maxlen, out uint16 rmt_ip, out uint16 rmt_port) throws Error
+            public ssize_t recvfrom(uint8* b, size_t maxlen, out string rmt_ip, out uint16 rmt_port) throws Error
             {
-                error("not implemented yet");
+                return c.recvfrom_new(b, maxlen, out rmt_ip, out rmt_port);
             }
 
             public void close() throws Error
@@ -220,7 +220,7 @@ namespace MyTaskletSystem
 
             public ssize_t sendto(uint8* b, size_t len) throws Error
             {
-                error("not implemented yet");
+                return c.send_new(b, len);
             }
 
             public void close() throws Error
