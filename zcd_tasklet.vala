@@ -51,20 +51,20 @@ namespace zcd
             }
         }
         public abstract unowned string _my_address_getter();
-        public abstract ssize_t recv(uint8* b, size_t maxlen) throws Error;
+        public abstract size_t recv(uint8* b, size_t maxlen) throws Error;
         public abstract void send(uint8* b, size_t len) throws Error;
         public abstract void close() throws Error;
     }
 
     public interface IZcdServerDatagramSocket : Object
     {
-        public abstract ssize_t recvfrom(uint8* b, size_t maxlen, out string rmt_ip, out uint16 rmt_port) throws Error;
+        public abstract size_t recvfrom(uint8* b, size_t maxlen, out string rmt_ip, out uint16 rmt_port) throws Error;
         public abstract void close() throws Error;
     }
 
     public interface IZcdClientDatagramSocket : Object
     {
-        public abstract ssize_t sendto(uint8* b, size_t len) throws Error;
+        public abstract size_t sendto(uint8* b, size_t len) throws Error;
         public abstract void close() throws Error;
     }
 

@@ -175,7 +175,7 @@ namespace MyTaskletSystem
             public unowned string _peer_address_getter() {return c.peer_address;}
             public unowned string _my_address_getter() {return c.my_address;}
 
-            public ssize_t recv(uint8* b, size_t maxlen) throws Error
+            public size_t recv(uint8* b, size_t maxlen) throws Error
             {
                 return c.recv_new(b, maxlen);
             }
@@ -199,7 +199,7 @@ namespace MyTaskletSystem
                 this.c = c;
             }
 
-            public ssize_t recvfrom(uint8* b, size_t maxlen, out string rmt_ip, out uint16 rmt_port) throws Error
+            public size_t recvfrom(uint8* b, size_t maxlen, out string rmt_ip, out uint16 rmt_port) throws Error
             {
                 return c.recvfrom_new(b, maxlen, out rmt_ip, out rmt_port);
             }
@@ -218,7 +218,7 @@ namespace MyTaskletSystem
                 this.c = c;
             }
 
-            public ssize_t sendto(uint8* b, size_t len) throws Error
+            public size_t sendto(uint8* b, size_t len) throws Error
             {
                 return c.send_new(b, len);
             }
