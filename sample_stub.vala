@@ -106,12 +106,12 @@ namespace AppDomain
             return new NodeManagerTcpClientRootStub(peer_address, peer_port);
         }
 
-        public INodeManagerStub get_node_unicast(string dev, uint16 port, UnicastID unicast_id)
+        public INodeManagerStub get_node_unicast(string dev, uint16 port, UnicastID unicast_id, bool wait_reply)
         {
             error("not implemented yet");
         }
 
-        public INodeManagerStub get_node_broadcast(string dev, uint16 port, BroadcastID broadcast_id)
+        public INodeManagerStub get_node_broadcast(string dev, uint16 port, BroadcastID broadcast_id, bool send_ack)
         {
             error("not implemented yet");
         }
@@ -121,12 +121,12 @@ namespace AppDomain
             return new StatisticsTcpClientRootStub(peer_address, peer_port);
         }
 
-        public IStatisticsStub get_stats_unicast(string dev, uint16 port, UnicastID unicast_id)
+        public IStatisticsStub get_stats_unicast(string dev, uint16 port, UnicastID unicast_id, bool wait_reply)
         {
             error("not implemented yet");
         }
 
-        public IStatisticsStub get_stats_broadcast(string dev, uint16 port, BroadcastID broadcast_id)
+        public IStatisticsStub get_stats_broadcast(string dev, uint16 port, BroadcastID broadcast_id, bool send_ack)
         {
             error("not implemented yet");
         }
@@ -193,6 +193,58 @@ namespace AppDomain
                 TcpClient local_reference = client;
                 string ret = local_reference.enqueue_call(m_name, arguments, wait_reply);
                 if (!wait_reply) throw new StubError.DID_NOT_WAIT_REPLY(@"Didn't wait reply for a call to $(m_name)");
+                return ret;
+            }
+        }
+
+        internal class NodeManagerUnicastRootStub : Object, INodeManagerStub
+        {
+            private string s_unicast_id;
+            private string dev;
+            private uint16 port;
+            private bool wait_reply;
+            private InfoManagerRemote _info;
+            private CalculatorRemote _calc;
+            public NodeManagerUnicastRootStub(UnicastID unicast_id, string dev, uint16 port, bool wait_reply)
+            {
+                s_unicast_id = prepare_direct_object(unicast_id);
+                this.dev = dev;
+                this.port = port;
+                this.wait_reply = wait_reply;
+                _info = new InfoManagerRemote(this.call);
+                _calc = new CalculatorRemote(this.call);
+            }
+
+            protected unowned IInfoManagerStub info_getter()
+            {
+                return _info;
+            }
+
+            protected unowned ICalculatorStub calc_getter()
+            {
+                return _calc;
+            }
+
+            private string call(string m_name, Gee.List<string> arguments) throws ZCDError, StubError
+            {
+                int id = Random.int_range(0, int.MAX);
+                string k_map = @"$(dev):$(port)";
+                ZcdUdpServiceMessageDelegate? del_ser = null;
+                if (map_udp_listening != null && map_udp_listening.has_key(k_map))
+                {
+                    del_ser = map_udp_listening[k_map];
+                }
+                else
+                {
+                    wait_reply = false;
+                }
+                try {
+                    send_unicast_request(dev, port, id, s_unicast_id, m_name, arguments, wait_reply);
+                } catch (Error e) {
+                    throw new StubError.GENERIC(e.message);
+                }
+                if (!wait_reply) throw new StubError.DID_NOT_WAIT_REPLY(@"Didn't wait reply for a call to $(m_name)");
+                string ret = ""; // TODO
                 return ret;
             }
         }

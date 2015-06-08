@@ -970,6 +970,31 @@ namespace AppDomain
             }
             return cb.ret;
         }
+
+        /* Helper functions to build JSON unicastid and broadcastid */
+
+        public string prepare_direct_object(Object obj)
+        {
+            IJsonBuilderElement cb = new JsonBuilderObject(obj);
+            var b = new Json.Builder();
+            cb.execute(b);
+            var g = new Json.Generator();
+            g.pretty = false;
+            g.root = b.get_root();
+            return g.to_data(null);
+        }
+
+        /* Helper functions to read JSON unicastid and broadcastid */
+
+        public Object read_direct_object_notnull(Type expected_type, string js) throws HelperDeserializeError, HelperNotJsonError
+        {
+            JsonReaderObject cb = new JsonReaderObject(expected_type, false);
+            read_argument(js, cb);
+            assert(cb.ret_ok);
+            return cb.deserialize_or_null(js, (root) => {
+                return root;
+            });
+        }
     }
 }
 

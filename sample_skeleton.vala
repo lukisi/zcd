@@ -188,7 +188,7 @@ namespace AppDomain
             private string m_name;
             private ArrayList<string> args;
             private CallerInfo caller_info;
-            public ZcdNodeManagerDispatcher(INodeManagerSkeleton node, string m_name, ArrayList<string> args, CallerInfo caller_info)
+            public ZcdNodeManagerDispatcher(INodeManagerSkeleton node, string m_name, Gee.List<string> args, CallerInfo caller_info)
             {
                 this.node = node;
                 this.m_name = m_name;
@@ -423,7 +423,7 @@ namespace AppDomain
             private string m_name;
             private ArrayList<string> args;
             private CallerInfo caller_info;
-            public ZcdStatisticsDispatcher(IStatisticsSkeleton stats, string m_name, ArrayList<string> args, CallerInfo caller_info)
+            public ZcdStatisticsDispatcher(IStatisticsSkeleton stats, string m_name, Gee.List<string> args, CallerInfo caller_info)
             {
                 this.stats = stats;
                 this.m_name = m_name;
@@ -510,9 +510,201 @@ namespace AppDomain
             }
         }
 
-        public void tcp_listen(IRpcDelegate dlg, IRpcErrorHandler err, uint16 port, string? my_addr = null)
+        public class UnicastCallerInfo : CallerInfo
+        {
+            internal UnicastCallerInfo(string dev, string peer_address, UnicastID unicastid)
+            {
+                this.dev = dev;
+                this.peer_address = peer_address;
+                this.unicastid = unicastid;
+            }
+            public string dev {get; private set;}
+            public string peer_address {get; private set;}
+            public UnicastID unicastid {get; private set;}
+        }
+
+        public class BroadcastCallerInfo : CallerInfo
+        {
+            internal BroadcastCallerInfo(string dev, string peer_address, BroadcastID broadcastid)
+            {
+                this.dev = dev;
+                this.peer_address = peer_address;
+                this.broadcastid = broadcastid;
+            }
+            public string dev {get; private set;}
+            public string peer_address {get; private set;}
+            public BroadcastID broadcastid {get; private set;}
+        }
+
+        internal class ZcdUdpRequestMessageDelegate : Object, IZcdUdpRequestMessageDelegate
+        {
+            private IRpcDelegate dlg;
+            public ZcdUdpRequestMessageDelegate(IRpcDelegate dlg)
+            {
+                this.dlg = dlg;
+            }
+
+            public IZcdDispatcher? get_dispatcher_unicast(
+                int id, string unicast_id,
+                string m_name, Gee.List<string> arguments,
+                zcd.UdpCallerInfo caller_info)
+            {
+                // deserialize UnicastID unicastid
+                Object val;
+                try {
+                    val = read_direct_object_notnull(typeof(UnicastID), unicast_id);
+                } catch (HelperNotJsonError e) {
+                    critical(@"Error parsing JSON for unicast_id: $(e.message)");
+                    error(   @" unicast_id: $(unicast_id)");
+                } catch (HelperDeserializeError e) {
+                    // couldn't verify if it's for me
+                    return null;
+                }
+                if (val is ISerializable)
+                    if (!((ISerializable)val).check_serialization())
+                        // couldn't verify if it's for me
+                        return null;
+                UnicastID unicastid = (UnicastID)val;
+                // call delegate
+                UnicastCallerInfo my_caller_info = new UnicastCallerInfo(caller_info.dev, caller_info.peer_addr, unicastid);
+                IZcdDispatcher ret;
+                if (m_name.has_prefix("node."))
+                {
+                    INodeManagerSkeleton? node = dlg.get_node(my_caller_info);
+                    if (node == null) ret = null;
+                    else ret = new ZcdNodeManagerDispatcher(node, m_name, arguments, my_caller_info);
+                }
+                else if (m_name.has_prefix("stats."))
+                {
+                    IStatisticsSkeleton? stats = dlg.get_stats(my_caller_info);
+                    if (stats == null) ret = null;
+                    else ret = new ZcdStatisticsDispatcher(stats, m_name, arguments, my_caller_info);
+                }
+                else
+                {
+                    ret = new ZcdDispatcherForError("DeserializeError", "GENERIC", @"Unknown root in method name: \"$(m_name)\"");
+                }
+                return ret;
+            }
+
+            public IZcdDispatcher? get_dispatcher_broadcast(
+                int id, string broadcast_id,
+                string m_name, Gee.List<string> arguments,
+                zcd.UdpCallerInfo caller_info)
+            {
+                // deserialize BroadcastID broadcastid
+                Object val;
+                try {
+                    val = read_direct_object_notnull(typeof(BroadcastID), broadcast_id);
+                } catch (HelperNotJsonError e) {
+                    critical(@"Error parsing JSON for broadcast_id: $(e.message)");
+                    error(   @" broadcast_id: $(broadcast_id)");
+                } catch (HelperDeserializeError e) {
+                    // couldn't verify if it's for me
+                    return null;
+                }
+                if (val is ISerializable)
+                    if (!((ISerializable)val).check_serialization())
+                        // couldn't verify if it's for me
+                        return null;
+                BroadcastID broadcastid = (BroadcastID)val;
+                // call delegate
+                BroadcastCallerInfo my_caller_info = new BroadcastCallerInfo(caller_info.dev, caller_info.peer_addr, broadcastid);
+                IZcdDispatcher ret;
+                if (m_name.has_prefix("node."))
+                {
+                    INodeManagerSkeleton? node = dlg.get_node(my_caller_info);
+                    if (node == null) ret = null;
+                    else ret = new ZcdNodeManagerDispatcher(node, m_name, arguments, my_caller_info);
+                }
+                else if (m_name.has_prefix("stats."))
+                {
+                    IStatisticsSkeleton? stats = dlg.get_stats(my_caller_info);
+                    if (stats == null) ret = null;
+                    else ret = new ZcdStatisticsDispatcher(stats, m_name, arguments, my_caller_info);
+                }
+                else
+                {
+                    ret = new ZcdDispatcherForError("DeserializeError", "GENERIC", @"Unknown root in method name: \"$(m_name)\"");
+                }
+                return ret;
+            }
+        }
+
+        internal class ZcdUdpServiceMessageDelegate : Object, IZcdUdpServiceMessageDelegate
+        {
+            private IRpcDelegate dlg;
+            public ZcdUdpServiceMessageDelegate(IRpcDelegate dlg)
+            {
+                this.dlg = dlg;
+            }
+
+            //internal void going_to_send
+
+            public bool is_my_own_message(int id)
+            {
+                error("not implemented yet");
+            }
+
+            public bool is_ping_request_for_me(int id)
+            {
+                error("not implemented yet");
+            }
+
+            public void got_ping_response(int id)
+            {
+                error("not implemented yet");
+            }
+
+            public void got_keep_alive(int id)
+            {
+                error("not implemented yet");
+            }
+
+            public void got_response(int id, string response)
+            {
+                error("not implemented yet");
+            }
+
+            public void got_ack(int id, string mac)
+            {
+                error("not implemented yet");
+            }
+        }
+
+        internal class ZcdUdpCreateErrorHandler : Object, IZcdUdpCreateErrorHandler
+        {
+            private IRpcErrorHandler err;
+            private string k_map;
+            public ZcdUdpCreateErrorHandler(IRpcErrorHandler err, string k_map)
+            {
+                this.err = err;
+                this.k_map = k_map;
+            }
+
+            public void error_handler(Error e)
+            {
+                if (map_udp_listening != null)
+                    map_udp_listening.unset(k_map);
+                err.error_handler(e);
+            }
+        }
+
+        public void tcp_listen(IRpcDelegate dlg, IRpcErrorHandler err, uint16 port, string? my_addr=null)
         {
             zcd.tcp_listen(new ZcdTcpDelegate(dlg), new ZcdTcpAcceptErrorHandler(err), port, my_addr);
+        }
+
+        internal HashMap<string, ZcdUdpServiceMessageDelegate>? map_udp_listening = null;
+        public void udp_listen(IRpcDelegate dlg, IRpcErrorHandler err, uint16 port, string dev)
+        {
+            if (map_udp_listening == null) map_udp_listening = new HashMap<string, ZcdUdpServiceMessageDelegate>();
+            string k_map = @"$(dev):$(port)";
+            ZcdUdpRequestMessageDelegate del_req = new ZcdUdpRequestMessageDelegate(dlg);
+            ZcdUdpServiceMessageDelegate del_ser = new ZcdUdpServiceMessageDelegate(dlg);
+            ZcdUdpCreateErrorHandler del_err = new ZcdUdpCreateErrorHandler(err, k_map);
+            map_udp_listening[k_map] = del_ser;
+            zcd.udp_listen(del_req, del_ser, del_err, port, dev);
         }
     }
 }

@@ -192,9 +192,17 @@ class ServerSampleDelegate : Object, ModRpc.IRpcDelegate
             print(@"request for 'node' from $(c.peer_address) to $(c.my_address)\n");
             return real_node;
         }
-        else
+        else if (caller is ModRpc.UnicastCallerInfo)
         {
             error("not implemented yet");
+        }
+        else if (caller is ModRpc.BroadcastCallerInfo)
+        {
+            error("not implemented yet");
+        }
+        else
+        {
+            error(@"Unexpected class $(caller.get_type().name())");
         }
     }
 
@@ -206,9 +214,17 @@ class ServerSampleDelegate : Object, ModRpc.IRpcDelegate
             print(@"request for 'stats' from $(c.peer_address) to $(c.my_address)\n");
             return real_stats;
         }
-        else
+        else if (caller is ModRpc.UnicastCallerInfo)
         {
             error("not implemented yet");
+        }
+        else if (caller is ModRpc.BroadcastCallerInfo)
+        {
+            error("not implemented yet");
+        }
+        else
+        {
+            error(@"Unexpected class $(caller.get_type().name())");
         }
     }
 }
