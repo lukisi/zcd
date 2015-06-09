@@ -75,6 +75,20 @@ namespace zcd
         public int exit_status;
     }
 
+    public errordomain ZcdChannelError
+    {
+        TIMEOUT
+    }
+
+    public interface IZcdChannel : Object
+    {
+        public abstract void send(Value v);
+        public abstract void send_async(Value v);
+        public abstract int get_balance();
+        public abstract Value recv();
+        public abstract Value recv_with_timeout(int timeout_msec) throws ZcdChannelError;
+    }
+
     public interface IZcdTasklet : Object
     {
         public abstract void schedule();
@@ -87,6 +101,7 @@ namespace zcd
         public abstract IZcdConnectedStreamSocket get_client_stream_socket(string dest_addr, uint16 dest_port, string? my_addr=null) throws Error;
         public abstract IZcdServerDatagramSocket get_server_datagram_socket(uint16 port, string dev) throws Error;
         public abstract IZcdClientDatagramSocket get_client_datagram_socket(uint16 port, string dev) throws Error;
+        public abstract IZcdChannel get_channel();
     }
 }
 

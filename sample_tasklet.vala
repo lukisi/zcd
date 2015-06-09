@@ -116,6 +116,11 @@ namespace MyTaskletSystem
             return new MyClientDatagramSocket(new Tasklets.BroadcastClientDatagramSocket(dev, port));
         }
 
+        public IZcdChannel get_channel()
+        {
+            return new MyChannel();
+        }
+
         private class MyHandle : Object, IZcdTaskletHandle
         {
             public int ind;
@@ -226,6 +231,44 @@ namespace MyTaskletSystem
             public void close() throws Error
             {
                 c.close();
+            }
+        }
+
+        private class MyChannel : Object, IZcdChannel
+        {
+            private Tasklets.Channel ch;
+            internal MyChannel()
+            {
+                ch = new Tasklets.Channel();
+            }
+
+            public void send(Value v)
+            {
+                ch.send(v);
+            }
+
+            public void send_async(Value v)
+            {
+                ch.send_async(v);
+            }
+
+            public int get_balance()
+            {
+                return ch.balance;
+            }
+
+            public Value recv()
+            {
+                return ch.recv();
+            }
+
+            public Value recv_with_timeout(int timeout_msec) throws ZcdChannelError.TIMEOUT
+            {
+                try {
+                    return ch.recv_with_timeout(timeout_msec);
+                } catch (Tasklets.ChannelError e) {
+                    throw new ZcdChannelError.TIMEOUT(e.message);
+                }
             }
         }
     }
