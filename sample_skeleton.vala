@@ -23,9 +23,12 @@ namespace AppDomain
 {
     namespace ModRpc
     {
+        internal IZcdTasklet tasklet;
+
         public void init_tasklet_system(zcd.IZcdTasklet _tasklet)
         {
             zcd.init_tasklet_system(_tasklet);
+            tasklet = _tasklet;
         }
 
         public interface IInfoManagerSkeleton : Object
@@ -631,44 +634,147 @@ namespace AppDomain
             }
         }
 
+        internal const int udp_timeout_msec = 3000;
         internal class ZcdUdpServiceMessageDelegate : Object, IZcdUdpServiceMessageDelegate
         {
             private IRpcDelegate dlg;
             public ZcdUdpServiceMessageDelegate(IRpcDelegate dlg)
             {
                 this.dlg = dlg;
+                waiting_for_response = new HashMap<int, WaitingForResponse>();
+                waiting_for_ack = new HashMap<int, WaitingForAck>();
+                expected_ping_ids = new ArrayList<int>();
+                expected_pong_ids = new HashMap<int, IZcdChannel>();
             }
 
-            //internal void going_to_send
+            private class WaitingForResponse : Object, IZcdTaskletSpawnable
+            {
+                public int id;
+                public Timer timer;
+                public IZcdChannel ch;
+                public string response;
+                public bool has_response = false;
+                public void* func()
+                {
+                    while (true)
+                    {
+                        if (has_response)
+                        {
+                            // report 'response' through 'ch'
+                            ch.send(s_unicast_service_prefix_response + response);
+                            return null;
+                        }
+                        if (timer.is_expired())
+                        {
+                            // report communication error through 'ch'
+                            ch.send(s_unicast_service_prefix_fail + "Timeout before reply or keepalive");
+                            return null;
+                        }
+                        tasklet.ms_wait(2);
+                    }
+                }
+            }
+            private HashMap<int, WaitingForResponse> waiting_for_response;
+
+            private class WaitingForAck : Object, IZcdTaskletSpawnable
+            {
+                public WaitingForAck()
+                {
+                    macs_list = new ArrayList<string>();
+                }
+                public int id;
+                public int timeout_msec;
+                public IZcdChannel ch;
+                public ArrayList<string> macs_list;
+                public void* func()
+                {
+                    tasklet.ms_wait(timeout_msec);
+                    // report 'macs_list' through 'ch'
+                    ch.send(macs_list);
+                    return null;
+                }
+            }
+            private HashMap<int, WaitingForAck> waiting_for_ack;
+
+            internal void going_to_send_unicast(int id, IZcdChannel ch)
+            {
+                var w = new WaitingForResponse();
+                w.id = id;
+                w.ch = ch;
+                w.timer = new Timer(udp_timeout_msec);
+                tasklet.spawn(w);
+                waiting_for_response[id] = w;
+            }
+
+            internal void going_to_send_broadcast(int id, IZcdChannel ch)
+            {
+                var w = new WaitingForAck();
+                w.id = id;
+                w.ch = ch;
+                w.timeout_msec = udp_timeout_msec;
+                tasklet.spawn(w);
+                waiting_for_ack[id] = w;
+            }
 
             public bool is_my_own_message(int id)
             {
-                error("not implemented yet");
+                if (waiting_for_response.has_key(id)) return true;
+                if (waiting_for_ack.has_key(id)) return true;
+                return false;
             }
 
             public bool is_ping_request_for_me(int id)
             {
-                error("not implemented yet");
+                return (id in expected_ping_ids);
             }
 
             public void got_ping_response(int id)
             {
-                error("not implemented yet");
+                if (expected_pong_ids.has_key(id))
+                    expected_pong_ids[id].send(0);
             }
 
             public void got_keep_alive(int id)
             {
-                error("not implemented yet");
+                if (waiting_for_response.has_key(id))
+                {
+                    waiting_for_response[id].timer = new Timer(udp_timeout_msec);
+                }
             }
 
             public void got_response(int id, string response)
             {
-                error("not implemented yet");
+                if (waiting_for_response.has_key(id))
+                {
+                    waiting_for_response[id].response = response;
+                    waiting_for_response[id].has_response = true;
+                }
             }
 
             public void got_ack(int id, string mac)
             {
-                error("not implemented yet");
+                if (waiting_for_ack.has_key(id))
+                {
+                    if (! (mac in waiting_for_ack[id].macs_list))
+                        waiting_for_ack[id].macs_list.add(mac);
+                }
+            }
+
+            private ArrayList<int> expected_ping_ids;
+            internal void expect_ping(int id)
+            {
+                expected_ping_ids.add(id);
+                if (expected_ping_ids.size > 200) expected_ping_ids.remove_at(0);
+            }
+
+            private HashMap<int, IZcdChannel> expected_pong_ids;
+            internal void expect_pong(int id, IZcdChannel ch)
+            {
+                expected_pong_ids[id] = ch;
+            }
+            internal void release_pong(int id)
+            {
+                expected_pong_ids.unset(id);
             }
         }
 
@@ -705,6 +811,51 @@ namespace AppDomain
             ZcdUdpCreateErrorHandler del_err = new ZcdUdpCreateErrorHandler(err, k_map);
             map_udp_listening[k_map] = del_ser;
             zcd.udp_listen(del_req, del_ser, del_err, port, dev);
+        }
+
+        public void prepare_ping(int id, string dev, uint16 port)
+        {
+            string k_map = @"$(dev):$(port)";
+            if (map_udp_listening == null) return;
+            if (! map_udp_listening.has_key(k_map)) return;
+            ZcdUdpServiceMessageDelegate del_ser = map_udp_listening[k_map];
+            del_ser.expect_ping(id);
+        }
+
+        internal class Timer : Object
+        {
+            protected TimeVal exp;
+            public Timer(int64 msec_ttl)
+            {
+                set_time(msec_ttl);
+            }
+
+            protected void set_time(int64 msec_ttl)
+            {
+                exp = TimeVal();
+                exp.get_current_time();
+                long milli = (long)(msec_ttl % (int64)1000);
+                long seconds = (long)(msec_ttl / (int64)1000);
+                int64 check_seconds = (int64)exp.tv_sec;
+                check_seconds += (int64)seconds;
+                assert(check_seconds <= long.MAX);
+                exp.add(milli*1000);
+                exp.tv_sec += seconds;
+            }
+
+            public bool is_younger(Timer t)
+            {
+                if (exp.tv_sec > t.exp.tv_sec) return true;
+                if (exp.tv_sec < t.exp.tv_sec) return false;
+                if (exp.tv_usec > t.exp.tv_usec) return true;
+                return false;
+            }
+
+            public bool is_expired()
+            {
+                Timer now = new Timer(0);
+                return now.is_younger(this);
+            }
         }
     }
 }

@@ -64,6 +64,11 @@ namespace AppDomain
             }
         }
 
+        public interface IAckCommunicator : Object
+        {
+            public abstract void process_macs_list(Gee.List<string> macs_list);
+        }
+
         internal delegate string FakeRmt(string m_name, Gee.List<string> arguments) throws ZCDError, StubError;
 
         public interface IInfoManagerStub : Object
@@ -106,29 +111,9 @@ namespace AppDomain
             return new NodeManagerTcpClientRootStub(peer_address, peer_port);
         }
 
-        public INodeManagerStub get_node_unicast(string dev, uint16 port, UnicastID unicast_id, bool wait_reply)
-        {
-            error("not implemented yet");
-        }
-
-        public INodeManagerStub get_node_broadcast(string dev, uint16 port, BroadcastID broadcast_id, bool send_ack)
-        {
-            error("not implemented yet");
-        }
-
         public IStatisticsStub get_stats_tcp_client(string peer_address, uint16 peer_port)
         {
             return new StatisticsTcpClientRootStub(peer_address, peer_port);
-        }
-
-        public IStatisticsStub get_stats_unicast(string dev, uint16 port, UnicastID unicast_id, bool wait_reply)
-        {
-            error("not implemented yet");
-        }
-
-        public IStatisticsStub get_stats_broadcast(string dev, uint16 port, BroadcastID broadcast_id, bool send_ack)
-        {
-            error("not implemented yet");
         }
 
         internal class NodeManagerTcpClientRootStub : Object, INodeManagerStub, ITcpClientRootStub
@@ -197,58 +182,6 @@ namespace AppDomain
             }
         }
 
-        internal class NodeManagerUnicastRootStub : Object, INodeManagerStub
-        {
-            private string s_unicast_id;
-            private string dev;
-            private uint16 port;
-            private bool wait_reply;
-            private InfoManagerRemote _info;
-            private CalculatorRemote _calc;
-            public NodeManagerUnicastRootStub(UnicastID unicast_id, string dev, uint16 port, bool wait_reply)
-            {
-                s_unicast_id = prepare_direct_object(unicast_id);
-                this.dev = dev;
-                this.port = port;
-                this.wait_reply = wait_reply;
-                _info = new InfoManagerRemote(this.call);
-                _calc = new CalculatorRemote(this.call);
-            }
-
-            protected unowned IInfoManagerStub info_getter()
-            {
-                return _info;
-            }
-
-            protected unowned ICalculatorStub calc_getter()
-            {
-                return _calc;
-            }
-
-            private string call(string m_name, Gee.List<string> arguments) throws ZCDError, StubError
-            {
-                int id = Random.int_range(0, int.MAX);
-                string k_map = @"$(dev):$(port)";
-                ZcdUdpServiceMessageDelegate? del_ser = null;
-                if (map_udp_listening != null && map_udp_listening.has_key(k_map))
-                {
-                    del_ser = map_udp_listening[k_map];
-                }
-                else
-                {
-                    wait_reply = false;
-                }
-                try {
-                    send_unicast_request(dev, port, id, s_unicast_id, m_name, arguments, wait_reply);
-                } catch (Error e) {
-                    throw new StubError.GENERIC(e.message);
-                }
-                if (!wait_reply) throw new StubError.DID_NOT_WAIT_REPLY(@"Didn't wait reply for a call to $(m_name)");
-                string ret = ""; // TODO
-                return ret;
-            }
-        }
-
         internal class StatisticsTcpClientRootStub : Object, IStatisticsStub, ITcpClientRootStub
         {
             private TcpClient client;
@@ -305,6 +238,299 @@ namespace AppDomain
                 string ret = local_reference.enqueue_call(m_name, arguments, wait_reply);
                 if (!wait_reply) throw new StubError.DID_NOT_WAIT_REPLY(@"Didn't wait reply for a call to $(m_name)");
                 return ret;
+            }
+        }
+
+        public INodeManagerStub get_node_unicast(string dev, uint16 port, UnicastID unicast_id, bool wait_reply)
+        {
+            return new NodeManagerUnicastRootStub(dev, port, unicast_id, wait_reply);
+        }
+
+        public IStatisticsStub get_stats_unicast(string dev, uint16 port, UnicastID unicast_id, bool wait_reply)
+        {
+            return new StatisticsUnicastRootStub(dev, port, unicast_id, wait_reply);
+        }
+
+        internal const string s_unicast_service_prefix_response = "RESPONSE:";
+        internal const string s_unicast_service_prefix_fail = "FAIL:";
+
+        internal class NodeManagerUnicastRootStub : Object, INodeManagerStub
+        {
+            private string s_unicast_id;
+            private string dev;
+            private uint16 port;
+            private bool wait_reply;
+            private InfoManagerRemote _info;
+            private CalculatorRemote _calc;
+            public NodeManagerUnicastRootStub(string dev, uint16 port, UnicastID unicast_id, bool wait_reply)
+            {
+                s_unicast_id = prepare_direct_object(unicast_id);
+                this.dev = dev;
+                this.port = port;
+                this.wait_reply = wait_reply;
+                _info = new InfoManagerRemote(this.call);
+                _calc = new CalculatorRemote(this.call);
+            }
+
+            protected unowned IInfoManagerStub info_getter()
+            {
+                return _info;
+            }
+
+            protected unowned ICalculatorStub calc_getter()
+            {
+                return _calc;
+            }
+
+            private string call(string m_name, Gee.List<string> arguments) throws ZCDError, StubError
+            {
+                int id = Random.int_range(0, int.MAX);
+                string k_map = @"$(dev):$(port)";
+                ZcdUdpServiceMessageDelegate? del_ser = null;
+                IZcdChannel ch = tasklet.get_channel();
+                if (wait_reply)
+                {
+                    if (map_udp_listening != null && map_udp_listening.has_key(k_map))
+                    {
+                        del_ser = map_udp_listening[k_map];
+                        del_ser.going_to_send_unicast(id, ch);
+                    }
+                    else
+                    {
+                        wait_reply = false;
+                    }
+                }
+                try {
+                    send_unicast_request(dev, port, id, s_unicast_id, m_name, arguments, wait_reply);
+                } catch (Error e) {
+                    throw new StubError.GENERIC(e.message);
+                }
+                if (!wait_reply) throw new StubError.DID_NOT_WAIT_REPLY(@"Didn't wait reply for a call to $(m_name)");
+                string reply = (string)ch.recv();
+                if (reply.has_prefix(s_unicast_service_prefix_fail))
+                {
+                    throw new StubError.GENERIC(reply.substring(s_unicast_service_prefix_fail.length));
+                }
+                else if (reply.has_prefix(s_unicast_service_prefix_response))
+                {
+                    return reply.substring(s_unicast_service_prefix_response.length);
+                }
+                else
+                {
+                    error("Unexpected message through channel of ZcdUdpServiceMessageDelegate");
+                }
+            }
+        }
+
+        internal class StatisticsUnicastRootStub : Object, IStatisticsStub
+        {
+            private string s_unicast_id;
+            private string dev;
+            private uint16 port;
+            private bool wait_reply;
+            private ChildrenViewerRemote _children_viewer;
+            public StatisticsUnicastRootStub(string dev, uint16 port, UnicastID unicast_id, bool wait_reply)
+            {
+                s_unicast_id = prepare_direct_object(unicast_id);
+                this.dev = dev;
+                this.port = port;
+                this.wait_reply = wait_reply;
+                _children_viewer = new ChildrenViewerRemote(this.call);
+            }
+
+            protected unowned IChildrenViewerStub children_viewer_getter()
+            {
+                return _children_viewer;
+            }
+
+            private string call(string m_name, Gee.List<string> arguments) throws ZCDError, StubError
+            {
+                int id = Random.int_range(0, int.MAX);
+                string k_map = @"$(dev):$(port)";
+                ZcdUdpServiceMessageDelegate? del_ser = null;
+                IZcdChannel ch = tasklet.get_channel();
+                if (wait_reply)
+                {
+                    if (map_udp_listening != null && map_udp_listening.has_key(k_map))
+                    {
+                        del_ser = map_udp_listening[k_map];
+                        del_ser.going_to_send_unicast(id, ch);
+                    }
+                    else
+                    {
+                        wait_reply = false;
+                    }
+                }
+                try {
+                    send_unicast_request(dev, port, id, s_unicast_id, m_name, arguments, wait_reply);
+                } catch (Error e) {
+                    throw new StubError.GENERIC(e.message);
+                }
+                if (!wait_reply) throw new StubError.DID_NOT_WAIT_REPLY(@"Didn't wait reply for a call to $(m_name)");
+                string reply = (string)ch.recv();
+                if (reply.has_prefix(s_unicast_service_prefix_fail))
+                {
+                    throw new StubError.GENERIC(reply.substring(s_unicast_service_prefix_fail.length));
+                }
+                else if (reply.has_prefix(s_unicast_service_prefix_response))
+                {
+                    return reply.substring(s_unicast_service_prefix_response.length);
+                }
+                else
+                {
+                    error("Unexpected message through channel of ZcdUdpServiceMessageDelegate");
+                }
+            }
+        }
+
+        public INodeManagerStub get_node_broadcast(string dev, uint16 port, BroadcastID broadcast_id, IAckCommunicator? notify_ack=null)
+        {
+            return new NodeManagerBroadcastRootStub(dev, port, broadcast_id, notify_ack);
+        }
+
+        public IStatisticsStub get_stats_broadcast(string dev, uint16 port, BroadcastID broadcast_id, IAckCommunicator? notify_ack=null)
+        {
+            return new StatisticsBroadcastRootStub(dev, port, broadcast_id, notify_ack);
+        }
+
+        internal class NodeManagerBroadcastRootStub : Object, INodeManagerStub
+        {
+            private string s_broadcast_id;
+            private string dev;
+            private uint16 port;
+            private IAckCommunicator? notify_ack;
+            private InfoManagerRemote _info;
+            private CalculatorRemote _calc;
+            public NodeManagerBroadcastRootStub(string dev, uint16 port, BroadcastID broadcast_id, IAckCommunicator? notify_ack=null)
+            {
+                s_broadcast_id = prepare_direct_object(broadcast_id);
+                this.dev = dev;
+                this.port = port;
+                this.notify_ack = notify_ack;
+                _info = new InfoManagerRemote(this.call);
+                _calc = new CalculatorRemote(this.call);
+            }
+
+            protected unowned IInfoManagerStub info_getter()
+            {
+                return _info;
+            }
+
+            protected unowned ICalculatorStub calc_getter()
+            {
+                return _calc;
+            }
+
+            private string call(string m_name, Gee.List<string> arguments) throws ZCDError, StubError
+            {
+                int id = Random.int_range(0, int.MAX);
+                string k_map = @"$(dev):$(port)";
+                ZcdUdpServiceMessageDelegate? del_ser = null;
+                IZcdChannel ch = tasklet.get_channel();
+                if (notify_ack != null)
+                {
+                    if (map_udp_listening != null && map_udp_listening.has_key(k_map))
+                    {
+                        del_ser = map_udp_listening[k_map];
+                        del_ser.going_to_send_broadcast(id, ch);
+                    }
+                    else
+                    {
+                        notify_ack = null;
+                    }
+                }
+                try {
+                    send_broadcast_request(dev, port, id, s_broadcast_id, m_name, arguments, (notify_ack != null));
+                } catch (Error e) {
+                    throw new StubError.GENERIC(e.message);
+                }
+                if (notify_ack != null)
+                {
+                    NotifyAckTasklet t = new NotifyAckTasklet();
+                    t.rootstub = this;
+                    t.ch = ch;
+                    tasklet.spawn(t);
+                }
+                throw new StubError.DID_NOT_WAIT_REPLY(@"Didn't wait reply for a call to $(m_name)");
+            }
+
+            private class NotifyAckTasklet : Object, IZcdTaskletSpawnable
+            {
+                public NodeManagerBroadcastRootStub rootstub;
+                public IZcdChannel ch;
+                public void * func()
+                {
+                    ArrayList<string> macs_list = (ArrayList<string>)ch.recv();
+                    rootstub.notify_ack.process_macs_list(macs_list);
+                    return null;
+                }
+            }
+        }
+
+        internal class StatisticsBroadcastRootStub : Object, IStatisticsStub
+        {
+            private string s_broadcast_id;
+            private string dev;
+            private uint16 port;
+            private IAckCommunicator? notify_ack;
+            private ChildrenViewerRemote _children_viewer;
+            public StatisticsBroadcastRootStub(string dev, uint16 port, BroadcastID broadcast_id, IAckCommunicator? notify_ack=null)
+            {
+                s_broadcast_id = prepare_direct_object(broadcast_id);
+                this.dev = dev;
+                this.port = port;
+                this.notify_ack = notify_ack;
+                _children_viewer = new ChildrenViewerRemote(this.call);
+            }
+
+            protected unowned IChildrenViewerStub children_viewer_getter()
+            {
+                return _children_viewer;
+            }
+
+            private string call(string m_name, Gee.List<string> arguments) throws ZCDError, StubError
+            {
+                int id = Random.int_range(0, int.MAX);
+                string k_map = @"$(dev):$(port)";
+                ZcdUdpServiceMessageDelegate? del_ser = null;
+                IZcdChannel ch = tasklet.get_channel();
+                if (notify_ack != null)
+                {
+                    if (map_udp_listening != null && map_udp_listening.has_key(k_map))
+                    {
+                        del_ser = map_udp_listening[k_map];
+                        del_ser.going_to_send_broadcast(id, ch);
+                    }
+                    else
+                    {
+                        notify_ack = null;
+                    }
+                }
+                try {
+                    send_broadcast_request(dev, port, id, s_broadcast_id, m_name, arguments, (notify_ack != null));
+                } catch (Error e) {
+                    throw new StubError.GENERIC(e.message);
+                }
+                if (notify_ack != null)
+                {
+                    NotifyAckTasklet t = new NotifyAckTasklet();
+                    t.rootstub = this;
+                    t.ch = ch;
+                    tasklet.spawn(t);
+                }
+                throw new StubError.DID_NOT_WAIT_REPLY(@"Didn't wait reply for a call to $(m_name)");
+            }
+
+            private class NotifyAckTasklet : Object, IZcdTaskletSpawnable
+            {
+                public StatisticsBroadcastRootStub rootstub;
+                public IZcdChannel ch;
+                public void * func()
+                {
+                    ArrayList<string> macs_list = (ArrayList<string>)ch.recv();
+                    rootstub.notify_ack.process_macs_list(macs_list);
+                    return null;
+                }
             }
         }
 
@@ -586,6 +812,11 @@ namespace AppDomain
                 } catch (HelperDeserializeError e) {
                     throw new DeserializeError.GENERIC(@"$(doing): $(e.message)");
                 }
+                if (error_domain != null)
+                {
+                    string error_domain_code = @"$(error_domain).$(error_code)";
+                    throw new DeserializeError.GENERIC(@"$(doing): unrecognized error $(error_domain_code) $(error_message)");
+                }
                 return ret;
             }
 
@@ -674,8 +905,43 @@ namespace AppDomain
                 } catch (HelperDeserializeError e) {
                     throw new DeserializeError.GENERIC(@"$(doing): $(e.message)");
                 }
+                if (error_domain != null)
+                {
+                    string error_domain_code = @"$(error_domain).$(error_code)";
+                    throw new DeserializeError.GENERIC(@"$(doing): unrecognized error $(error_domain_code) $(error_message)");
+                }
                 return ret;
             }
+        }
+
+        public int send_ping(int id, string dev, uint16 port) throws StubError
+        {
+            string k_map = @"$(dev):$(port)";
+            if (map_udp_listening == null) error(@"Must listen to udp on $(k_map)");
+            if (! map_udp_listening.has_key(k_map)) error(@"Must listen to udp on $(k_map)");
+            ZcdUdpServiceMessageDelegate del_ser = map_udp_listening[k_map];
+            IZcdChannel ch = tasklet.get_channel();
+            del_ser.expect_pong(id, ch);
+            TimeVal start = TimeVal();
+            start.get_current_time();
+            try {
+                zcd.send_ping_request(dev, port, id);
+            } catch (Error e) {
+                del_ser.release_pong(id);
+                throw new StubError.GENERIC(@"Sending ping request: $(e.message)");
+            }
+            try {
+                ch.recv_with_timeout(10000);
+            } catch (ZcdChannelError e) {
+                del_ser.release_pong(id);
+                throw new StubError.GENERIC(@"No reply to ping");
+            }
+            TimeVal pong = TimeVal();
+            pong.get_current_time();
+            long delta = pong.tv_usec - start.tv_usec
+                       + 1000000 * (pong.tv_sec - start.tv_sec);
+            del_ser.release_pong(id);
+            return (int)delta;
         }
     }
 }
