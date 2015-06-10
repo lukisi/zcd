@@ -376,7 +376,11 @@ namespace zcd
                 throw new ZCDError.GENERIC("Trying to send message");
             }
 
-            if (!wait_reply) return "";
+            if (!wait_reply)
+            {
+                processing = false;
+                return "";
+            }
             // Wait for result
             // Get one message
             void * m;
