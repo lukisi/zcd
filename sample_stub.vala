@@ -293,11 +293,19 @@ namespace AppDomain
                     if (map_udp_listening != null && map_udp_listening.has_key(k_map))
                     {
                         del_ser = map_udp_listening[k_map];
-                        del_ser.going_to_send_unicast(id, ch);
+                        del_ser.going_to_send_unicast_with_reply(id, ch);
                     }
                     else
                     {
                         wait_reply = false;
+                    }
+                }
+                else
+                {
+                    if (map_udp_listening != null && map_udp_listening.has_key(k_map))
+                    {
+                        del_ser = map_udp_listening[k_map];
+                        del_ser.going_to_send_unicast_no_reply(id);
                     }
                 }
                 try {
@@ -354,11 +362,19 @@ namespace AppDomain
                     if (map_udp_listening != null && map_udp_listening.has_key(k_map))
                     {
                         del_ser = map_udp_listening[k_map];
-                        del_ser.going_to_send_unicast(id, ch);
+                        del_ser.going_to_send_unicast_with_reply(id, ch);
                     }
                     else
                     {
                         wait_reply = false;
+                    }
+                }
+                else
+                {
+                    if (map_udp_listening != null && map_udp_listening.has_key(k_map))
+                    {
+                        del_ser = map_udp_listening[k_map];
+                        del_ser.going_to_send_unicast_no_reply(id);
                     }
                 }
                 try {
@@ -432,11 +448,19 @@ namespace AppDomain
                     if (map_udp_listening != null && map_udp_listening.has_key(k_map))
                     {
                         del_ser = map_udp_listening[k_map];
-                        del_ser.going_to_send_broadcast(id, ch);
+                        del_ser.going_to_send_broadcast_with_ack(id, ch);
                     }
                     else
                     {
                         notify_ack = null;
+                    }
+                }
+                else
+                {
+                    if (map_udp_listening != null && map_udp_listening.has_key(k_map))
+                    {
+                        del_ser = map_udp_listening[k_map];
+                        del_ser.going_to_send_broadcast_no_ack(id);
                     }
                 }
                 try {
@@ -499,11 +523,19 @@ namespace AppDomain
                     if (map_udp_listening != null && map_udp_listening.has_key(k_map))
                     {
                         del_ser = map_udp_listening[k_map];
-                        del_ser.going_to_send_broadcast(id, ch);
+                        del_ser.going_to_send_broadcast_with_ack(id, ch);
                     }
                     else
                     {
                         notify_ack = null;
+                    }
+                }
+                else
+                {
+                    if (map_udp_listening != null && map_udp_listening.has_key(k_map))
+                    {
+                        del_ser = map_udp_listening[k_map];
+                        del_ser.going_to_send_broadcast_no_ack(id);
                     }
                 }
                 try {

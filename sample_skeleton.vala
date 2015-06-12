@@ -645,15 +645,25 @@ namespace AppDomain
                 this.dlg = dlg;
                 waiting_for_response = new HashMap<int, WaitingForResponse>();
                 waiting_for_ack = new HashMap<int, WaitingForAck>();
+                waiting_for_recv = new HashMap<int, WaitingForRecv>();
             }
 
             private class WaitingForResponse : Object, IZcdTaskletSpawnable
             {
-                public int id;
+                public WaitingForResponse(ZcdUdpServiceMessageDelegate parent, int id, Timer timer, IZcdChannel ch)
+                {
+                    this.parent = parent;
+                    this.id = id;
+                    this.timer = timer;
+                    this.ch = ch;
+                    has_response = false;
+                }
+                private ZcdUdpServiceMessageDelegate parent;
+                private int id;
                 public Timer timer;
-                public IZcdChannel ch;
+                private IZcdChannel ch;
                 public string response;
-                public bool has_response = false;
+                public bool has_response;
                 public void* func()
                 {
                     while (true)
@@ -662,12 +672,14 @@ namespace AppDomain
                         {
                             // report 'response' through 'ch'
                             ch.send(s_unicast_service_prefix_response + response);
+                            parent.waiting_for_response.unset(id);
                             return null;
                         }
                         if (timer.is_expired())
                         {
                             // report communication error through 'ch'
                             ch.send(s_unicast_service_prefix_fail + "Timeout before reply or keepalive");
+                            parent.waiting_for_response.unset(id);
                             return null;
                         }
                         tasklet.ms_wait(2);
@@ -678,48 +690,83 @@ namespace AppDomain
 
             private class WaitingForAck : Object, IZcdTaskletSpawnable
             {
-                public WaitingForAck()
+                public WaitingForAck(ZcdUdpServiceMessageDelegate parent, int id, int timeout_msec, IZcdChannel ch)
                 {
+                    this.parent = parent;
+                    this.id = id;
+                    this.timeout_msec = timeout_msec;
+                    this.ch = ch;
                     macs_list = new ArrayList<string>();
                 }
-                public int id;
-                public int timeout_msec;
-                public IZcdChannel ch;
-                public ArrayList<string> macs_list;
+                private ZcdUdpServiceMessageDelegate parent;
+                private int id;
+                private int timeout_msec;
+                private IZcdChannel ch;
+                public ArrayList<string> macs_list {get; private set;}
                 public void* func()
                 {
                     tasklet.ms_wait(timeout_msec);
                     // report 'macs_list' through 'ch'
                     ch.send(macs_list);
+                    parent.waiting_for_ack.unset(id);
                     return null;
                 }
             }
             private HashMap<int, WaitingForAck> waiting_for_ack;
 
-            internal void going_to_send_unicast(int id, IZcdChannel ch)
+            private class WaitingForRecv : Object, IZcdTaskletSpawnable
             {
-                var w = new WaitingForResponse();
-                w.id = id;
-                w.ch = ch;
-                w.timer = new Timer(udp_timeout_msec);
+                public WaitingForRecv(ZcdUdpServiceMessageDelegate parent, int id, int timeout_msec)
+                {
+                    this.parent = parent;
+                    this.id = id;
+                    this.timeout_msec = timeout_msec;
+                }
+                private ZcdUdpServiceMessageDelegate parent;
+                private int id;
+                private int timeout_msec;
+                public void* func()
+                {
+                    tasklet.ms_wait(timeout_msec);
+                    parent.waiting_for_recv.unset(id);
+                    return null;
+                }
+            }
+            private HashMap<int, WaitingForRecv> waiting_for_recv;
+
+            internal void going_to_send_unicast_with_reply(int id, IZcdChannel ch)
+            {
+                var w = new WaitingForResponse(this, id, new Timer(udp_timeout_msec), ch);
                 tasklet.spawn(w);
                 waiting_for_response[id] = w;
             }
 
-            internal void going_to_send_broadcast(int id, IZcdChannel ch)
+            internal void going_to_send_broadcast_with_ack(int id, IZcdChannel ch)
             {
-                var w = new WaitingForAck();
-                w.id = id;
-                w.ch = ch;
-                w.timeout_msec = udp_timeout_msec;
+                var w = new WaitingForAck(this, id, udp_timeout_msec, ch);
                 tasklet.spawn(w);
                 waiting_for_ack[id] = w;
+            }
+
+            internal void going_to_send_unicast_no_reply(int id)
+            {
+                var w = new WaitingForRecv(this, id, udp_timeout_msec);
+                tasklet.spawn(w);
+                waiting_for_recv[id] = w;
+            }
+
+            internal void going_to_send_broadcast_no_ack(int id)
+            {
+                var w = new WaitingForRecv(this, id, udp_timeout_msec);
+                tasklet.spawn(w);
+                waiting_for_recv[id] = w;
             }
 
             public bool is_my_own_message(int id)
             {
                 if (waiting_for_response.has_key(id)) return true;
                 if (waiting_for_ack.has_key(id)) return true;
+                if (waiting_for_recv.has_key(id)) return true;
                 return false;
             }
 

@@ -66,24 +66,45 @@ void client(string dev, string name)
     dest.my_id = name;
     BroadcastID broad = new BroadcastID();
     broad.all_but_this = name;
+
     try {
-        {
-            var del = new ServerSampleDelegate("justtolistenreply");
-            var err = new ServerSampleErrorHandler();
-            zcd.IZcdTaskletHandle t = ModRpc.udp_listen(del, err, 60296, dev);
-            tasklet.ms_wait(10);
-            ModRpc.INodeManagerStub n = ModRpc.get_node_unicast(dev, 60296, dest, true);
-            assert(n.info.set_year(1971));
-            t.kill();
-        }
-        {
-            ModRpc.INodeManagerStub n = ModRpc.get_node_unicast(dev, 60296, dest, false);
-            ModRpc.INodeManagerStub n2 = ModRpc.get_node_broadcast(dev, 60296, broad);
-            print("calling set_name unicast...\n");
-            n.info.set_name("ad uno");
-            print("calling set_name broadcast...\n");
-            n2.info.set_name("agli altri");
-        }
+        var del = new ServerSampleDelegate("justtolistenreply");
+        var err = new ServerSampleErrorHandler();
+        zcd.IZcdTaskletHandle t = ModRpc.udp_listen(del, err, 60296, dev);
+        tasklet.ms_wait(10);
+        ModRpc.INodeManagerStub n = ModRpc.get_node_unicast(dev, 60296, dest, true);
+        assert(n.info.set_year(1971));
+        ModRpc.INodeManagerStub n1 = ModRpc.get_node_unicast(dev, 60296, dest, false);
+        ModRpc.INodeManagerStub n2 = ModRpc.get_node_broadcast(dev, 60296, broad);
+        print("calling set_name unicast...\n");
+        n1.info.set_name("ad uno");
+        print("calling set_name broadcast...\n");
+        n2.info.set_name("agli altri");
+        tasklet.ms_wait(10);
+        t.kill();
+    } catch (AuthError e) {
+        print(@"AuthError GENERIC $(e.message)\n");
+    } catch (BadArgsError e) {
+        if (e is BadArgsError.NULL_NOT_ALLOWED)
+            print(@"BadArgsError NULL_NOT_ALLOWED $(e.message)\n");
+        else
+            print(@"BadArgsError GENERIC $(e.message)\n");
+    } catch (ModRpc.StubError e) {
+        if (e is ModRpc.StubError.DID_NOT_WAIT_REPLY)
+            print(@"ModRpc.StubError DID_NOT_WAIT_REPLY $(e.message)\n");
+        else
+            print(@"ModRpc.StubError GENERIC $(e.message)\n");
+    } catch (ModRpc.DeserializeError e) {
+        print(@"ModRpc.DeserializeError GENERIC $(e.message)\n");
+    }
+
+    try {
+        ModRpc.INodeManagerStub n = ModRpc.get_node_unicast(dev, 60296, dest, false);
+        ModRpc.INodeManagerStub n2 = ModRpc.get_node_broadcast(dev, 60296, broad);
+        print("calling set_name unicast...\n");
+        n.info.set_name("ad uno");
+        print("calling set_name broadcast...\n");
+        n2.info.set_name("agli altri");
     } catch (AuthError e) {
         print(@"AuthError GENERIC $(e.message)\n");
     } catch (BadArgsError e) {
