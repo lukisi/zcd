@@ -19,17 +19,13 @@
 using Gee;
 using AppDomain;
 
-bool ping;
-
 zcd.IZcdTasklet tasklet;
 
 void main(string[] args)
 {
-    ping = false;
     OptionContext oc = new OptionContext("client/server <dev> <unicastid-string>");
-    OptionEntry[] entries = new OptionEntry[2];
+    OptionEntry[] entries = new OptionEntry[1];
     int index = 0;
-    entries[index++] = {"ping", 0, 0, OptionArg.NONE, ref ping, "Client: ping", null};
     entries[index++] = { null };
     oc.add_main_entries(entries, null);
     try {
@@ -71,20 +67,15 @@ void client(string dev, string name)
     BroadcastID broad = new BroadcastID();
     broad.all_but_this = name;
     try {
-        if (ping)
         {
             var del = new ServerSampleDelegate("justtolistenreply");
             var err = new ServerSampleErrorHandler();
-            ModRpc.udp_listen(del, err, 60296, dev);
-            ModRpc.INodeManagerStub n = ModRpc.get_node_unicast(dev, 60296, dest, true);
-            int id = Random.int_range(0, int.MAX);
-            print("prepare ping...\n");
-            assert(n.info.set_year(id));
+            zcd.IZcdTaskletHandle t = ModRpc.udp_listen(del, err, 60296, dev);
             tasklet.ms_wait(10);
-            int rtt = ModRpc.send_ping(id, dev, 60296);
-            print(@"RTT is $(rtt)\n");
+            ModRpc.INodeManagerStub n = ModRpc.get_node_unicast(dev, 60296, dest, true);
+            assert(n.info.set_year(1971));
+            t.kill();
         }
-        else
         {
             ModRpc.INodeManagerStub n = ModRpc.get_node_unicast(dev, 60296, dest, false);
             ModRpc.INodeManagerStub n2 = ModRpc.get_node_broadcast(dev, 60296, broad);
@@ -194,7 +185,7 @@ class ServerSampleInfoManager : Object, ModRpc.IInfoManagerSkeleton
 
     public void set_name(string name, ModRpc.CallerInfo? caller=null) throws AuthError, BadArgsError
     {
-        print(@"Got command: $(name).\n");
+        print(@"Got set_name: $(name).\n");
     }
 
     public int get_year(ModRpc.CallerInfo? caller=null)
@@ -204,7 +195,7 @@ class ServerSampleInfoManager : Object, ModRpc.IInfoManagerSkeleton
 
     public bool set_year(int year, ModRpc.CallerInfo? caller=null)
     {
-        // in fact it is prepare ping
+        // called with unicast
         string dev;
         if (caller is ModRpc.TcpCallerInfo)
         {
@@ -223,7 +214,7 @@ class ServerSampleInfoManager : Object, ModRpc.IInfoManagerSkeleton
         {
             error(@"Unexpected class $(caller.get_type().name())");
         }
-        ModRpc.prepare_ping(year, dev, 60296);
+        print(@"Got set_year $(year) in unicast from $(dev).\n");
         return true;
     }
 

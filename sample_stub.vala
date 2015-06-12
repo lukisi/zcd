@@ -913,38 +913,6 @@ namespace AppDomain
                 return ret;
             }
         }
-
-        public int send_ping(int id, string dev, uint16 port) throws StubError
-        {
-            string k_map = @"$(dev):$(port)";
-            if (map_udp_listening == null) error(@"Must listen to udp on $(k_map)");
-            if (! map_udp_listening.has_key(k_map)) error(@"Must listen to udp on $(k_map)");
-            ZcdUdpServiceMessageDelegate del_ser = map_udp_listening[k_map];
-            IZcdChannel ch = tasklet.get_channel();
-            del_ser.expect_pong(id, ch);
-            TimeVal start;
-            long delta_usec;
-            try {
-                start = zcd.send_ping_request(dev, port, id);
-            } catch (Error e) {
-                del_ser.release_pong(id);
-                throw new StubError.GENERIC(@"Sending ping request: $(e.message)");
-            }
-            try {
-                delta_usec = (long)(ch.recv_with_timeout(10000));
-            } catch (ZcdChannelError e) {
-                del_ser.release_pong(id);
-                throw new StubError.GENERIC(@"No reply to ping");
-            }
-            TimeVal pong = TimeVal();
-            pong.get_current_time();
-            long delta = pong.tv_usec - start.tv_usec
-                       + 1000000 * (pong.tv_sec - start.tv_sec);
-            del_ser.release_pong(id);
-            int ret = (int)(delta - delta_usec);
-            if (ret <= 0) throw new StubError.GENERIC(@"Too high delta in reply to ping");
-            return ret;
-        }
     }
 }
 

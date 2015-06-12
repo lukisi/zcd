@@ -645,8 +645,6 @@ namespace AppDomain
                 this.dlg = dlg;
                 waiting_for_response = new HashMap<int, WaitingForResponse>();
                 waiting_for_ack = new HashMap<int, WaitingForAck>();
-                expected_ping_ids = new ArrayList<int>();
-                expected_pong_ids = new HashMap<int, IZcdChannel>();
             }
 
             private class WaitingForResponse : Object, IZcdTaskletSpawnable
@@ -725,17 +723,6 @@ namespace AppDomain
                 return false;
             }
 
-            public bool is_ping_request_for_me(int id)
-            {
-                return (id in expected_ping_ids);
-            }
-
-            public void got_ping_response(int id, long delta_usec)
-            {
-                if (expected_pong_ids.has_key(id))
-                    expected_pong_ids[id].send(delta_usec);
-            }
-
             public void got_keep_alive(int id)
             {
                 if (waiting_for_response.has_key(id))
@@ -760,23 +747,6 @@ namespace AppDomain
                     if (! (mac in waiting_for_ack[id].macs_list))
                         waiting_for_ack[id].macs_list.add(mac);
                 }
-            }
-
-            private ArrayList<int> expected_ping_ids;
-            internal void expect_ping(int id)
-            {
-                expected_ping_ids.add(id);
-                if (expected_ping_ids.size > 200) expected_ping_ids.remove_at(0);
-            }
-
-            private HashMap<int, IZcdChannel> expected_pong_ids;
-            internal void expect_pong(int id, IZcdChannel ch)
-            {
-                expected_pong_ids[id] = ch;
-            }
-            internal void release_pong(int id)
-            {
-                expected_pong_ids.unset(id);
             }
         }
 
@@ -804,7 +774,7 @@ namespace AppDomain
         }
 
         internal HashMap<string, ZcdUdpServiceMessageDelegate>? map_udp_listening = null;
-        public void udp_listen(IRpcDelegate dlg, IRpcErrorHandler err, uint16 port, string dev)
+        public IZcdTaskletHandle udp_listen(IRpcDelegate dlg, IRpcErrorHandler err, uint16 port, string dev)
         {
             if (map_udp_listening == null) map_udp_listening = new HashMap<string, ZcdUdpServiceMessageDelegate>();
             string k_map = @"$(dev):$(port)";
@@ -812,16 +782,7 @@ namespace AppDomain
             ZcdUdpServiceMessageDelegate del_ser = new ZcdUdpServiceMessageDelegate(dlg);
             ZcdUdpCreateErrorHandler del_err = new ZcdUdpCreateErrorHandler(err, k_map);
             map_udp_listening[k_map] = del_ser;
-            zcd.udp_listen(del_req, del_ser, del_err, port, dev);
-        }
-
-        public void prepare_ping(int id, string dev, uint16 port)
-        {
-            string k_map = @"$(dev):$(port)";
-            if (map_udp_listening == null) return;
-            if (! map_udp_listening.has_key(k_map)) return;
-            ZcdUdpServiceMessageDelegate del_ser = map_udp_listening[k_map];
-            del_ser.expect_ping(id);
+            return zcd.udp_listen(del_req, del_ser, del_err, port, dev);
         }
 
         internal class Timer : Object
