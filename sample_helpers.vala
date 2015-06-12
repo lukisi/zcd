@@ -986,10 +986,22 @@ namespace AppDomain
 
         /* Helper functions to read JSON unicastid and broadcastid */
 
+        internal void read_direct(string js, IJsonReaderElement cb) throws HelperDeserializeError, HelperNotJsonError
+        {
+            Json.Parser p = new Json.Parser();
+            try {
+                p.load_from_data(js);
+            } catch (Error e) {
+                throw new HelperNotJsonError.GENERIC(e.message);
+            }
+            Json.Reader r = new Json.Reader(p.get_root());
+            cb.execute(r);
+        }
+
         public Object read_direct_object_notnull(Type expected_type, string js) throws HelperDeserializeError, HelperNotJsonError
         {
             JsonReaderObject cb = new JsonReaderObject(expected_type, false);
-            read_argument(js, cb);
+            read_direct(js, cb);
             assert(cb.ret_ok);
             return cb.deserialize_or_null(js, (root) => {
                 return root;

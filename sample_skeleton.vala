@@ -565,8 +565,10 @@ namespace AppDomain
                 }
                 if (val is ISerializable)
                     if (!((ISerializable)val).check_serialization())
+                    {
                         // couldn't verify if it's for me
                         return null;
+                    }
                 UnicastID unicastid = (UnicastID)val;
                 // call delegate
                 UnicastCallerInfo my_caller_info = new UnicastCallerInfo(caller_info.dev, caller_info.peer_addr, unicastid);
@@ -728,10 +730,10 @@ namespace AppDomain
                 return (id in expected_ping_ids);
             }
 
-            public void got_ping_response(int id)
+            public void got_ping_response(int id, long delta_usec)
             {
                 if (expected_pong_ids.has_key(id))
-                    expected_pong_ids[id].send(0);
+                    expected_pong_ids[id].send(delta_usec);
             }
 
             public void got_keep_alive(int id)

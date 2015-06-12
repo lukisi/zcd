@@ -70,12 +70,14 @@ namespace AppDomain
       */
     public class BroadcastID : Object
     {
+        public string all_but_this {get; set;}
     }
 
     /** Identifies a node
       */
     public class UnicastID : Object
     {
+        public string my_id {get; set;}
     }
 }
 

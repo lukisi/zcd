@@ -14,7 +14,8 @@ noinst_LTLIBRARIES = \
 	$(NULL)
 
 noinst_PROGRAMS = \
-	sample_main \
+	sample \
+	sample_udp \
 	$(NULL)
 
 EXTRA_PROGRAMS = \
@@ -170,21 +171,21 @@ libsamplerpc_la_LIBADD = \
 	$(builddir)/libzcd.la \
 	$(NULL)
 
-sample_main_SOURCES = \
+sample_SOURCES = \
 	sample_main.vala \
 	sample_tasklet.vala \
 	zcd-tasklet-system.vapi \
 	samplerpc.vapi \
 	$(NULL)
 
-sample_main_VALAFLAGS = \
+sample_VALAFLAGS = \
 	--pkg tasklet \
 	--pkg gee-0.8 \
 	--pkg gio-2.0 \
 	--pkg json-glib-1.0 \
 	$(NULL)
 
-sample_main_CPPFLAGS = \
+sample_CPPFLAGS = \
 	-w \
 	$(GOBJECT_CFLAGS) \
 	$(GEE_CFLAGS) \
@@ -193,7 +194,40 @@ sample_main_CPPFLAGS = \
 	$(JSON_CFLAGS) \
 	$(NULL)
 
-sample_main_LDADD = -lm \
+sample_LDADD = -lm \
+	$(GOBJECT_LIBS) \
+	$(GIO_LIBS) \
+	$(GEE_LIBS) \
+	$(TASKLET_LIBS) \
+	$(JSON_LIBS) \
+	$(builddir)/libzcd-tasklet-system.la \
+	$(builddir)/libsamplerpc.la \
+	$(NULL)
+
+sample_udp_SOURCES = \
+	sample_udp_main.vala \
+	sample_udp_tasklet.vala \
+	zcd-tasklet-system.vapi \
+	samplerpc.vapi \
+	$(NULL)
+
+sample_udp_VALAFLAGS = \
+	--pkg tasklet \
+	--pkg gee-0.8 \
+	--pkg gio-2.0 \
+	--pkg json-glib-1.0 \
+	$(NULL)
+
+sample_udp_CPPFLAGS = \
+	-w \
+	$(GOBJECT_CFLAGS) \
+	$(GEE_CFLAGS) \
+	$(GIO_CFLAGS) \
+	$(TASKLET_CFLAGS) \
+	$(JSON_CFLAGS) \
+	$(NULL)
+
+sample_udp_LDADD = -lm \
 	$(GOBJECT_LIBS) \
 	$(GIO_LIBS) \
 	$(GEE_LIBS) \

@@ -135,7 +135,7 @@ namespace zcd
     {
         public abstract bool is_my_own_message(int id);
         public abstract bool is_ping_request_for_me(int id);
-        public abstract void got_ping_response(int id);
+        public abstract void got_ping_response(int id, long delta_usec);
         public abstract void got_keep_alive(int id);
         public abstract void got_response(int id, string response);
         public abstract void got_ack(int id, string mac);
@@ -589,6 +589,7 @@ namespace zcd
     internal const string s_ping_request_id = "ID";
     internal const string s_ping_response = "ping-response";
     internal const string s_ping_response_id = "ID";
+    internal const string s_ping_response_delta_usec = "delta-usec";
     internal const string s_unicast_request = "unicast-request";
     internal const string s_unicast_request_id = "ID";
     internal const string s_unicast_request_request = "request";
@@ -646,12 +647,16 @@ namespace zcd
                         string rmt_ip;
                         uint16 rmt_port;
                         size_t msglen = s.recvfrom(b, max_pkt_size, out rmt_ip, out rmt_port);
+                        // this is the most accurate time we got the packet
+                        TimeVal time_got_packet = TimeVal();
+                        time_got_packet.get_current_time();
                         b[msglen++] = 0; // NULL terminate
                         UdpMsgTasklet t = new UdpMsgTasklet();
                         t.b = b;
                         t.msglen = msglen;
                         t.rmt_ip = rmt_ip;
                         t.rmt_port = rmt_port;
+                        t.time_got_packet = time_got_packet;
                         t.port = port;
                         t.dev = dev;
                         t.del_req = del_req;
@@ -676,6 +681,7 @@ namespace zcd
         public size_t msglen;
         public string rmt_ip;
         public uint16 rmt_port;
+        public TimeVal time_got_packet;
         public uint16 port;
         public string dev;
         public IZcdUdpRequestMessageDelegate del_req;
@@ -731,7 +737,7 @@ namespace zcd
                         if (del_ser.is_ping_request_for_me(ping_request_id))
                         {
                             // prepare ping response and send to dev
-                            send_ping_response(dev, port, ping_request_id);
+                            send_ping_response(dev, port, ping_request_id, time_got_packet);
                         }
                         break;
                     case s_ping_response:
@@ -750,8 +756,27 @@ namespace zcd
                             throw new MessageError.MALFORMED(@"$(s_ping_response_id) overflows size of int");
                         int ping_response_id = (int)val;
                         r_buf.end_member();
+                        if (!r_buf.read_member(s_ping_response_delta_usec))
+                            throw new MessageError.MALFORMED(
+                            @"the member $(s_ping_response) must have $(s_ping_response_delta_usec)");
+                        if (!r_buf.is_value())
+                            throw new MessageError.MALFORMED(@"$(s_ping_response_delta_usec) must be a string");
+                        if (r_buf.get_value().get_value_type() != typeof(string))
+                            throw new MessageError.MALFORMED(@"$(s_ping_response_delta_usec) must be a string");
+                        string ping_response_delta_usec = r_buf.get_string_value();
                         r_buf.end_member();
-                        del_ser.got_ping_response(ping_response_id);
+                        debug(@"udp_listen: ping_response_delta_usec=\"$(ping_response_delta_usec)\"");
+                        uint64 ul_ping_response_delta_usec;
+                        bool delta_ok = uint64.try_parse(ping_response_delta_usec, out ul_ping_response_delta_usec);
+                        if (!delta_ok)
+                            throw new MessageError.MALFORMED(@"$(s_ping_response_delta_usec) must be a positive numeric string");
+                        debug(@"udp_listen: ul_ping_response_delta_usec=$(ul_ping_response_delta_usec)");
+                        long l_ping_response_delta_usec = (long)ul_ping_response_delta_usec;
+                        r_buf.end_member();
+                        debug(@"udp_listen: is ping response id=$(ping_response_id)");
+                        // TODO wrong value
+                        debug(@"udp_listen: is ping response delta_usec=$(l_ping_response_delta_usec)");
+                        del_ser.got_ping_response(ping_response_id, l_ping_response_delta_usec);
                         // done
                         break;
                     case s_unicast_request:
@@ -795,7 +820,9 @@ namespace zcd
                             out unicast_request_request_method_name, out unicast_request_request_args);
                         string unicast_request_request_unicastid = parse_unicastid(node_req);
                         if (del_ser.is_my_own_message(unicast_request_id))
+                        {
                             return null;
+                        }
                         UdpCallerInfo caller_info = new UdpCallerInfo(dev, rmt_ip);
                         IZcdDispatcher? disp = del_req.get_dispatcher_unicast(
                             unicast_request_id,
@@ -838,7 +865,9 @@ namespace zcd
                                 }
                                 string json_resp = build_json_unicast_response(unicast_request_id, resp);
                                 try {
-                                    tasklet.get_client_datagram_socket(port, dev).sendto(json_resp.data, json_resp.length);
+                                    IZcdClientDatagramSocket cs = tasklet.get_client_datagram_socket(port, dev);
+                                    // Sending unicast response: accurate timing is not important.
+                                    cs.sendto(json_resp.data, json_resp.length);
                                 } catch (Error e) {
                                     // log message
                                     warning(@"udp_listen: Error sending response: $(e.message)");
@@ -1006,7 +1035,9 @@ namespace zcd
             {
                 string msg = build_json_keepalive(id);
                 try {
-                    tasklet.get_client_datagram_socket(port, dev).sendto(msg.data, msg.length);
+                    IZcdClientDatagramSocket cs = tasklet.get_client_datagram_socket(port, dev);
+                    // Sending keepalive: accurate timing is not important.
+                    cs.sendto(msg.data, msg.length);
                 } catch (Error e) {
                     // log message
                     warning(@"udp_listen: Error sending keepalive: $(e.message)");
@@ -1027,7 +1058,9 @@ namespace zcd
             {
                 string msg = build_json_ack(dev, id);
                 try {
-                    tasklet.get_client_datagram_socket(port, dev).sendto(msg.data, msg.length);
+                    IZcdClientDatagramSocket cs = tasklet.get_client_datagram_socket(port, dev);
+                    // Sending ack: accurate timing is not important.
+                    cs.sendto(msg.data, msg.length);
                 } catch (Error e) {
                     // log message
                     warning(@"udp_listen: Error sending ack: $(e.message)");
@@ -1039,7 +1072,7 @@ namespace zcd
         }
     }
 
-    public void send_ping_request(string dev, uint16 port, int id) throws Error
+    public TimeVal send_ping_request(string dev, uint16 port, int id) throws Error
     {
         // build JSON message
         Json.Builder b = new Json.Builder();
@@ -1050,7 +1083,13 @@ namespace zcd
         .end_object();
         Json.Node node = b.get_root();
         string msg = generate_stream(node);
-        tasklet.get_client_datagram_socket(port, dev).sendto(msg.data, msg.length);
+        IZcdClientDatagramSocket cs = tasklet.get_client_datagram_socket(port, dev);
+        // Sending ping: accurate timing IS important.
+        // this is the most accurate time we're sending the packet
+        TimeVal time_sent_packet = TimeVal();
+        time_sent_packet.get_current_time();
+        cs.sendto(msg.data, msg.length);
+        return time_sent_packet;
     }
 
     public void send_unicast_request
@@ -1097,7 +1136,9 @@ namespace zcd
         .end_object();
         Json.Node node = b.get_root();
         string msg = generate_stream(node);
-        tasklet.get_client_datagram_socket(port, dev).sendto(msg.data, msg.length);
+        IZcdClientDatagramSocket cs = tasklet.get_client_datagram_socket(port, dev);
+        // Sending unicast request: accurate timing is not important.
+        cs.sendto(msg.data, msg.length);
         // We use pointers to Json.Node because of a bug in vapi file of json-glib, which should be fixed in valac 0.28
         // Method b.add_value should declare that the argument is 'owned'.
         // If 'j_unicastid' was not a pointer, here the release of 'b' would make the release of 'j_unicastid' to fail.
@@ -1147,21 +1188,45 @@ namespace zcd
         .end_object();
         Json.Node node = b.get_root();
         string msg = generate_stream(node);
-        tasklet.get_client_datagram_socket(port, dev).sendto(msg.data, msg.length);
+        IZcdClientDatagramSocket cs = tasklet.get_client_datagram_socket(port, dev);
+        // Sending broadcast request: accurate timing is not important.
+        cs.sendto(msg.data, msg.length);
     }
 
-    internal void send_ping_response(string dev, uint16 port, int id) throws Error
+    internal void send_ping_response(string dev, uint16 port, int id, TimeVal time_got_packet) throws Error
     {
         // build JSON message
         Json.Builder b = new Json.Builder();
         b.begin_object()
             .set_member_name(s_ping_response).begin_object()
                 .set_member_name(s_ping_response_id).add_int_value(id)
+                .set_member_name(s_ping_response_delta_usec).add_string_value("00000000000*")
             .end_object()
         .end_object();
         Json.Node node = b.get_root();
         string msg = generate_stream(node);
-        tasklet.get_client_datagram_socket(port, dev).sendto(msg.data, msg.length);
+        int p = msg.index_of("\"00000000000*\"");
+        assert(p>0);
+        p += 12;
+        uint8* delta_usec_p = (uint8*)msg.data;
+        delta_usec_p += p;
+        IZcdClientDatagramSocket cs = tasklet.get_client_datagram_socket(port, dev);
+        // Sending pong: accurate timing IS important.
+        // this is the most accurate time we're sending the packet
+        TimeVal time_sent_packet = TimeVal();
+        time_sent_packet.get_current_time();
+        long delta_usec = time_sent_packet.tv_usec - time_got_packet.tv_usec
+                   + 1000000 * (time_sent_packet.tv_sec - time_got_packet.tv_sec);
+        while (delta_usec > 0)
+        {
+            long digit = delta_usec % 10l;
+            uint8 ch_digit = (uint8)'0';
+            ch_digit += (uint8)digit;
+            *delta_usec_p = ch_digit;
+            delta_usec_p--;
+            delta_usec /= 10l;
+        }
+        cs.sendto(msg.data, msg.length);
     }
 
     internal string build_json_keepalive(int id)
@@ -1200,18 +1265,16 @@ namespace zcd
         b.begin_object()
             .set_member_name(s_unicast_response).begin_object()
                 .set_member_name(s_unicast_response_id).add_int_value(id)
-                .set_member_name(s_unicast_response_response).begin_object()
-                    .set_member_name(s_unicast_response_response);
-                    try {
-                        p.load_from_data(result);
-                    } catch (Error e) {
-                        critical(@"Error parsing JSON for response: $(e.message)");
-                        error(@" response: $(result)");
-                    }
-                    unowned Json.Node p_rootnode = p.get_root();
-                    Json.Node* cp = p_rootnode.copy();
-                    b.add_value(cp)
-                .end_object()
+                .set_member_name(s_unicast_response_response);
+                try {
+                    p.load_from_data(result);
+                } catch (Error e) {
+                    critical(@"Error parsing JSON for response: $(e.message)");
+                    error(@" response: $(result)");
+                }
+                unowned Json.Node p_rootnode = p.get_root();
+                Json.Node* cp = p_rootnode.copy();
+                b.add_value(cp)
             .end_object()
         .end_object();
         Json.Node node = b.get_root();

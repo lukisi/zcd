@@ -922,16 +922,16 @@ namespace AppDomain
             ZcdUdpServiceMessageDelegate del_ser = map_udp_listening[k_map];
             IZcdChannel ch = tasklet.get_channel();
             del_ser.expect_pong(id, ch);
-            TimeVal start = TimeVal();
-            start.get_current_time();
+            TimeVal start;
+            long delta_usec;
             try {
-                zcd.send_ping_request(dev, port, id);
+                start = zcd.send_ping_request(dev, port, id);
             } catch (Error e) {
                 del_ser.release_pong(id);
                 throw new StubError.GENERIC(@"Sending ping request: $(e.message)");
             }
             try {
-                ch.recv_with_timeout(10000);
+                delta_usec = (long)(ch.recv_with_timeout(10000));
             } catch (ZcdChannelError e) {
                 del_ser.release_pong(id);
                 throw new StubError.GENERIC(@"No reply to ping");
@@ -941,7 +941,9 @@ namespace AppDomain
             long delta = pong.tv_usec - start.tv_usec
                        + 1000000 * (pong.tv_sec - start.tv_sec);
             del_ser.release_pong(id);
-            return (int)delta;
+            int ret = (int)(delta - delta_usec);
+            if (ret <= 0) throw new StubError.GENERIC(@"Too high delta in reply to ping");
+            return ret;
         }
     }
 }
