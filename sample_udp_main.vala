@@ -18,6 +18,7 @@
 
 using Gee;
 using AppDomain;
+using zcd.ModRpc;
 
 zcd.IZcdTasklet tasklet;
 
@@ -44,7 +45,7 @@ void main(string[] args)
     typeof(UnicastID).class_peek();
     typeof(BroadcastID).class_peek();
     // Pass tasklet system to ModRpc (and ZCD)
-    ModRpc.init_tasklet_system(tasklet);
+    init_tasklet_system(tasklet);
 
     string mode = args[1];
     if (mode == "server")
@@ -89,12 +90,12 @@ void client(string dev, string name)
             print(@"BadArgsError NULL_NOT_ALLOWED $(e.message)\n");
         else
             print(@"BadArgsError GENERIC $(e.message)\n");
-    } catch (ModRpc.StubError e) {
-        if (e is ModRpc.StubError.DID_NOT_WAIT_REPLY)
+    } catch (StubError e) {
+        if (e is StubError.DID_NOT_WAIT_REPLY)
             print(@"ModRpc.StubError DID_NOT_WAIT_REPLY $(e.message)\n");
         else
             print(@"ModRpc.StubError GENERIC $(e.message)\n");
-    } catch (ModRpc.DeserializeError e) {
+    } catch (DeserializeError e) {
         print(@"ModRpc.DeserializeError GENERIC $(e.message)\n");
     }
 
@@ -112,12 +113,12 @@ void client(string dev, string name)
             print(@"BadArgsError NULL_NOT_ALLOWED $(e.message)\n");
         else
             print(@"BadArgsError GENERIC $(e.message)\n");
-    } catch (ModRpc.StubError e) {
-        if (e is ModRpc.StubError.DID_NOT_WAIT_REPLY)
+    } catch (StubError e) {
+        if (e is StubError.DID_NOT_WAIT_REPLY)
             print(@"ModRpc.StubError DID_NOT_WAIT_REPLY $(e.message)\n");
         else
             print(@"ModRpc.StubError GENERIC $(e.message)\n");
-    } catch (ModRpc.DeserializeError e) {
+    } catch (DeserializeError e) {
         print(@"ModRpc.DeserializeError GENERIC $(e.message)\n");
     }
 }
@@ -140,9 +141,9 @@ class ServerSampleDelegate : Object, ModRpc.IRpcDelegate
         real_node = new ServerSampleNodeManager();
     }
 
-    public ModRpc.INodeManagerSkeleton? get_node(ModRpc.CallerInfo caller)
+    public ModRpc.INodeManagerSkeleton? get_node(CallerInfo caller)
     {
-        if (caller is ModRpc.TcpCallerInfo)
+        if (caller is zcd.ModRpc.TcpCallerInfo)
         {
             error("not implemented yet");
         }
@@ -164,13 +165,13 @@ class ServerSampleDelegate : Object, ModRpc.IRpcDelegate
         }
     }
 
-    public ModRpc.IStatisticsSkeleton? get_stats(ModRpc.CallerInfo caller)
+    public ModRpc.IStatisticsSkeleton? get_stats(CallerInfo caller)
     {
         error("not implemented yet");
     }
 }
 
-class ServerSampleErrorHandler : Object, ModRpc.IRpcErrorHandler
+class ServerSampleErrorHandler : Object, IRpcErrorHandler
 {
     public void error_handler(Error e)
     {
@@ -199,26 +200,26 @@ class ServerSampleNodeManager : Object, ModRpc.INodeManagerSkeleton
 
 class ServerSampleInfoManager : Object, ModRpc.IInfoManagerSkeleton
 {
-    public string get_name(ModRpc.CallerInfo? caller=null)
+    public string get_name(CallerInfo? caller=null)
     {
         error("not implemented yet");
     }
 
-    public void set_name(string name, ModRpc.CallerInfo? caller=null) throws AuthError, BadArgsError
+    public void set_name(string name, CallerInfo? caller=null) throws AuthError, BadArgsError
     {
         print(@"Got set_name: $(name).\n");
     }
 
-    public int get_year(ModRpc.CallerInfo? caller=null)
+    public int get_year(CallerInfo? caller=null)
     {
         error("not implemented yet");
     }
 
-    public bool set_year(int year, ModRpc.CallerInfo? caller=null)
+    public bool set_year(int year, CallerInfo? caller=null)
     {
         // called with unicast
         string dev;
-        if (caller is ModRpc.TcpCallerInfo)
+        if (caller is zcd.ModRpc.TcpCallerInfo)
         {
             error("not implemented yet");
         }
@@ -239,7 +240,7 @@ class ServerSampleInfoManager : Object, ModRpc.IInfoManagerSkeleton
         return true;
     }
 
-    public License get_license(ModRpc.CallerInfo? caller=null)
+    public License get_license(CallerInfo? caller=null)
     {
         error("not implemented yet");
     }

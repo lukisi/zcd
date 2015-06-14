@@ -18,59 +18,12 @@
 
 using Gee;
 using zcd;
+using zcd.ModRpc;
 
 namespace AppDomain
 {
     namespace ModRpc
     {
-        public errordomain StubError
-        {
-            DID_NOT_WAIT_REPLY,
-            GENERIC
-        }
-
-        public errordomain DeserializeError
-        {
-            GENERIC
-        }
-
-        public interface ISerializable : Object
-        {
-            public abstract bool check_serialization();
-        }
-
-        public interface ITcpClientRootStub : Object
-        {
-            protected abstract bool hurry_getter();
-            protected abstract void hurry_setter(bool new_value);
-            public bool hurry {
-                get {
-                    return hurry_getter();
-                }
-                set {
-                    hurry_setter(value);
-                }
-            }
-
-            protected abstract bool wait_reply_getter();
-            protected abstract void wait_reply_setter(bool new_value);
-            public bool wait_reply {
-                get {
-                    return wait_reply_getter();
-                }
-                set {
-                    wait_reply_setter(value);
-                }
-            }
-        }
-
-        public interface IAckCommunicator : Object
-        {
-            public abstract void process_macs_list(Gee.List<string> macs_list);
-        }
-
-        internal delegate string FakeRmt(string m_name, Gee.List<string> arguments) throws ZCDError, StubError;
-
         public interface IInfoManagerStub : Object
         {
             public abstract string get_name() throws StubError, DeserializeError;
@@ -251,9 +204,6 @@ namespace AppDomain
             return new StatisticsUnicastRootStub(dev, port, unicast_id, wait_reply);
         }
 
-        internal const string s_unicast_service_prefix_response = "RESPONSE:";
-        internal const string s_unicast_service_prefix_fail = "FAIL:";
-
         internal class NodeManagerUnicastRootStub : Object, INodeManagerStub
         {
             private string s_unicast_id;
@@ -284,49 +234,7 @@ namespace AppDomain
 
             private string call(string m_name, Gee.List<string> arguments) throws ZCDError, StubError
             {
-                int id = Random.int_range(0, int.MAX);
-                string k_map = @"$(dev):$(port)";
-                ZcdUdpServiceMessageDelegate? del_ser = null;
-                IZcdChannel ch = tasklet.get_channel();
-                if (wait_reply)
-                {
-                    if (map_udp_listening != null && map_udp_listening.has_key(k_map))
-                    {
-                        del_ser = map_udp_listening[k_map];
-                        del_ser.going_to_send_unicast_with_reply(id, ch);
-                    }
-                    else
-                    {
-                        wait_reply = false;
-                    }
-                }
-                else
-                {
-                    if (map_udp_listening != null && map_udp_listening.has_key(k_map))
-                    {
-                        del_ser = map_udp_listening[k_map];
-                        del_ser.going_to_send_unicast_no_reply(id);
-                    }
-                }
-                try {
-                    send_unicast_request(dev, port, id, s_unicast_id, m_name, arguments, wait_reply);
-                } catch (Error e) {
-                    throw new StubError.GENERIC(e.message);
-                }
-                if (!wait_reply) throw new StubError.DID_NOT_WAIT_REPLY(@"Didn't wait reply for a call to $(m_name)");
-                string reply = (string)ch.recv();
-                if (reply.has_prefix(s_unicast_service_prefix_fail))
-                {
-                    throw new StubError.GENERIC(reply.substring(s_unicast_service_prefix_fail.length));
-                }
-                else if (reply.has_prefix(s_unicast_service_prefix_response))
-                {
-                    return reply.substring(s_unicast_service_prefix_response.length);
-                }
-                else
-                {
-                    error("Unexpected message through channel of ZcdUdpServiceMessageDelegate");
-                }
+                return call_unicast_udp(m_name, arguments, dev, port, s_unicast_id, wait_reply);
             }
         }
 
@@ -353,49 +261,7 @@ namespace AppDomain
 
             private string call(string m_name, Gee.List<string> arguments) throws ZCDError, StubError
             {
-                int id = Random.int_range(0, int.MAX);
-                string k_map = @"$(dev):$(port)";
-                ZcdUdpServiceMessageDelegate? del_ser = null;
-                IZcdChannel ch = tasklet.get_channel();
-                if (wait_reply)
-                {
-                    if (map_udp_listening != null && map_udp_listening.has_key(k_map))
-                    {
-                        del_ser = map_udp_listening[k_map];
-                        del_ser.going_to_send_unicast_with_reply(id, ch);
-                    }
-                    else
-                    {
-                        wait_reply = false;
-                    }
-                }
-                else
-                {
-                    if (map_udp_listening != null && map_udp_listening.has_key(k_map))
-                    {
-                        del_ser = map_udp_listening[k_map];
-                        del_ser.going_to_send_unicast_no_reply(id);
-                    }
-                }
-                try {
-                    send_unicast_request(dev, port, id, s_unicast_id, m_name, arguments, wait_reply);
-                } catch (Error e) {
-                    throw new StubError.GENERIC(e.message);
-                }
-                if (!wait_reply) throw new StubError.DID_NOT_WAIT_REPLY(@"Didn't wait reply for a call to $(m_name)");
-                string reply = (string)ch.recv();
-                if (reply.has_prefix(s_unicast_service_prefix_fail))
-                {
-                    throw new StubError.GENERIC(reply.substring(s_unicast_service_prefix_fail.length));
-                }
-                else if (reply.has_prefix(s_unicast_service_prefix_response))
-                {
-                    return reply.substring(s_unicast_service_prefix_response.length);
-                }
-                else
-                {
-                    error("Unexpected message through channel of ZcdUdpServiceMessageDelegate");
-                }
+                return call_unicast_udp(m_name, arguments, dev, port, s_unicast_id, wait_reply);
             }
         }
 
@@ -439,55 +305,7 @@ namespace AppDomain
 
             private string call(string m_name, Gee.List<string> arguments) throws ZCDError, StubError
             {
-                int id = Random.int_range(0, int.MAX);
-                string k_map = @"$(dev):$(port)";
-                ZcdUdpServiceMessageDelegate? del_ser = null;
-                IZcdChannel ch = tasklet.get_channel();
-                if (notify_ack != null)
-                {
-                    if (map_udp_listening != null && map_udp_listening.has_key(k_map))
-                    {
-                        del_ser = map_udp_listening[k_map];
-                        del_ser.going_to_send_broadcast_with_ack(id, ch);
-                    }
-                    else
-                    {
-                        notify_ack = null;
-                    }
-                }
-                else
-                {
-                    if (map_udp_listening != null && map_udp_listening.has_key(k_map))
-                    {
-                        del_ser = map_udp_listening[k_map];
-                        del_ser.going_to_send_broadcast_no_ack(id);
-                    }
-                }
-                try {
-                    send_broadcast_request(dev, port, id, s_broadcast_id, m_name, arguments, (notify_ack != null));
-                } catch (Error e) {
-                    throw new StubError.GENERIC(e.message);
-                }
-                if (notify_ack != null)
-                {
-                    NotifyAckTasklet t = new NotifyAckTasklet();
-                    t.rootstub = this;
-                    t.ch = ch;
-                    tasklet.spawn(t);
-                }
-                throw new StubError.DID_NOT_WAIT_REPLY(@"Didn't wait reply for a call to $(m_name)");
-            }
-
-            private class NotifyAckTasklet : Object, IZcdTaskletSpawnable
-            {
-                public NodeManagerBroadcastRootStub rootstub;
-                public IZcdChannel ch;
-                public void * func()
-                {
-                    ArrayList<string> macs_list = (ArrayList<string>)ch.recv();
-                    rootstub.notify_ack.process_macs_list(macs_list);
-                    return null;
-                }
+                return call_broadcast_udp(m_name, arguments, dev, port, s_broadcast_id, notify_ack);
             }
         }
 
@@ -514,55 +332,7 @@ namespace AppDomain
 
             private string call(string m_name, Gee.List<string> arguments) throws ZCDError, StubError
             {
-                int id = Random.int_range(0, int.MAX);
-                string k_map = @"$(dev):$(port)";
-                ZcdUdpServiceMessageDelegate? del_ser = null;
-                IZcdChannel ch = tasklet.get_channel();
-                if (notify_ack != null)
-                {
-                    if (map_udp_listening != null && map_udp_listening.has_key(k_map))
-                    {
-                        del_ser = map_udp_listening[k_map];
-                        del_ser.going_to_send_broadcast_with_ack(id, ch);
-                    }
-                    else
-                    {
-                        notify_ack = null;
-                    }
-                }
-                else
-                {
-                    if (map_udp_listening != null && map_udp_listening.has_key(k_map))
-                    {
-                        del_ser = map_udp_listening[k_map];
-                        del_ser.going_to_send_broadcast_no_ack(id);
-                    }
-                }
-                try {
-                    send_broadcast_request(dev, port, id, s_broadcast_id, m_name, arguments, (notify_ack != null));
-                } catch (Error e) {
-                    throw new StubError.GENERIC(e.message);
-                }
-                if (notify_ack != null)
-                {
-                    NotifyAckTasklet t = new NotifyAckTasklet();
-                    t.rootstub = this;
-                    t.ch = ch;
-                    tasklet.spawn(t);
-                }
-                throw new StubError.DID_NOT_WAIT_REPLY(@"Didn't wait reply for a call to $(m_name)");
-            }
-
-            private class NotifyAckTasklet : Object, IZcdTaskletSpawnable
-            {
-                public StatisticsBroadcastRootStub rootstub;
-                public IZcdChannel ch;
-                public void * func()
-                {
-                    ArrayList<string> macs_list = (ArrayList<string>)ch.recv();
-                    rootstub.notify_ack.process_macs_list(macs_list);
-                    return null;
-                }
+                return call_broadcast_udp(m_name, arguments, dev, port, s_broadcast_id, notify_ack);
             }
         }
 

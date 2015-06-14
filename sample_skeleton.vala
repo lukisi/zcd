@@ -18,33 +18,26 @@
 
 using Gee;
 using zcd;
+using zcd.ModRpc;
 
 namespace AppDomain
 {
     namespace ModRpc
     {
-        internal IZcdTasklet tasklet;
-
-        public void init_tasklet_system(zcd.IZcdTasklet _tasklet)
-        {
-            zcd.init_tasklet_system(_tasklet);
-            tasklet = _tasklet;
-        }
-
         public interface IInfoManagerSkeleton : Object
         {
-            public abstract string get_name(ModRpc.CallerInfo? caller=null);
-            public abstract void set_name(string name, ModRpc.CallerInfo? caller=null) throws AuthError, BadArgsError;
-            public abstract int get_year(ModRpc.CallerInfo? caller=null);
-            public abstract bool set_year(int year, ModRpc.CallerInfo? caller=null);
-            public abstract License get_license(ModRpc.CallerInfo? caller=null);
+            public abstract string get_name(CallerInfo? caller=null);
+            public abstract void set_name(string name, CallerInfo? caller=null) throws AuthError, BadArgsError;
+            public abstract int get_year(CallerInfo? caller=null);
+            public abstract bool set_year(int year, CallerInfo? caller=null);
+            public abstract License get_license(CallerInfo? caller=null);
         }
 
         public interface ICalculatorSkeleton : Object
         {
-            public abstract IDocument get_root(ModRpc.CallerInfo? caller=null);
-            public abstract Gee.List<IDocument> get_children(IDocument parent, ModRpc.CallerInfo? caller=null);
-            public abstract void add_children(IDocument parent, Gee.List<IDocument> children, ModRpc.CallerInfo? caller=null);
+            public abstract IDocument get_root(CallerInfo? caller=null);
+            public abstract Gee.List<IDocument> get_children(IDocument parent, CallerInfo? caller=null);
+            public abstract void add_children(IDocument parent, Gee.List<IDocument> children, CallerInfo? caller=null);
         }
 
         public interface INodeManagerSkeleton : Object
@@ -57,7 +50,7 @@ namespace AppDomain
 
         public interface IChildrenViewerSkeleton : Object
         {
-            public abstract Gee.List<string> int_to_string(Gee.List<int> lst, ModRpc.CallerInfo? caller=null);
+            public abstract Gee.List<string> int_to_string(Gee.List<int> lst, CallerInfo? caller=null);
         }
 
         public interface IStatisticsSkeleton : Object
@@ -66,123 +59,14 @@ namespace AppDomain
             public IChildrenViewerSkeleton children_viewer {get {return children_viewer_getter();}}
         }
 
-        public abstract class CallerInfo : Object
-        {
-        }
-
         public interface IRpcDelegate : Object
         {
             public abstract INodeManagerSkeleton? get_node(CallerInfo caller);
             public abstract IStatisticsSkeleton? get_stats(CallerInfo caller);
         }
 
-        public interface IRpcErrorHandler : Object
-        {
-            public abstract void error_handler(Error e);
-        }
-
         internal errordomain InSkeletonDeserializeError {
             GENERIC
-        }
-
-        public class TcpCallerInfo : CallerInfo
-        {
-            internal TcpCallerInfo(string my_address, string peer_address)
-            {
-                this.my_address = my_address;
-                this.peer_address = peer_address;
-            }
-            public string my_address {get; private set;}
-            public string peer_address {get; private set;}
-        }
-
-        internal class ZcdTcpDelegate : Object, IZcdTcpDelegate
-        {
-            private IRpcDelegate dlg;
-            public ZcdTcpDelegate(IRpcDelegate dlg)
-            {
-                this.dlg = dlg;
-            }
-
-            public IZcdTcpRequestHandler get_new_handler()
-            {
-                return new ZcdTcpRequestHandler(dlg);
-            }
-
-        }
-
-        internal class ZcdTcpRequestHandler : Object, IZcdTcpRequestHandler
-        {
-            private IRpcDelegate dlg;
-            private string m_name;
-            private ArrayList<string> args;
-            private TcpCallerInfo? caller_info;
-            public ZcdTcpRequestHandler(IRpcDelegate dlg)
-            {
-                this.dlg = dlg;
-                args = new ArrayList<string>();
-                m_name = "";
-                caller_info = null;
-            }
-
-            public void set_method_name(string m_name)
-            {
-                this.m_name = m_name;
-            }
-
-            public void add_argument(string arg)
-            {
-                args.add(arg);
-            }
-
-            public void set_caller_info(zcd.TcpCallerInfo caller_info)
-            {
-                this.caller_info = new TcpCallerInfo(caller_info.my_addr, caller_info.peer_addr);
-            }
-
-            public IZcdDispatcher? get_dispatcher()
-            {
-                IZcdDispatcher ret;
-                if (m_name.has_prefix("node."))
-                {
-                    INodeManagerSkeleton? node = dlg.get_node(caller_info);
-                    if (node == null) ret = null;
-                    else ret = new ZcdNodeManagerDispatcher(node, m_name, args, caller_info);
-                }
-                else if (m_name.has_prefix("stats."))
-                {
-                    IStatisticsSkeleton? stats = dlg.get_stats(caller_info);
-                    if (stats == null) ret = null;
-                    else ret = new ZcdStatisticsDispatcher(stats, m_name, args, caller_info);
-                }
-                else
-                {
-                    ret = new ZcdDispatcherForError("DeserializeError", "GENERIC", @"Unknown root in method name: \"$(m_name)\"");
-                }
-                args = new ArrayList<string>();
-                m_name = "";
-                caller_info = null;
-                return ret;
-            }
-
-        }
-
-        internal class ZcdDispatcherForError : Object, IZcdDispatcher
-        {
-            private string domain;
-            private string code;
-            private string message;
-            public ZcdDispatcherForError(string domain, string code, string message)
-            {
-                this.domain = domain;
-                this.code = code;
-                this.message = message;
-            }
-
-            public string execute()
-            {
-                return prepare_error(domain, code, message);
-            }
         }
 
         internal class ZcdNodeManagerDispatcher : Object, IZcdDispatcher
@@ -499,18 +383,75 @@ namespace AppDomain
             }
         }
 
-        internal class ZcdTcpAcceptErrorHandler : Object, IZcdTcpAcceptErrorHandler
+        internal class ZcdTcpDelegate : Object, IZcdTcpDelegate
         {
-            private IRpcErrorHandler err;
-            public ZcdTcpAcceptErrorHandler(IRpcErrorHandler err)
+            private IRpcDelegate dlg;
+            public ZcdTcpDelegate(IRpcDelegate dlg)
             {
-                this.err = err;
+                this.dlg = dlg;
             }
 
-            public void error_handler(Error e)
+            public IZcdTcpRequestHandler get_new_handler()
             {
-                err.error_handler(e);
+                return new ZcdTcpRequestHandler(dlg);
             }
+
+        }
+
+        internal class ZcdTcpRequestHandler : Object, IZcdTcpRequestHandler
+        {
+            private IRpcDelegate dlg;
+            private string m_name;
+            private ArrayList<string> args;
+            private zcd.ModRpc.TcpCallerInfo? caller_info;
+            public ZcdTcpRequestHandler(IRpcDelegate dlg)
+            {
+                this.dlg = dlg;
+                args = new ArrayList<string>();
+                m_name = "";
+                caller_info = null;
+            }
+
+            public void set_method_name(string m_name)
+            {
+                this.m_name = m_name;
+            }
+
+            public void add_argument(string arg)
+            {
+                args.add(arg);
+            }
+
+            public void set_caller_info(zcd.TcpCallerInfo caller_info)
+            {
+                this.caller_info = new zcd.ModRpc.TcpCallerInfo(caller_info.my_addr, caller_info.peer_addr);
+            }
+
+            public IZcdDispatcher? get_dispatcher()
+            {
+                IZcdDispatcher ret;
+                if (m_name.has_prefix("node."))
+                {
+                    INodeManagerSkeleton? node = dlg.get_node(caller_info);
+                    if (node == null) ret = null;
+                    else ret = new ZcdNodeManagerDispatcher(node, m_name, args, caller_info);
+                }
+                else if (m_name.has_prefix("stats."))
+                {
+                    IStatisticsSkeleton? stats = dlg.get_stats(caller_info);
+                    if (stats == null) ret = null;
+                    else ret = new ZcdStatisticsDispatcher(stats, m_name, args, caller_info);
+                }
+                else
+                {
+                    ret = new ZcdDispatcherForError("DeserializeError", "GENERIC", @"Unknown root in method name: \"$(m_name)\"");
+                }
+                args = new ArrayList<string>();
+                m_name = "";
+                caller_info = null;
+                return ret;
+            }
+
         }
 
         public class UnicastCallerInfo : CallerInfo
@@ -636,236 +577,20 @@ namespace AppDomain
             }
         }
 
-        internal const int udp_timeout_msec = 3000;
-        internal class ZcdUdpServiceMessageDelegate : Object, IZcdUdpServiceMessageDelegate
-        {
-            private IRpcDelegate dlg;
-            public ZcdUdpServiceMessageDelegate(IRpcDelegate dlg)
-            {
-                this.dlg = dlg;
-                waiting_for_response = new HashMap<int, WaitingForResponse>();
-                waiting_for_ack = new HashMap<int, WaitingForAck>();
-                waiting_for_recv = new HashMap<int, WaitingForRecv>();
-            }
-
-            private class WaitingForResponse : Object, IZcdTaskletSpawnable
-            {
-                public WaitingForResponse(ZcdUdpServiceMessageDelegate parent, int id, Timer timer, IZcdChannel ch)
-                {
-                    this.parent = parent;
-                    this.id = id;
-                    this.timer = timer;
-                    this.ch = ch;
-                    has_response = false;
-                }
-                private ZcdUdpServiceMessageDelegate parent;
-                private int id;
-                public Timer timer;
-                private IZcdChannel ch;
-                public string response;
-                public bool has_response;
-                public void* func()
-                {
-                    while (true)
-                    {
-                        if (has_response)
-                        {
-                            // report 'response' through 'ch'
-                            ch.send(s_unicast_service_prefix_response + response);
-                            parent.waiting_for_response.unset(id);
-                            return null;
-                        }
-                        if (timer.is_expired())
-                        {
-                            // report communication error through 'ch'
-                            ch.send(s_unicast_service_prefix_fail + "Timeout before reply or keepalive");
-                            parent.waiting_for_response.unset(id);
-                            return null;
-                        }
-                        tasklet.ms_wait(2);
-                    }
-                }
-            }
-            private HashMap<int, WaitingForResponse> waiting_for_response;
-
-            private class WaitingForAck : Object, IZcdTaskletSpawnable
-            {
-                public WaitingForAck(ZcdUdpServiceMessageDelegate parent, int id, int timeout_msec, IZcdChannel ch)
-                {
-                    this.parent = parent;
-                    this.id = id;
-                    this.timeout_msec = timeout_msec;
-                    this.ch = ch;
-                    macs_list = new ArrayList<string>();
-                }
-                private ZcdUdpServiceMessageDelegate parent;
-                private int id;
-                private int timeout_msec;
-                private IZcdChannel ch;
-                public ArrayList<string> macs_list {get; private set;}
-                public void* func()
-                {
-                    tasklet.ms_wait(timeout_msec);
-                    // report 'macs_list' through 'ch'
-                    ch.send(macs_list);
-                    parent.waiting_for_ack.unset(id);
-                    return null;
-                }
-            }
-            private HashMap<int, WaitingForAck> waiting_for_ack;
-
-            private class WaitingForRecv : Object, IZcdTaskletSpawnable
-            {
-                public WaitingForRecv(ZcdUdpServiceMessageDelegate parent, int id, int timeout_msec)
-                {
-                    this.parent = parent;
-                    this.id = id;
-                    this.timeout_msec = timeout_msec;
-                }
-                private ZcdUdpServiceMessageDelegate parent;
-                private int id;
-                private int timeout_msec;
-                public void* func()
-                {
-                    tasklet.ms_wait(timeout_msec);
-                    parent.waiting_for_recv.unset(id);
-                    return null;
-                }
-            }
-            private HashMap<int, WaitingForRecv> waiting_for_recv;
-
-            internal void going_to_send_unicast_with_reply(int id, IZcdChannel ch)
-            {
-                var w = new WaitingForResponse(this, id, new Timer(udp_timeout_msec), ch);
-                tasklet.spawn(w);
-                waiting_for_response[id] = w;
-            }
-
-            internal void going_to_send_broadcast_with_ack(int id, IZcdChannel ch)
-            {
-                var w = new WaitingForAck(this, id, udp_timeout_msec, ch);
-                tasklet.spawn(w);
-                waiting_for_ack[id] = w;
-            }
-
-            internal void going_to_send_unicast_no_reply(int id)
-            {
-                var w = new WaitingForRecv(this, id, udp_timeout_msec);
-                tasklet.spawn(w);
-                waiting_for_recv[id] = w;
-            }
-
-            internal void going_to_send_broadcast_no_ack(int id)
-            {
-                var w = new WaitingForRecv(this, id, udp_timeout_msec);
-                tasklet.spawn(w);
-                waiting_for_recv[id] = w;
-            }
-
-            public bool is_my_own_message(int id)
-            {
-                if (waiting_for_response.has_key(id)) return true;
-                if (waiting_for_ack.has_key(id)) return true;
-                if (waiting_for_recv.has_key(id)) return true;
-                return false;
-            }
-
-            public void got_keep_alive(int id)
-            {
-                if (waiting_for_response.has_key(id))
-                {
-                    waiting_for_response[id].timer = new Timer(udp_timeout_msec);
-                }
-            }
-
-            public void got_response(int id, string response)
-            {
-                if (waiting_for_response.has_key(id))
-                {
-                    waiting_for_response[id].response = response;
-                    waiting_for_response[id].has_response = true;
-                }
-            }
-
-            public void got_ack(int id, string mac)
-            {
-                if (waiting_for_ack.has_key(id))
-                {
-                    if (! (mac in waiting_for_ack[id].macs_list))
-                        waiting_for_ack[id].macs_list.add(mac);
-                }
-            }
-        }
-
-        internal class ZcdUdpCreateErrorHandler : Object, IZcdUdpCreateErrorHandler
-        {
-            private IRpcErrorHandler err;
-            private string k_map;
-            public ZcdUdpCreateErrorHandler(IRpcErrorHandler err, string k_map)
-            {
-                this.err = err;
-                this.k_map = k_map;
-            }
-
-            public void error_handler(Error e)
-            {
-                if (map_udp_listening != null)
-                    map_udp_listening.unset(k_map);
-                err.error_handler(e);
-            }
-        }
-
         public void tcp_listen(IRpcDelegate dlg, IRpcErrorHandler err, uint16 port, string? my_addr=null)
         {
             zcd.tcp_listen(new ZcdTcpDelegate(dlg), new ZcdTcpAcceptErrorHandler(err), port, my_addr);
         }
 
-        internal HashMap<string, ZcdUdpServiceMessageDelegate>? map_udp_listening = null;
         public IZcdTaskletHandle udp_listen(IRpcDelegate dlg, IRpcErrorHandler err, uint16 port, string dev)
         {
             if (map_udp_listening == null) map_udp_listening = new HashMap<string, ZcdUdpServiceMessageDelegate>();
             string k_map = @"$(dev):$(port)";
             ZcdUdpRequestMessageDelegate del_req = new ZcdUdpRequestMessageDelegate(dlg);
-            ZcdUdpServiceMessageDelegate del_ser = new ZcdUdpServiceMessageDelegate(dlg);
+            ZcdUdpServiceMessageDelegate del_ser = new ZcdUdpServiceMessageDelegate();
             ZcdUdpCreateErrorHandler del_err = new ZcdUdpCreateErrorHandler(err, k_map);
             map_udp_listening[k_map] = del_ser;
             return zcd.udp_listen(del_req, del_ser, del_err, port, dev);
-        }
-
-        internal class Timer : Object
-        {
-            protected TimeVal exp;
-            public Timer(int64 msec_ttl)
-            {
-                set_time(msec_ttl);
-            }
-
-            protected void set_time(int64 msec_ttl)
-            {
-                exp = TimeVal();
-                exp.get_current_time();
-                long milli = (long)(msec_ttl % (int64)1000);
-                long seconds = (long)(msec_ttl / (int64)1000);
-                int64 check_seconds = (int64)exp.tv_sec;
-                check_seconds += (int64)seconds;
-                assert(check_seconds <= long.MAX);
-                exp.add(milli*1000);
-                exp.tv_sec += seconds;
-            }
-
-            public bool is_younger(Timer t)
-            {
-                if (exp.tv_sec > t.exp.tv_sec) return true;
-                if (exp.tv_sec < t.exp.tv_sec) return false;
-                if (exp.tv_usec > t.exp.tv_usec) return true;
-                return false;
-            }
-
-            public bool is_expired()
-            {
-                Timer now = new Timer(0);
-                return now.is_younger(this);
-            }
         }
     }
 }

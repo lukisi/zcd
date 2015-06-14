@@ -18,7 +18,7 @@
 
 using Gee;
 
-namespace AppDomain
+namespace zcd
 {
     namespace ModRpc
     {

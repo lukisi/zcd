@@ -18,6 +18,7 @@
 
 using Gee;
 using AppDomain;
+using zcd.ModRpc;
 
 bool set_hurry;
 bool unset_wait_reply;
@@ -62,7 +63,7 @@ void main(string[] args)
     typeof(Document).class_peek();
     typeof(MyDocumentClass).class_peek();
     // Pass tasklet system to ModRpc (and ZCD)
-    ModRpc.init_tasklet_system(tasklet);
+    init_tasklet_system(tasklet);
 
     string mode = args[1];
     if (mode == "server")
@@ -85,9 +86,9 @@ void client(string peer_ip, uint16 peer_port, string name)
 {
     print("client\n");
     ModRpc.INodeManagerStub n = ModRpc.get_node_tcp_client(peer_ip, peer_port);
-    if (n is ModRpc.ITcpClientRootStub)
+    if (n is ITcpClientRootStub)
     {
-        unowned ModRpc.ITcpClientRootStub n_tcp = (ModRpc.ITcpClientRootStub)n;
+        unowned ITcpClientRootStub n_tcp = (ITcpClientRootStub)n;
         print(@"hurry = $(n_tcp.hurry)\n");
         if (set_hurry)
         {
@@ -102,9 +103,9 @@ void client(string peer_ip, uint16 peer_port, string name)
         }
     }
     ModRpc.IStatisticsStub s = ModRpc.get_stats_tcp_client(peer_ip, peer_port);
-    if (s is ModRpc.ITcpClientRootStub)
+    if (s is ITcpClientRootStub)
     {
-        unowned ModRpc.ITcpClientRootStub s_tcp = (ModRpc.ITcpClientRootStub)s;
+        unowned ITcpClientRootStub s_tcp = (ITcpClientRootStub)s;
         if (set_hurry)
         {
             s_tcp.hurry = true;
@@ -156,12 +157,12 @@ void client(string peer_ip, uint16 peer_port, string name)
             print(@"BadArgsError NULL_NOT_ALLOWED $(e.message)\n");
         else
             print(@"BadArgsError GENERIC $(e.message)\n");
-    } catch (ModRpc.StubError e) {
-        if (e is ModRpc.StubError.DID_NOT_WAIT_REPLY)
+    } catch (StubError e) {
+        if (e is StubError.DID_NOT_WAIT_REPLY)
             print(@"ModRpc.StubError DID_NOT_WAIT_REPLY $(e.message)\n");
         else
             print(@"ModRpc.StubError GENERIC $(e.message)\n");
-    } catch (ModRpc.DeserializeError e) {
+    } catch (DeserializeError e) {
         print(@"ModRpc.DeserializeError GENERIC $(e.message)\n");
     }
 }
@@ -184,11 +185,11 @@ class ServerSampleDelegate : Object, ModRpc.IRpcDelegate
         real_stats = new ServerSampleStatistics();
     }
 
-    public ModRpc.INodeManagerSkeleton? get_node(ModRpc.CallerInfo caller)
+    public ModRpc.INodeManagerSkeleton? get_node(CallerInfo caller)
     {
-        if (caller is ModRpc.TcpCallerInfo)
+        if (caller is zcd.ModRpc.TcpCallerInfo)
         {
-            ModRpc.TcpCallerInfo c = (ModRpc.TcpCallerInfo)caller;
+            zcd.ModRpc.TcpCallerInfo c = (zcd.ModRpc.TcpCallerInfo)caller;
             print(@"request for 'node' from $(c.peer_address) to $(c.my_address)\n");
             return real_node;
         }
@@ -206,11 +207,11 @@ class ServerSampleDelegate : Object, ModRpc.IRpcDelegate
         }
     }
 
-    public ModRpc.IStatisticsSkeleton? get_stats(ModRpc.CallerInfo caller)
+    public ModRpc.IStatisticsSkeleton? get_stats(CallerInfo caller)
     {
-        if (caller is ModRpc.TcpCallerInfo)
+        if (caller is zcd.ModRpc.TcpCallerInfo)
         {
-            ModRpc.TcpCallerInfo c = (ModRpc.TcpCallerInfo)caller;
+            zcd.ModRpc.TcpCallerInfo c = (zcd.ModRpc.TcpCallerInfo)caller;
             print(@"request for 'stats' from $(c.peer_address) to $(c.my_address)\n");
             return real_stats;
         }
@@ -229,7 +230,7 @@ class ServerSampleDelegate : Object, ModRpc.IRpcDelegate
     }
 }
 
-class ServerSampleErrorHandler : Object, ModRpc.IRpcErrorHandler
+class ServerSampleErrorHandler : Object, IRpcErrorHandler
 {
     public void error_handler(Error e)
     {
@@ -276,12 +277,12 @@ class ServerSampleInfoManager : Object, ModRpc.IInfoManagerSkeleton
 {
     private int year=0;
     private string name="";
-    public string get_name(ModRpc.CallerInfo? caller=null)
+    public string get_name(CallerInfo? caller=null)
     {
         return name;
     }
 
-    public void set_name(string name, ModRpc.CallerInfo? caller=null) throws AuthError, BadArgsError
+    public void set_name(string name, CallerInfo? caller=null) throws AuthError, BadArgsError
     {
         if (throw_auth_fail) throw new AuthError.GENERIC(@"I won't let you set name to $(name)");
         if (throw_badargs_generic) throw new BadArgsError.GENERIC(@"'$(name)'? Seriously?");
@@ -290,18 +291,18 @@ class ServerSampleInfoManager : Object, ModRpc.IInfoManagerSkeleton
         this.name = name;
     }
 
-    public int get_year(ModRpc.CallerInfo? caller=null)
+    public int get_year(CallerInfo? caller=null)
     {
         return year;
     }
 
-    public bool set_year(int year, ModRpc.CallerInfo? caller=null)
+    public bool set_year(int year, CallerInfo? caller=null)
     {
         this.year = year;
         return true;
     }
 
-    public License get_license(ModRpc.CallerInfo? caller=null)
+    public License get_license(CallerInfo? caller=null)
     {
         License r = new License();
         r.name = "GPLv3";
@@ -326,17 +327,17 @@ class ServerSampleCalculator : Object, ModRpc.ICalculatorSkeleton
         children[2].text = "third and last doc";
     }
 
-    public IDocument get_root(ModRpc.CallerInfo? caller=null)
+    public IDocument get_root(CallerInfo? caller=null)
     {
         return root;
     }
 
-    public Gee.List<IDocument> get_children(IDocument parent, ModRpc.CallerInfo? caller=null)
+    public Gee.List<IDocument> get_children(IDocument parent, CallerInfo? caller=null)
     {
         return children;
     }
 
-    public void add_children(IDocument parent, Gee.List<IDocument> children, ModRpc.CallerInfo? caller=null)
+    public void add_children(IDocument parent, Gee.List<IDocument> children, CallerInfo? caller=null)
     {
         print("Was to add children:\n");
         print(@"Parent: '$((parent as MyDocumentClass).text)'\n");
@@ -347,7 +348,7 @@ class ServerSampleCalculator : Object, ModRpc.ICalculatorSkeleton
 
 class ServerSampleChildrenViewer : Object, ModRpc.IChildrenViewerSkeleton
 {
-    public Gee.List<string> int_to_string(Gee.List<int> lst, ModRpc.CallerInfo? caller=null)
+    public Gee.List<string> int_to_string(Gee.List<int> lst, CallerInfo? caller=null)
     {
         ArrayList<string> ret = new ArrayList<string>();
         foreach (int i in lst) ret.add(@"$(i)");
@@ -355,7 +356,7 @@ class ServerSampleChildrenViewer : Object, ModRpc.IChildrenViewerSkeleton
     }
 }
 
-class MyDocumentClass : Object, IDocument, ModRpc.ISerializable
+class MyDocumentClass : Object, IDocument, ISerializable
 {
     public string text {get; set; default="";}
     public bool check_serialization()

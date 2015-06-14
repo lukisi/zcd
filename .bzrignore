@@ -5,9 +5,11 @@ zcd-tasklet-system.vapi
 zcd.c
 zcd.h
 zcd.vapi
-sample_helpers.c
+common_helpers.c
 helperrpc.h
 helperrpc.vapi
+common_skeleton.c
+common_stub.c
 sample_interfaces.c
 sample_skeleton.c
 sample_stub.c

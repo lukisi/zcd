@@ -110,7 +110,7 @@ tcp_server_LDADD = -lm \
 	$(NULL)
 
 libhelperrpc_la_SOURCES = \
-	sample_helpers.vala \
+	common_helpers.vala \
 	$(NULL)
 
 libhelperrpc_la_VALAFLAGS = \
@@ -140,6 +140,8 @@ libsamplerpc_la_SOURCES = \
 	sample_interfaces.vala \
 	sample_skeleton.vala \
 	sample_stub.vala \
+	common_skeleton.vala \
+	common_stub.vala \
 	helperrpc.vapi \
 	zcd-tasklet-system.vapi \
 	zcd.vapi \
