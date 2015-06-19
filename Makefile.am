@@ -13,6 +13,10 @@ noinst_LTLIBRARIES = \
 	libsamplerpc.la \
 	$(NULL)
 
+bin_PROGRAMS = \
+	rpcdesign \
+	$(NULL)
+
 noinst_PROGRAMS = \
 	sample \
 	sample_udp \
@@ -107,6 +111,31 @@ tcp_server_LDADD = -lm \
 	$(GEE_LIBS) \
 	$(TASKLET_LIBS) \
 	$(builddir)/libzcd.la \
+	$(NULL)
+
+rpcdesign_SOURCES =  \
+	rpcdesign.vala \
+	rpcdesign_common_helpers.vala \
+	rpcdesign_common_skeleton.vala \
+	rpcdesign_common_stub.vala \
+	rpcdesign_sample_interfaces.vala \
+	rpcdesign_sample_skeleton.vala \
+	rpcdesign_sample_stub.vala \
+	$(NULL)
+
+rpcdesign_VALAFLAGS = \
+	--pkg gee-0.8 \
+	$(NULL)
+
+rpcdesign_CPPFLAGS = \
+	-w \
+	$(GOBJECT_CFLAGS) \
+	$(GEE_CFLAGS) \
+	$(NULL)
+
+rpcdesign_LDADD = \
+	$(GOBJECT_LIBS) \
+	$(GEE_LIBS) \
 	$(NULL)
 
 libhelperrpc_la_SOURCES = \

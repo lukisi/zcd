@@ -50,7 +50,7 @@ namespace AppDomain
 
         public interface IChildrenViewerSkeleton : Object
         {
-            public abstract Gee.List<string> int_to_string(Gee.List<int> lst, CallerInfo? caller=null);
+            public abstract Gee.List<string> int_to_string(Gee.List<int> integers, CallerInfo? caller=null);
         }
 
         public interface IStatisticsSkeleton : Object
@@ -71,10 +71,10 @@ namespace AppDomain
 
         internal class ZcdNodeManagerDispatcher : Object, IZcdDispatcher
         {
-            private INodeManagerSkeleton node;
             private string m_name;
             private ArrayList<string> args;
             private CallerInfo caller_info;
+            private INodeManagerSkeleton node;
             public ZcdNodeManagerDispatcher(INodeManagerSkeleton node, string m_name, Gee.List<string> args, CallerInfo caller_info)
             {
                 this.node = node;
@@ -155,9 +155,12 @@ namespace AppDomain
                             // deserialize arg0 (int year)
                             string arg_name = "year";
                             string doing = @"Reading argument '$(arg_name)' for $(m_name)";
-                            int64 val;
                             try {
+                                int64 val;
                                 val = read_argument_int64_notnull(args[j]);
+                                if (val > int.MAX || val < int.MIN)
+                                    throw new InSkeletonDeserializeError.GENERIC(@"$(doing): argument overflows size of int");
+                                arg0 = (int)val;
                             } catch (HelperNotJsonError e) {
                                 critical(@"Error parsing JSON for argument: $(e.message)");
                                 critical(@" method-name: $(m_name)");
@@ -165,9 +168,6 @@ namespace AppDomain
                             } catch (HelperDeserializeError e) {
                                 throw new InSkeletonDeserializeError.GENERIC(@"$(doing): $(e.message)");
                             }
-                            if (val > int.MAX || val < int.MIN)
-                                throw new InSkeletonDeserializeError.GENERIC(@"$(doing): argument overflows size of int");
-                            arg0 = (int)val;
                             j++;
                         }
 
@@ -207,9 +207,13 @@ namespace AppDomain
                             // deserialize arg0 (IDocument parent)
                             string arg_name = "parent";
                             string doing = @"Reading argument '$(arg_name)' for $(m_name)";
-                            Object val;
                             try {
+                                Object val;
                                 val = read_argument_object_notnull(typeof(IDocument), args[j]);
+                                if (val is ISerializable)
+                                    if (!((ISerializable)val).check_deserialization())
+                                        throw new InSkeletonDeserializeError.GENERIC(@"$(doing): instance of $(val.get_type().name()) has not been fully deserialized");
+                                arg0 = (IDocument)val;
                             } catch (HelperNotJsonError e) {
                                 critical(@"Error parsing JSON for argument: $(e.message)");
                                 critical(@" method-name: $(m_name)");
@@ -217,10 +221,6 @@ namespace AppDomain
                             } catch (HelperDeserializeError e) {
                                 throw new InSkeletonDeserializeError.GENERIC(@"$(doing): $(e.message)");
                             }
-                            if (val is ISerializable)
-                                if (!((ISerializable)val).check_serialization())
-                                    throw new InSkeletonDeserializeError.GENERIC(@"$(doing): instance of $(val.get_type().name()) has not been fully deserialized");
-                            arg0 = (IDocument)val;
                             j++;
                         }
 
@@ -240,9 +240,13 @@ namespace AppDomain
                             // deserialize arg0 (IDocument parent)
                             string arg_name = "parent";
                             string doing = @"Reading argument '$(arg_name)' for $(m_name)";
-                            Object val;
                             try {
+                                Object val;
                                 val = read_argument_object_notnull(typeof(IDocument), args[j]);
+                                if (val is ISerializable)
+                                    if (!((ISerializable)val).check_deserialization())
+                                        throw new InSkeletonDeserializeError.GENERIC(@"$(doing): instance of $(val.get_type().name()) has not been fully deserialized");
+                                arg0 = (IDocument)val;
                             } catch (HelperNotJsonError e) {
                                 critical(@"Error parsing JSON for argument: $(e.message)");
                                 critical(@" method-name: $(m_name)");
@@ -250,19 +254,19 @@ namespace AppDomain
                             } catch (HelperDeserializeError e) {
                                 throw new InSkeletonDeserializeError.GENERIC(@"$(doing): $(e.message)");
                             }
-                            if (val is ISerializable)
-                                if (!((ISerializable)val).check_serialization())
-                                    throw new InSkeletonDeserializeError.GENERIC(@"$(doing): instance of $(val.get_type().name()) has not been fully deserialized");
-                            arg0 = (IDocument)val;
                             j++;
                         }
                         {
                             // deserialize arg1 (Gee.List<IDocument> children)
                             string arg_name = "children";
                             string doing = @"Reading argument '$(arg_name)' for $(m_name)";
-                            Gee.List<Object> values;
                             try {
+                                Gee.List<Object> values;
                                 values = read_argument_array_of_object(typeof(IDocument), args[j]);
+                                foreach (Object val in values) if (val is ISerializable)
+                                    if (!((ISerializable)val).check_deserialization())
+                                        throw new InSkeletonDeserializeError.GENERIC(@"$(doing): instance of $(val.get_type().name()) has not been fully deserialized");
+                                arg1 = (Gee.List<IDocument>)values;
                             } catch (HelperNotJsonError e) {
                                 critical(@"Error parsing JSON for argument: $(e.message)");
                                 critical(@" method-name: $(m_name)");
@@ -270,10 +274,6 @@ namespace AppDomain
                             } catch (HelperDeserializeError e) {
                                 throw new InSkeletonDeserializeError.GENERIC(@"$(doing): $(e.message)");
                             }
-                            foreach (Object val in values) if (val is ISerializable)
-                                if (!((ISerializable)val).check_serialization())
-                                    throw new InSkeletonDeserializeError.GENERIC(@"$(doing): instance of $(val.get_type().name()) has not been fully deserialized");
-                            arg1 = (Gee.List<IDocument>)values;
                             j++;
                         }
 
@@ -306,10 +306,10 @@ namespace AppDomain
 
         internal class ZcdStatisticsDispatcher : Object, IZcdDispatcher
         {
-            private IStatisticsSkeleton stats;
             private string m_name;
             private ArrayList<string> args;
             private CallerInfo caller_info;
+            private IStatisticsSkeleton stats;
             public ZcdStatisticsDispatcher(IStatisticsSkeleton stats, string m_name, Gee.List<string> args, CallerInfo caller_info)
             {
                 this.stats = stats;
@@ -333,25 +333,25 @@ namespace AppDomain
                         // position:
                         int j = 0;
                         {
-                            // deserialize arg0 (Gee.List<int> lst)
-                            string arg_name = "lst";
+                            // deserialize arg0 (Gee.List<int> integers)
+                            string arg_name = "integers";
                             string doing = @"Reading argument '$(arg_name)' for $(m_name)";
-                            Gee.List<int64?> values;
                             try {
+                                Gee.List<int64?> values;
                                 values = read_argument_array_of_int64(args[j]);
+                                arg0 = new ArrayList<int>();
+                                foreach (int64 val in values)
+                                {
+                                    if (val > int.MAX || val < int.MIN)
+                                        throw new InSkeletonDeserializeError.GENERIC(@"$(doing): argument overflows size of int");
+                                    arg0.add((int)val);
+                                }
                             } catch (HelperNotJsonError e) {
                                 critical(@"Error parsing JSON for argument: $(e.message)");
                                 critical(@" method-name: $(m_name)");
                                 error(@" argument #$(j): $(args[j])");
                             } catch (HelperDeserializeError e) {
                                 throw new InSkeletonDeserializeError.GENERIC(@"$(doing): $(e.message)");
-                            }
-                            arg0 = new ArrayList<int>();
-                            foreach (int64 val in values)
-                            {
-                                if (val > int.MAX || val < int.MIN)
-                                    throw new InSkeletonDeserializeError.GENERIC(@"$(doing): argument overflows size of int");
-                                arg0.add((int)val);
                             }
                             j++;
                         }
@@ -505,7 +505,7 @@ namespace AppDomain
                     return null;
                 }
                 if (val is ISerializable)
-                    if (!((ISerializable)val).check_serialization())
+                    if (!((ISerializable)val).check_deserialization())
                     {
                         // couldn't verify if it's for me
                         return null;
@@ -550,7 +550,7 @@ namespace AppDomain
                     return null;
                 }
                 if (val is ISerializable)
-                    if (!((ISerializable)val).check_serialization())
+                    if (!((ISerializable)val).check_deserialization())
                         // couldn't verify if it's for me
                         return null;
                 BroadcastID broadcastid = (BroadcastID)val;

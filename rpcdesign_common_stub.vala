@@ -1,6 +1,6 @@
 /*
  *  This file is part of Netsukuku.
- *  Copyright (C) 2015 Luca Dionisi aka lukisi <luca.dionisi@gmail.com>
+ *  (c) Copyright 2015 Luca Dionisi aka lukisi <luca.dionisi@gmail.com>
  *
  *  Netsukuku is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -16,6 +16,11 @@
  *  along with Netsukuku.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+using Gee;
+
+void make_common_stub(Gee.List<Root> roots, Gee.List<Exception> errors)
+{
+    string contents = prettyformat("""
 using Gee;
 
 namespace zcd
@@ -179,5 +184,8 @@ namespace zcd
             }
         }
     }
+}
+    """);
+    write_file("common_stub.vala", contents);
 }
 

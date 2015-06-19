@@ -19,6 +19,13 @@ sample_main.c
 sample_tasklet.c
 sample_udp_main.c
 sample_udp_tasklet.c
+rpcdesign.c
+rpcdesign_common_helpers.c
+rpcdesign_common_skeleton.c
+rpcdesign_common_stub.c
+rpcdesign_sample_interfaces.c
+rpcdesign_sample_skeleton.c
+rpcdesign_sample_stub.c
 check/server.c
 testsuites/test_libs/test_libs.c
 Makefile.in

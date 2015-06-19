@@ -30,7 +30,7 @@ NodeManager node
   void add_children(IDocument parent, Gee.List<IDocument> children)
 Statistics stats
  ChildrenViewer children_viewer
-  Gee.List<string> int_to_string(Gee.List<int>)
+  Gee.List<string> int_to_string(Gee.List<int> integers)
 Errors
  AuthError(GENERIC)
  BadArgsError(GENERIC,NULL_NOT_ALLOWED)
@@ -40,6 +40,7 @@ Errors
 
 using Gee;
 using zcd;
+using zcd.ModRpc;
 
 namespace AppDomain
 {
@@ -52,9 +53,10 @@ namespace AppDomain
         NULL_NOT_ALLOWED
     }
 
-    public class License : Object
+    public class License : Object, ISerializable
     {
         public string name {get; set;}
+        public bool check_deserialization() {return true;}
     }
 
     public interface IDocument : Object

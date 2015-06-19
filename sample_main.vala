@@ -359,7 +359,7 @@ class ServerSampleChildrenViewer : Object, ModRpc.IChildrenViewerSkeleton
 class MyDocumentClass : Object, IDocument, ISerializable
 {
     public string text {get; set; default="";}
-    public bool check_serialization()
+    public bool check_deserialization()
     {
         return text != "";
     }

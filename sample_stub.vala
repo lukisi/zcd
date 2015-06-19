@@ -50,7 +50,7 @@ namespace AppDomain
 
         public interface IChildrenViewerStub : Object
         {
-            public abstract Gee.List<string> int_to_string(Gee.List<int> lst) throws StubError, DeserializeError;
+            public abstract Gee.List<string> int_to_string(Gee.List<int> integers) throws StubError, DeserializeError;
         }
 
         public interface IStatisticsStub : Object
@@ -531,7 +531,7 @@ namespace AppDomain
                     throw new DeserializeError.GENERIC(@"$(doing): unrecognized error $(error_domain_code) $(error_message)");
                 }
                 if (ret is ISerializable)
-                    if (!((ISerializable)ret).check_serialization())
+                    if (!((ISerializable)ret).check_deserialization())
                         throw new DeserializeError.GENERIC(@"$(doing): instance of $(ret.get_type().name()) has not been fully deserialized");
                 return (License)ret;
             }
@@ -577,7 +577,7 @@ namespace AppDomain
                     throw new DeserializeError.GENERIC(@"$(doing): unrecognized error $(error_domain_code) $(error_message)");
                 }
                 if (ret is ISerializable)
-                    if (!((ISerializable)ret).check_serialization())
+                    if (!((ISerializable)ret).check_deserialization())
                         throw new DeserializeError.GENERIC(@"$(doing): instance of $(ret.get_type().name()) has not been fully deserialized");
                 return (IDocument)ret;
             }
@@ -679,7 +679,7 @@ namespace AppDomain
                 string m_name = "stats.children_viewer.int_to_string";
                 ArrayList<string> args = new ArrayList<string>();
                 {
-                    // serialize arg0 (Gee.List<int> lst)
+                    // serialize arg0 (Gee.List<int> integers)
                     ArrayList<int64?> lst = new ArrayList<int64?>();
                     foreach (int el_i in arg0) lst.add(el_i);
                     args.add(prepare_argument_array_of_int64(lst));
