@@ -362,6 +362,19 @@ namespace AppDomain
                         args.add(prepare_argument_null());
                             """);
                             break;
+                        case "uint16":
+                            contents += prettyformat("""
+                    args.add(prepare_argument_int64(arg""" + @"$(j)" + """));
+                            """);
+                            break;
+                        case "uint16?":
+                            contents += prettyformat("""
+                    if (arg""" + @"$(j)" + """ != null)
+                        args.add(prepare_argument_int64(arg""" + @"$(j)" + """));
+                    else
+                        args.add(prepare_argument_null());
+                            """);
+                            break;
                         case "string":
                             contents += prettyformat("""
                     args.add(prepare_argument_string(arg""" + @"$(j)" + """));
@@ -472,6 +485,22 @@ namespace AppDomain
                     case "int?":
                         contents += prettyformat("""
                 int? ret;
+                int64? val;
+                try {
+                    val = read_return_value_int64_maybe(resp, out error_domain, out error_code, out error_message);
+                        """);
+                        break;
+                    case "uint16":
+                        contents += prettyformat("""
+                uint16 ret;
+                int64 val;
+                try {
+                    val = read_return_value_int64_notnull(resp, out error_domain, out error_code, out error_message);
+                        """);
+                        break;
+                    case "uint16?":
+                        contents += prettyformat("""
+                uint16? ret;
                 int64? val;
                 try {
                     val = read_return_value_int64_maybe(resp, out error_domain, out error_code, out error_message);
@@ -591,6 +620,26 @@ namespace AppDomain
                     if (val > int.MAX || val < int.MIN)
                         throw new DeserializeError.GENERIC(@"$(doing): return-value overflows size of int");
                     ret = (int)val;
+                }
+                return ret;
+                        """);
+                        break;
+                    case "uint16":
+                        contents += prettyformat("""
+                if (val > uint16.MAX || val < uint16.MIN)
+                    throw new DeserializeError.GENERIC(@"$(doing): return-value overflows size of uint16");
+                ret = (uint16)val;
+                return ret;
+                        """);
+                        break;
+                    case "uint16?":
+                        contents += prettyformat("""
+                if (val == null) ret = null;
+                else
+                {
+                    if (val > uint16.MAX || val < uint16.MIN)
+                        throw new DeserializeError.GENERIC(@"$(doing): return-value overflows size of uint16");
+                    ret = (uint16)val;
                 }
                 return ret;
                         """);

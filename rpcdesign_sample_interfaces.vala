@@ -138,6 +138,7 @@ bool type_is_basic(string s)
         "int", "int?", "Gee.List<int>",
         "long", "long?", "Gee.List<long>",
         "int64", "int64?", "Gee.List<int64>",
+        "uint16", "uint16?", "Gee.List<int64>",
         "double", "double?", "Gee.List<double>",
         "uint8[]", "uint8[]?", "Gee.List<double>",
         });

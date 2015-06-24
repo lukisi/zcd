@@ -190,6 +190,15 @@ namespace AppDomain
                                 arg""" + @"$(j)" + """ = (int)val;
                                 """);
                                 break;
+                            case "uint16":
+                                contents += prettyformat("""
+                                int64 val;
+                                val = read_argument_int64_notnull(args[j]);
+                                if (val > uint16.MAX || val < uint16.MIN)
+                                    throw new InSkeletonDeserializeError.GENERIC(@"$(doing): argument overflows size of uint16");
+                                arg""" + @"$(j)" + """ = (uint16)val;
+                                """);
+                                break;
                             case "int?":
                                 error("not implemented yet");
                             case "Gee.List<int>":
@@ -312,6 +321,19 @@ namespace AppDomain
                     case "int?":
                         contents += prettyformat("""
                         """ + try_indent + """int? result = """ + method_call + """
+                        """ + try_indent + """if (result == null) ret = prepare_return_value_null();
+                        """ + try_indent + """else ret = prepare_return_value_int64(result);
+                        """);
+                        break;
+                    case "uint16":
+                        contents += prettyformat("""
+                        """ + try_indent + """uint16 result = """ + method_call + """
+                        """ + try_indent + """ret = prepare_return_value_int64(result);
+                        """);
+                        break;
+                    case "uint16?":
+                        contents += prettyformat("""
+                        """ + try_indent + """uint16? result = """ + method_call + """
                         """ + try_indent + """if (result == null) ret = prepare_return_value_null();
                         """ + try_indent + """else ret = prepare_return_value_int64(result);
                         """);
