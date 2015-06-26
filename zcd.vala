@@ -18,39 +18,9 @@
 
 using Gee;
 
-public string test_libs(string s1, string s2) throws Error
-{
-    var b = new Json.Builder();
-    b.begin_object()
-        .set_member_name("return-value").begin_object()
-            .set_member_name("number").add_int_value(3)
-            .set_member_name("list").begin_array();
-                {
-                    var p = new Json.Parser();
-                    p.load_from_data(s1);
-                    unowned Json.Node p_rootnode = p.get_root();
-                    Json.Node* cp = p_rootnode.copy();
-                    b.add_value(cp);
-                }
-                {
-                    var p = new Json.Parser();
-                    p.load_from_data(s2);
-                    unowned Json.Node p_rootnode = p.get_root();
-                    Json.Node* cp = p_rootnode.copy();
-                    b.add_value(cp);
-                }
-            b.end_array()
-        .end_object()
-    .end_object();
-    var g = new Json.Generator();
-    g.pretty = false;
-    g.root = b.get_root();
-    return g.to_data(null);
-}
-
 namespace zcd
 {
-    public string get_mac(string iface)
+    internal string get_mac(string iface)
     {
         return macgetter.get_mac(iface);
     }
