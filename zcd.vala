@@ -126,14 +126,14 @@ namespace zcd
 
     internal size_t max_msg_size = 10000000;
 
-    public void tcp_listen(IZcdTcpDelegate del, IZcdTcpAcceptErrorHandler err, uint16 port, string? my_addr = null)
+    public IZcdTaskletHandle tcp_listen(IZcdTcpDelegate del, IZcdTcpAcceptErrorHandler err, uint16 port, string? my_addr = null)
     {
         TcpListenTasklet t = new TcpListenTasklet();
         t.del = del;
         t.err = err;
         t.port = port;
         t.my_addr = my_addr;
-        tasklet.spawn(t);
+        return tasklet.spawn(t);
     }
     internal class TcpListenTasklet : Object, IZcdTaskletSpawnable
     {
