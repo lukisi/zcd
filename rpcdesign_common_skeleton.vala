@@ -91,14 +91,14 @@ namespace zcd
                         if (has_response)
                         {
                             // report 'response' through 'ch'
-                            ch.send(s_unicast_service_prefix_response + response);
+                            ch.send_async(s_unicast_service_prefix_response + response);
                             parent.waiting_for_response.unset(id);
                             return null;
                         }
                         if (timer.is_expired())
                         {
                             // report communication error through 'ch'
-                            ch.send(s_unicast_service_prefix_fail + "Timeout before reply or keepalive");
+                            ch.send_async(s_unicast_service_prefix_fail + "Timeout before reply or keepalive");
                             parent.waiting_for_response.unset(id);
                             return null;
                         }
@@ -127,7 +127,7 @@ namespace zcd
                 {
                     tasklet.ms_wait(timeout_msec);
                     // report 'macs_list' through 'ch'
-                    ch.send(macs_list);
+                    ch.send_async(macs_list);
                     parent.waiting_for_ack.unset(id);
                     return null;
                 }

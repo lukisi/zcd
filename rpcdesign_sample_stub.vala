@@ -243,9 +243,10 @@ namespace AppDomain
     foreach (Root r in roots)
     {
         contents += prettyformat("""
-        public I""" + r.rootclass + """Stub get_""" + r.rootname + """_broadcast(string dev, uint16 port, BroadcastID broadcast_id, IAckCommunicator? notify_ack=null)
+        public I""" + r.rootclass + """Stub get_""" + r.rootname + """_broadcast
+        (Gee.Collection<string> devs, uint16 port, BroadcastID broadcast_id, IAckCommunicator? notify_ack=null)
         {
-            return new """ + r.rootclass + """BroadcastRootStub(dev, port, broadcast_id, notify_ack);
+            return new """ + r.rootclass + """BroadcastRootStub(devs, port, broadcast_id, notify_ack);
         }
 
         """);
@@ -256,7 +257,7 @@ namespace AppDomain
         internal class """ + r.rootclass + """BroadcastRootStub : Object, I""" + r.rootclass + """Stub
         {
             private string s_broadcast_id;
-            private string dev;
+            private Gee.Collection<string> devs;
             private uint16 port;
             private IAckCommunicator? notify_ack;
         """);
@@ -267,10 +268,12 @@ namespace AppDomain
             """);
         }
         contents += prettyformat("""
-            public """ + r.rootclass + """BroadcastRootStub(string dev, uint16 port, BroadcastID broadcast_id, IAckCommunicator? notify_ack=null)
+            public """ + r.rootclass + """BroadcastRootStub
+            (Gee.Collection<string> devs, uint16 port, BroadcastID broadcast_id, IAckCommunicator? notify_ack=null)
             {
                 s_broadcast_id = prepare_direct_object(broadcast_id);
-                this.dev = dev;
+                this.devs = new ArrayList<string>();
+                this.devs.add_all(devs);
                 this.port = port;
                 this.notify_ack = notify_ack;
         """);
@@ -297,7 +300,7 @@ namespace AppDomain
         contents += prettyformat("""
             private string call(string m_name, Gee.List<string> arguments) throws ZCDError, StubError
             {
-                return call_broadcast_udp(m_name, arguments, dev, port, s_broadcast_id, notify_ack);
+                return call_broadcast_udp(m_name, arguments, devs, port, s_broadcast_id, notify_ack);
             }
         }
 

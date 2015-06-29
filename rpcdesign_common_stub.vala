@@ -129,45 +129,56 @@ namespace zcd
 
         internal string call_broadcast_udp(
                 string m_name, Gee.List<string> arguments,
-                string dev,
+                Gee.Collection<string> devs,
                 uint16 port,
                 string s_broadcast_id,
                 IAckCommunicator? notify_ack) throws ZCDError, StubError
         {
-            int id = Random.int_range(0, int.MAX);
-            string k_map = @"$(dev):$(port)";
-            ZcdUdpServiceMessageDelegate? del_ser = null;
-            IZcdChannel ch = tasklet.get_channel();
-            if (notify_ack != null)
+            ArrayList<IZcdChannel> lst_ch = new ArrayList<IZcdChannel>();
+            bool ok = false;
+            string last_error_message = "";
+            foreach (string dev in devs)
             {
-                if (map_udp_listening != null && map_udp_listening.has_key(k_map))
+                int id = Random.int_range(0, int.MAX);
+                string k_map = @"$(dev):$(port)";
+                ZcdUdpServiceMessageDelegate? del_ser = null;
+                IZcdChannel ch = tasklet.get_channel();
+                lst_ch.add(ch);
+                if (notify_ack != null)
                 {
-                    del_ser = map_udp_listening[k_map];
-                    del_ser.going_to_send_broadcast_with_ack(id, ch);
+                    if (map_udp_listening != null && map_udp_listening.has_key(k_map))
+                    {
+                        del_ser = map_udp_listening[k_map];
+                        del_ser.going_to_send_broadcast_with_ack(id, ch);
+                    }
+                    else
+                    {
+                        notify_ack = null;
+                    }
                 }
                 else
                 {
-                    notify_ack = null;
+                    if (map_udp_listening != null && map_udp_listening.has_key(k_map))
+                    {
+                        del_ser = map_udp_listening[k_map];
+                        del_ser.going_to_send_broadcast_no_ack(id);
+                    }
+                }
+                try {
+                    send_broadcast_request(dev, port, id, s_broadcast_id, m_name, arguments, (notify_ack != null));
+                    ok = true;
+                } catch (Error e) {
+                    last_error_message = e.message;
                 }
             }
-            else
-            {
-                if (map_udp_listening != null && map_udp_listening.has_key(k_map))
-                {
-                    del_ser = map_udp_listening[k_map];
-                    del_ser.going_to_send_broadcast_no_ack(id);
-                }
-            }
-            try {
-                send_broadcast_request(dev, port, id, s_broadcast_id, m_name, arguments, (notify_ack != null));
-            } catch (Error e) {
-                throw new StubError.GENERIC(e.message);
-            }
+
+            if (!ok) throw new StubError.GENERIC(last_error_message);
+
             if (notify_ack != null)
             {
                 NotifyAckTasklet t = new NotifyAckTasklet();
                 t.notify_ack = notify_ack;
-                t.ch = ch;
+                t.lst_ch = lst_ch;
                 tasklet.spawn(t);
             }
             throw new StubError.DID_NOT_WAIT_REPLY(@"Didn't wait reply for a call to $(m_name)");
@@ -175,10 +186,15 @@ namespace zcd
         internal class NotifyAckTasklet : Object, IZcdTaskletSpawnable
         {
             public IAckCommunicator notify_ack;
-            public IZcdChannel ch;
+            public ArrayList<IZcdChannel> lst_ch;
             public void * func()
             {
-                ArrayList<string> macs_list = (ArrayList<string>)ch.recv();
+                ArrayList<string> macs_list = new ArrayList<string>();
+                foreach (IZcdChannel ch in lst_ch)
+                {
+                    ArrayList<string> macs_list_part = (ArrayList<string>)ch.recv();
+                    macs_list.add_all(macs_list_part);
+                }
                 notify_ack.process_macs_list(macs_list);
                 return null;
             }
