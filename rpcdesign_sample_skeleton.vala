@@ -570,14 +570,18 @@ namespace AppDomain
                     error(   @" unicast_id: $(unicast_id)");
                 } catch (HelperDeserializeError e) {
                     // couldn't verify if it's for me
+                    warning(@"get_dispatcher_unicast: couldn't verify if it's for me: $(e.message)");
                     return null;
                 }
                 if (val is ISerializable)
+                {
                     if (!((ISerializable)val).check_deserialization())
                     {
                         // couldn't verify if it's for me
+                        warning(@"get_dispatcher_unicast: couldn't verify if it's for me: bad deserialization");
                         return null;
                     }
+                }
                 UnicastID unicastid = (UnicastID)val;
                 // call delegate
                 UnicastCallerInfo my_caller_info = new UnicastCallerInfo(caller_info.dev, caller_info.peer_addr, unicastid);
@@ -620,12 +624,18 @@ namespace AppDomain
                     error(   @" broadcast_id: $(broadcast_id)");
                 } catch (HelperDeserializeError e) {
                     // couldn't verify if it's for me
+                    warning(@"get_dispatcher_broadcast: couldn't verify if it's for me: $(e.message)");
                     return null;
                 }
                 if (val is ISerializable)
+                {
                     if (!((ISerializable)val).check_deserialization())
+                    {
                         // couldn't verify if it's for me
+                        warning(@"get_dispatcher_broadcast: couldn't verify if it's for me: bad deserialization");
                         return null;
+                    }
+                }
                 BroadcastID broadcastid = (BroadcastID)val;
                 // call delegate
                 BroadcastCallerInfo my_caller_info = new BroadcastCallerInfo(caller_info.dev, caller_info.peer_addr, broadcastid);
