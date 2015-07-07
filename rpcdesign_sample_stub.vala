@@ -365,6 +365,19 @@ namespace AppDomain
                         args.add(prepare_argument_null());
                             """);
                             break;
+                        case "bool":
+                            contents += prettyformat("""
+                    args.add(prepare_argument_boolean(arg""" + @"$(j)" + """));
+                            """);
+                            break;
+                        case "bool?":
+                            contents += prettyformat("""
+                    if (arg""" + @"$(j)" + """ != null)
+                        args.add(prepare_argument_boolean(arg""" + @"$(j)" + """));
+                    else
+                        args.add(prepare_argument_null());
+                            """);
+                            break;
                         case "uint16":
                             contents += prettyformat("""
                     args.add(prepare_argument_int64(arg""" + @"$(j)" + """));

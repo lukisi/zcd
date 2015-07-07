@@ -181,6 +181,16 @@ namespace AppDomain
                                 arg""" + @"$(j)" + """ = read_argument_string_maybe(args[j]);
                                 """);
                                 break;
+                            case "bool":
+                                contents += prettyformat("""
+                                arg""" + @"$(j)" + """ = read_argument_bool_notnull(args[j]);
+                                """);
+                                break;
+                            case "bool?":
+                                contents += prettyformat("""
+                                arg""" + @"$(j)" + """ = read_argument_bool_maybe(args[j]);
+                                """);
+                                break;
                             case "int":
                                 contents += prettyformat("""
                                 int64 val;
