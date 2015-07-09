@@ -106,17 +106,9 @@ namespace AppDomain
     foreach (string c in classes)
     {
         contents += prettyformat(
-@"  public class $(c) : Object, ISerializable /*optional*/");
+@"  public class $(c) : Object");
         contents += prettyformat("""
     {
-        public string sample_property {get; set;}
-
-        public bool check_deserialization() /*optional*/
-        {
-            // check each property
-            if (sample_property == null) return false;
-            return true;
-        }
     }
 
         """);
