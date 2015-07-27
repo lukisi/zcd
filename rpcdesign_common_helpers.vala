@@ -116,6 +116,9 @@ namespace zcd
                 b.add_string_value(obj.get_type().name());
                 b.set_member_name("value");
                 Json.Node* obj_n = Json.gobject_serialize(obj);
+                // json_builder_add_value docs says: The builder will take ownership of the #JsonNode.
+                // but the vapi does not specify that the formal parameter is owned.
+                // So I try and handle myself the unref of obj_n
                 b.add_value(obj_n);
                 b.end_object();
             }
