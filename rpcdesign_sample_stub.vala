@@ -600,6 +600,10 @@ namespace AppDomain
                     }
                 }
                 contents += prettyformat("""
+                    if (error_domain_code == "DeserializeError.GENERIC")
+                        throw new DeserializeError.GENERIC(error_message);
+                """);
+                contents += prettyformat("""
                     throw new DeserializeError.GENERIC(@"$(doing): unrecognized error $(error_domain_code) $(error_message)");
                 }
                 """);
