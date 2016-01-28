@@ -22,6 +22,7 @@ void make_common_stub(Gee.List<Root> roots, Gee.List<Exception> errors)
 {
     string contents = prettyformat("""
 using Gee;
+using TaskletSystem;
 
 namespace zcd
 {
@@ -80,7 +81,7 @@ namespace zcd
             int id = Random.int_range(0, int.MAX);
             string k_map = @"$(dev):$(port)";
             ZcdUdpServiceMessageDelegate? del_ser = null;
-            IZcdChannel ch = tasklet.get_channel();
+            IChannel ch = tasklet.get_channel();
             if (wait_reply)
             {
                 if (map_udp_listening != null && map_udp_listening.has_key(k_map))
@@ -134,7 +135,7 @@ namespace zcd
                 string s_broadcast_id,
                 IAckCommunicator? notify_ack) throws ZCDError, StubError
         {
-            ArrayList<IZcdChannel> lst_ch = new ArrayList<IZcdChannel>();
+            ArrayList<IChannel> lst_ch = new ArrayList<IChannel>();
             bool ok = false;
             string last_error_message = "";
             foreach (string dev in devs)
@@ -142,7 +143,7 @@ namespace zcd
                 int id = Random.int_range(0, int.MAX);
                 string k_map = @"$(dev):$(port)";
                 ZcdUdpServiceMessageDelegate? del_ser = null;
-                IZcdChannel ch = tasklet.get_channel();
+                IChannel ch = tasklet.get_channel();
                 lst_ch.add(ch);
                 if (notify_ack != null)
                 {
@@ -183,14 +184,14 @@ namespace zcd
             }
             throw new StubError.DID_NOT_WAIT_REPLY(@"Didn't wait reply for a call to $(m_name)");
         }
-        internal class NotifyAckTasklet : Object, IZcdTaskletSpawnable
+        internal class NotifyAckTasklet : Object, ITaskletSpawnable
         {
             public IAckCommunicator notify_ack;
-            public ArrayList<IZcdChannel> lst_ch;
+            public ArrayList<IChannel> lst_ch;
             public void * func()
             {
                 ArrayList<string> macs_list = new ArrayList<string>();
-                foreach (IZcdChannel ch in lst_ch)
+                foreach (IChannel ch in lst_ch)
                 {
                     ArrayList<string> macs_list_part = (ArrayList<string>)ch.recv();
                     macs_list.add_all(macs_list_part);

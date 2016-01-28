@@ -24,6 +24,7 @@ void make_sample_skeleton(Gee.List<Root> roots, Gee.List<Exception> errors)
 using Gee;
 using zcd;
 using zcd.ModRpc;
+using TaskletSystem;
 
 namespace AppDomain
 {
@@ -675,12 +676,12 @@ namespace AppDomain
             }
         }
 
-        public IZcdTaskletHandle tcp_listen(IRpcDelegate dlg, IRpcErrorHandler err, uint16 port, string? my_addr=null)
+        public ITaskletHandle tcp_listen(IRpcDelegate dlg, IRpcErrorHandler err, uint16 port, string? my_addr=null)
         {
             return zcd.tcp_listen(new ZcdTcpDelegate(dlg), new ZcdTcpAcceptErrorHandler(err), port, my_addr);
         }
 
-        public IZcdTaskletHandle udp_listen(IRpcDelegate dlg, IRpcErrorHandler err, uint16 port, string dev)
+        public ITaskletHandle udp_listen(IRpcDelegate dlg, IRpcErrorHandler err, uint16 port, string dev)
         {
             if (map_udp_listening == null) map_udp_listening = new HashMap<string, ZcdUdpServiceMessageDelegate>();
             string k_map = @"$(dev):$(port)";

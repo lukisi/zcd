@@ -17,6 +17,7 @@
  */
 
 using Gee;
+using TaskletSystem;
 
 namespace zcd
 {
@@ -25,9 +26,9 @@ namespace zcd
         return macgetter.get_mac(iface);
     }
 
-    internal IZcdTasklet tasklet;
+    internal ITasklet tasklet;
 
-    public void init_tasklet_system(IZcdTasklet _tasklet)
+    public void init_tasklet_system(ITasklet _tasklet)
     {
         tasklet = _tasklet;
     }
@@ -126,7 +127,7 @@ namespace zcd
 
     internal size_t max_msg_size = 10000000;
 
-    public IZcdTaskletHandle tcp_listen(IZcdTcpDelegate del, IZcdTcpAcceptErrorHandler err, uint16 port, string? my_addr = null)
+    public ITaskletHandle tcp_listen(IZcdTcpDelegate del, IZcdTcpAcceptErrorHandler err, uint16 port, string? my_addr = null)
     {
         TcpListenTasklet t = new TcpListenTasklet();
         t.del = del;
@@ -135,7 +136,7 @@ namespace zcd
         t.my_addr = my_addr;
         return tasklet.spawn(t);
     }
-    internal class TcpListenTasklet : Object, IZcdTaskletSpawnable
+    internal class TcpListenTasklet : Object, ITaskletSpawnable
     {
         public IZcdTcpDelegate del;
         public IZcdTcpAcceptErrorHandler err;
@@ -144,10 +145,10 @@ namespace zcd
         public void * func()
         {
             try {
-                IZcdServerStreamSocket s = tasklet.get_server_stream_socket(port, my_addr);
+                IServerStreamSocket s = tasklet.get_server_stream_socket(port, my_addr);
                 debug(@"tcp_listen: Listening on port $(port) at address $(my_addr == null ? "any" : my_addr)");
                 while (true) {
-                    IZcdConnectedStreamSocket c = s.accept();
+                    IConnectedStreamSocket c = s.accept();
                     debug(@"tcp_listen: got a connection");
                     var req = del.get_new_handler();
                     TcpAcceptTasklet t = new TcpAcceptTasklet();
@@ -161,9 +162,9 @@ namespace zcd
             return null;
         }
     }
-    internal class TcpAcceptTasklet : Object, IZcdTaskletSpawnable
+    internal class TcpAcceptTasklet : Object, ITaskletSpawnable
     {
-        public IZcdConnectedStreamSocket c;
+        public IConnectedStreamSocket c;
         public IZcdTcpRequestHandler req;
         public void * func()
         {
@@ -266,7 +267,7 @@ namespace zcd
             // assert_not_reached ??
         }
     }
-    internal class TcpDispatchTasklet : Object, IZcdTaskletSpawnable
+    internal class TcpDispatchTasklet : Object, ITaskletSpawnable
     {
         public IZcdDispatcher disp;
         public void * func()
@@ -285,7 +286,7 @@ namespace zcd
     {
         private string addr;
         private uint16 port;
-        private IZcdConnectedStreamSocket? c;
+        private IConnectedStreamSocket? c;
         private bool connected;
         private bool processing;
         private ArrayList<int> queue;
@@ -414,7 +415,7 @@ namespace zcd
         }
     }
 
-    internal void send_one_message(IZcdConnectedStreamSocket c, string msg) throws SendMessageError
+    internal void send_one_message(IConnectedStreamSocket c, string msg) throws SendMessageError
     {
         size_t len = msg.length;
         assert(len <= uint32.MAX);
@@ -438,7 +439,7 @@ namespace zcd
     }
 
     // the caller has to free m.
-    internal bool get_one_message(IZcdConnectedStreamSocket c, out void * m, out size_t s) throws RecvMessageError
+    internal bool get_one_message(IConnectedStreamSocket c, out void * m, out size_t s) throws RecvMessageError
     {
         // Get one message
         m = null;
@@ -572,7 +573,7 @@ namespace zcd
     internal const string s_broadcast_ack_id = "ID";
     internal const string s_broadcast_ack_mac = "MAC";
 
-    public IZcdTaskletHandle udp_listen(IZcdUdpRequestMessageDelegate del_req,
+    public ITaskletHandle udp_listen(IZcdUdpRequestMessageDelegate del_req,
                            IZcdUdpServiceMessageDelegate del_ser,
                            IZcdUdpCreateErrorHandler err,
                            uint16 port, string dev)
@@ -585,7 +586,7 @@ namespace zcd
         t.dev = dev;
         return tasklet.spawn(t);
     }
-    internal class UdpListenTasklet : Object, IZcdTaskletSpawnable
+    internal class UdpListenTasklet : Object, ITaskletSpawnable
     {
         public IZcdUdpRequestMessageDelegate del_req;
         public IZcdUdpServiceMessageDelegate del_ser;
@@ -595,7 +596,7 @@ namespace zcd
         public void * func()
         {
             try {
-                IZcdServerDatagramSocket s = tasklet.get_server_datagram_socket(port, dev);
+                IServerDatagramSocket s = tasklet.get_server_datagram_socket(port, dev);
                 debug(@"udp_listen: Listening on port $(port) at dev $(dev)");
                 while (true)
                 {
@@ -634,7 +635,7 @@ namespace zcd
             return null;
         }
     }
-    internal class UdpMsgTasklet : Object, IZcdTaskletSpawnable
+    internal class UdpMsgTasklet : Object, ITaskletSpawnable
     {
         public uint8* b;
         public size_t msglen;
@@ -728,7 +729,7 @@ namespace zcd
                             caller_info);
                         if (disp != null)
                         {
-                            IZcdTaskletHandle? t_keepalive = null;
+                            ITaskletHandle? t_keepalive = null;
                             if (unicast_request_request_wait_reply)
                             {
                                 UdpKeepaliveTasklet t = new UdpKeepaliveTasklet();
@@ -761,7 +762,7 @@ namespace zcd
                                 }
                                 string json_resp = build_json_unicast_response(unicast_request_id, resp);
                                 try {
-                                    IZcdClientDatagramSocket cs = tasklet.get_client_datagram_socket(port, dev);
+                                    IClientDatagramSocket cs = tasklet.get_client_datagram_socket(port, dev);
                                     cs.sendto(json_resp.data, json_resp.length);
                                 } catch (Error e) {
                                     // log message
@@ -919,7 +920,7 @@ namespace zcd
             return null;
         }
     }
-    internal class UdpKeepaliveTasklet : Object, IZcdTaskletSpawnable
+    internal class UdpKeepaliveTasklet : Object, ITaskletSpawnable
     {
         public uint16 port;
         public string dev;
@@ -930,7 +931,7 @@ namespace zcd
             {
                 string msg = build_json_keepalive(id);
                 try {
-                    IZcdClientDatagramSocket cs = tasklet.get_client_datagram_socket(port, dev);
+                    IClientDatagramSocket cs = tasklet.get_client_datagram_socket(port, dev);
                     cs.sendto(msg.data, msg.length);
                 } catch (Error e) {
                     // log message
@@ -941,7 +942,7 @@ namespace zcd
             }
         }
     }
-    internal class UdpAckTasklet : Object, IZcdTaskletSpawnable
+    internal class UdpAckTasklet : Object, ITaskletSpawnable
     {
         public uint16 port;
         public string dev;
@@ -952,7 +953,7 @@ namespace zcd
             {
                 string msg = build_json_ack(dev, id);
                 try {
-                    IZcdClientDatagramSocket cs = tasklet.get_client_datagram_socket(port, dev);
+                    IClientDatagramSocket cs = tasklet.get_client_datagram_socket(port, dev);
                     cs.sendto(msg.data, msg.length);
                 } catch (Error e) {
                     // log message
@@ -1009,7 +1010,7 @@ namespace zcd
         .end_object();
         Json.Node node = b.get_root();
         string msg = generate_stream(node);
-        IZcdClientDatagramSocket cs = tasklet.get_client_datagram_socket(port, dev);
+        IClientDatagramSocket cs = tasklet.get_client_datagram_socket(port, dev);
         cs.sendto(msg.data, msg.length);
         // We use pointers to Json.Node because of a bug in vapi file of json-glib, which should be fixed in valac 0.28
         // Method b.add_value should declare that the argument is 'owned'.
@@ -1060,7 +1061,7 @@ namespace zcd
         .end_object();
         Json.Node node = b.get_root();
         string msg = generate_stream(node);
-        IZcdClientDatagramSocket cs = tasklet.get_client_datagram_socket(port, dev);
+        IClientDatagramSocket cs = tasklet.get_client_datagram_socket(port, dev);
         cs.sendto(msg.data, msg.length);
     }
 

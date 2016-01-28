@@ -22,14 +22,15 @@ void make_common_skeleton(Gee.List<Root> roots, Gee.List<Exception> errors)
 {
     string contents = prettyformat("""
 using Gee;
+using TaskletSystem;
 
 namespace zcd
 {
     namespace ModRpc
     {
-        internal IZcdTasklet tasklet;
+        internal ITasklet tasklet;
 
-        public void init_tasklet_system(zcd.IZcdTasklet _tasklet)
+        public void init_tasklet_system(ITasklet _tasklet)
         {
             zcd.init_tasklet_system(_tasklet);
             tasklet = _tasklet;
@@ -68,9 +69,9 @@ namespace zcd
                 waiting_for_recv = new HashMap<int, WaitingForRecv>();
             }
 
-            private class WaitingForResponse : Object, IZcdTaskletSpawnable
+            private class WaitingForResponse : Object, ITaskletSpawnable
             {
-                public WaitingForResponse(ZcdUdpServiceMessageDelegate parent, int id, Timer timer, IZcdChannel ch)
+                public WaitingForResponse(ZcdUdpServiceMessageDelegate parent, int id, Timer timer, IChannel ch)
                 {
                     this.parent = parent;
                     this.id = id;
@@ -81,7 +82,7 @@ namespace zcd
                 private ZcdUdpServiceMessageDelegate parent;
                 private int id;
                 public Timer timer;
-                private IZcdChannel ch;
+                private IChannel ch;
                 public string response;
                 public bool has_response;
                 public void* func()
@@ -108,9 +109,9 @@ namespace zcd
             }
             private HashMap<int, WaitingForResponse> waiting_for_response;
 
-            private class WaitingForAck : Object, IZcdTaskletSpawnable
+            private class WaitingForAck : Object, ITaskletSpawnable
             {
-                public WaitingForAck(ZcdUdpServiceMessageDelegate parent, int id, int timeout_msec, IZcdChannel ch)
+                public WaitingForAck(ZcdUdpServiceMessageDelegate parent, int id, int timeout_msec, IChannel ch)
                 {
                     this.parent = parent;
                     this.id = id;
@@ -121,7 +122,7 @@ namespace zcd
                 private ZcdUdpServiceMessageDelegate parent;
                 private int id;
                 private int timeout_msec;
-                private IZcdChannel ch;
+                private IChannel ch;
                 public ArrayList<string> macs_list {get; private set;}
                 public void* func()
                 {
@@ -134,7 +135,7 @@ namespace zcd
             }
             private HashMap<int, WaitingForAck> waiting_for_ack;
 
-            private class WaitingForRecv : Object, IZcdTaskletSpawnable
+            private class WaitingForRecv : Object, ITaskletSpawnable
             {
                 public WaitingForRecv(ZcdUdpServiceMessageDelegate parent, int id, int timeout_msec)
                 {
@@ -154,14 +155,14 @@ namespace zcd
             }
             private HashMap<int, WaitingForRecv> waiting_for_recv;
 
-            internal void going_to_send_unicast_with_reply(int id, IZcdChannel ch)
+            internal void going_to_send_unicast_with_reply(int id, IChannel ch)
             {
                 var w = new WaitingForResponse(this, id, new Timer(udp_timeout_msec), ch);
                 tasklet.spawn(w);
                 waiting_for_response[id] = w;
             }
 
-            internal void going_to_send_broadcast_with_ack(int id, IZcdChannel ch)
+            internal void going_to_send_broadcast_with_ack(int id, IChannel ch)
             {
                 var w = new WaitingForAck(this, id, udp_timeout_msec, ch);
                 tasklet.spawn(w);
