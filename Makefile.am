@@ -14,6 +14,14 @@ bin_PROGRAMS = \
 	rpcdesign \
 	$(NULL)
 
+TESTS = \
+	test_zcd_tcp \
+	$(NULL)
+
+check_PROGRAMS = \
+	test_zcd_tcp \
+	$(NULL)
+
 libmacgetter_la_SOURCES = \
 	mac-getter/hw.c \
 	mac-getter/hw.h \
@@ -80,6 +88,34 @@ rpcdesign_LDADD = \
 	$(GEE_LIBS) \
 	$(NULL)
 
+test_zcd_tcp_SOURCES = \
+	testsuites/test_zcd_tcp/test_zcd_tcp.vala \
+	zcd.vapi \
+	$(NULL)
+
+test_zcd_tcp_VALAFLAGS = \
+	--pkg glib-2.0 \
+	--pkg gee-0.8 \
+	--pkg pth-tasklet \
+	--pkg tasklet-system \
+	$(NULL)
+
+test_zcd_tcp_CPPFLAGS = \
+	-w \
+	$(GOBJECT_CFLAGS) \
+	$(GEE_CFLAGS) \
+	$(TASKLETSYSTEM_CFLAGS) \
+	$(PTHTASKLET_CFLAGS) \
+	-I$(srcdir) \
+	$(NULL)
+
+test_zcd_tcp_LDADD = \
+	$(GOBJECT_LIBS) \
+	$(GEE_LIBS) \
+	$(TASKLETSYSTEM_LIBS) \
+	$(PTHTASKLET_LIBS) \
+	$(builddir)/libzcd.la \
+	$(NULL)
 
 vapidir = $(datadir)/vala/vapi
 dist_vapi_DATA = \

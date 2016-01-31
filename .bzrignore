@@ -1,7 +1,4 @@
 m4/*
-zcd_tasklet.c
-zcd-tasklet-system.h
-zcd-tasklet-system.vapi
 zcd.c
 zcd.h
 zcd.vapi
@@ -26,8 +23,7 @@ rpcdesign_common_stub.c
 rpcdesign_sample_interfaces.c
 rpcdesign_sample_skeleton.c
 rpcdesign_sample_stub.c
-check/server.c
-testsuites/test_libs/test_libs.c
+testsuites/test_zcd_tcp/test_zcd_tcp.c
 Makefile.in
 Makefile
 *.lo

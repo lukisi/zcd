@@ -62,28 +62,33 @@ namespace zcd
 
     public class TcpCallerInfo : Object, IZcdCallerInfo
     {
-        internal TcpCallerInfo(string my_addr, string peer_addr)
+        internal TcpCallerInfo(string my_address, string peer_address, string source_id)
         {
-            this.my_addr = my_addr;
-            this.peer_addr = peer_addr;
+            this.my_address = my_address;
+            this.peer_address = peer_address;
+            this.source_id = source_id;
         }
-        public string my_addr {get; private set;}
-        public string peer_addr {get; private set;}
+        public string my_address {get; private set;}
+        public string peer_address {get; private set;}
+        public string source_id {get; private set;}
     }
 
     public class UdpCallerInfo : Object, IZcdCallerInfo
     {
-        internal UdpCallerInfo(string dev, string peer_addr)
+        internal UdpCallerInfo(string dev, string peer_address, string source_id)
         {
             this.dev = dev;
-            this.peer_addr = peer_addr;
+            this.peer_address = peer_address;
+            this.source_id = source_id;
         }
         public string dev {get; private set;}
-        public string peer_addr {get; private set;}
+        public string peer_address {get; private set;}
+        public string source_id {get; private set;}
     }
 
     public interface IZcdTcpRequestHandler : Object
     {
+        public abstract void set_unicast_id(string unicast_id);
         public abstract void set_method_name(string m_name);
         public abstract void add_argument(string arg);
         public abstract void set_caller_info(TcpCallerInfo caller_info);
@@ -195,6 +200,8 @@ namespace zcd
                 buf.length = (int)s;
 
                 // Parse JSON
+                string source_id;
+                string unicast_id;
                 string method_name;
                 bool wait_reply;
                 string[] args;
@@ -210,7 +217,12 @@ namespace zcd
                     if (r_buf.get_value().get_value_type() != typeof(bool)) throw new MessageError.MALFORMED("wait-reply must be a boolean");
                     wait_reply = r_buf.get_boolean_value();
                     r_buf.end_member();
-                    parse_method_call(buf_rootnode, out method_name, out args);
+                    if (!r_buf.read_member("unicast-id")) throw new MessageError.MALFORMED("root must have unicast-id");
+                    if (!r_buf.is_value()) throw new MessageError.MALFORMED("unicast-id must be a string");
+                    if (r_buf.get_value().get_value_type() != typeof(string)) throw new MessageError.MALFORMED("unicast-id must be a string");
+                    unicast_id = r_buf.get_string_value();
+                    r_buf.end_member();
+                    parse_method_call(buf_rootnode, out source_id, out method_name, out args);
                 } catch (Error e) {
                     // log message
                     warning(@"tcp_listen: Error parsing JSON of received message: $(e.message)");
@@ -222,7 +234,8 @@ namespace zcd
                 }
 
                 // Get dispatcher
-                TcpCallerInfo caller = new TcpCallerInfo(c.my_address, c.peer_address);
+                TcpCallerInfo caller = new TcpCallerInfo(c.my_address, c.peer_address, source_id);
+                req.set_unicast_id(unicast_id);
                 req.set_method_name(method_name);
                 foreach (string arg in args) req.add_argument(arg);
                 req.set_caller_info(caller);
@@ -277,23 +290,27 @@ namespace zcd
         }
     }
 
-    public TcpClient tcp_client(string addr, uint16 port)
+    public TcpClient tcp_client(string peer_address, uint16 peer_port, string source_id, string unicast_id)
     {
-        return new TcpClient(addr, port);
+        return new TcpClient(peer_address, peer_port, source_id, unicast_id);
     }
 
     public class TcpClient : Object
     {
-        private string addr;
-        private uint16 port;
+        private string peer_address;
+        private uint16 peer_port;
+        private string source_id;
+        private string unicast_id;
         private IConnectedStreamSocket? c;
         private bool connected;
         private bool processing;
         private ArrayList<int> queue;
-        internal TcpClient(string addr, uint16 port)
+        internal TcpClient(string peer_address, uint16 peer_port, string source_id, string unicast_id)
         {
-            this.addr = addr;
-            this.port = port;
+            this.peer_address = peer_address;
+            this.peer_port = peer_port;
+            this.source_id = source_id;
+            this.unicast_id = unicast_id;
             c = null;
             connected = false;
             processing = false;
@@ -317,10 +334,10 @@ namespace zcd
             if (!connected)
             {
                 try {
-                    c = tasklet.get_client_stream_socket(addr, port);
+                    c = tasklet.get_client_stream_socket(peer_address, peer_port);
                 } catch (Error e) {
                     // log message
-                    warning(@"enqueue_call: could not connect to $(addr):$(port) - $(e.message)");
+                    warning(@"enqueue_call: could not connect to $(peer_address):$(peer_port) - $(e.message)");
                     c = null;
                     // return error
                     processing = false;
@@ -329,7 +346,7 @@ namespace zcd
                 connected = true;
             }
             // build JSON message
-            string msg = build_json_request(m_name, arguments, wait_reply);
+            string msg = build_json_request(source_id, unicast_id, m_name, arguments, wait_reply);
             // Send message
             try {
                 send_one_message(c, msg);
@@ -503,13 +520,43 @@ namespace zcd
         return true;
     }
 
-    internal string build_json_request(string m_name, Gee.List<string> arguments, bool wait_reply)
+    internal string build_json_request(string source_id, string unicast_id, string m_name, Gee.List<string> arguments, bool wait_reply)
     {
         // build JSON message
         Json.Builder b = new Json.Builder();
         b.begin_object()
-            .set_member_name("method-name").add_string_value(m_name)
-            .set_member_name("wait-reply").add_boolean_value(wait_reply)
+            .set_member_name("method-name").add_string_value(m_name);
+
+            // source_id
+            b.set_member_name("source-id");
+            {
+                var p = new Json.Parser();
+                try {
+                    p.load_from_data(source_id);
+                } catch (Error e) {
+                    critical(@"Error parsing JSON for source_id: $(e.message)");
+                    error(@" string source_id : $(source_id)");
+                }
+                unowned Json.Node p_rootnode = p.get_root();
+                Json.Node* cp = p_rootnode.copy();
+                b.add_value(cp);
+            }
+            // unicast_id
+            b.set_member_name("unicast-id");
+            {
+                var p = new Json.Parser();
+                try {
+                    p.load_from_data(unicast_id);
+                } catch (Error e) {
+                    critical(@"Error parsing JSON for unicast_id: $(e.message)");
+                    error(@" string unicast_id : $(unicast_id)");
+                }
+                unowned Json.Node p_rootnode = p.get_root();
+                Json.Node* cp = p_rootnode.copy();
+                b.add_value(cp);
+            }
+
+            b.set_member_name("wait-reply").add_boolean_value(wait_reply)
             .set_member_name("arguments").begin_array();
                 for (int j = 0; j < arguments.size; j++)
                 {
@@ -708,19 +755,22 @@ namespace zcd
                         r_buf.end_member();
                         r_buf.end_member();
                         r_buf.end_member();
+                        string unicast_request_request_source_id;
                         string unicast_request_request_method_name;
                         string[] unicast_request_request_args;
                         unowned Json.Node node_req =
                             buf_rootnode.get_object().get_object_member(s_unicast_request).get_member(s_unicast_request_request);
                         parse_method_call(
                             node_req,
-                            out unicast_request_request_method_name, out unicast_request_request_args);
+                            out unicast_request_request_source_id,
+                            out unicast_request_request_method_name,
+                            out unicast_request_request_args);
                         string unicast_request_request_unicastid = parse_unicastid(node_req);
                         if (del_ser.is_my_own_message(unicast_request_id))
                         {
                             return null;
                         }
-                        UdpCallerInfo caller_info = new UdpCallerInfo(dev, rmt_ip);
+                        UdpCallerInfo caller_info = new UdpCallerInfo(dev, rmt_ip, unicast_request_request_source_id);
                         IZcdDispatcher? disp = del_req.get_dispatcher_unicast(
                             unicast_request_id,
                             unicast_request_request_unicastid,
@@ -848,17 +898,20 @@ namespace zcd
                         r_buf.end_member();
                         r_buf.end_member();
                         r_buf.end_member();
+                        string broadcast_request_request_source_id;
                         string broadcast_request_request_method_name;
                         string[] broadcast_request_request_args;
                         unowned Json.Node node_req =
                             buf_rootnode.get_object().get_object_member(s_broadcast_request).get_member(s_broadcast_request_request);
                         parse_method_call(
                             node_req,
-                            out broadcast_request_request_method_name, out broadcast_request_request_args);
+                            out broadcast_request_request_source_id,
+                            out broadcast_request_request_method_name,
+                            out broadcast_request_request_args);
                         string broadcast_request_request_broadcastid = parse_broadcastid(node_req);
                         if (del_ser.is_my_own_message(broadcast_request_id))
                             return null;
-                        UdpCallerInfo caller_info = new UdpCallerInfo(dev, rmt_ip);
+                        UdpCallerInfo caller_info = new UdpCallerInfo(dev, rmt_ip, broadcast_request_request_source_id);
                         IZcdDispatcher? disp = del_req.get_dispatcher_broadcast(
                             broadcast_request_id,
                             broadcast_request_request_broadcastid,
@@ -1156,10 +1209,15 @@ namespace zcd
         return generate_stream(node);
     }
 
-    internal void parse_method_call(Json.Node buf_rootnode, out string method_name, out string[] args) throws MessageError
+    internal void parse_method_call(Json.Node buf_rootnode, out string source_id, out string method_name, out string[] args) throws MessageError
     {
         Json.Reader r_buf = new Json.Reader(buf_rootnode);
         assert(r_buf.is_object());
+        if (!r_buf.read_member("source-id")) throw new MessageError.MALFORMED("object must have source-id");
+        if (!r_buf.is_value()) throw new MessageError.MALFORMED("source-id must be a string");
+        if (r_buf.get_value().get_value_type() != typeof(string)) throw new MessageError.MALFORMED("source-id must be a string");
+        source_id = r_buf.get_string_value();
+        r_buf.end_member();
         if (!r_buf.read_member("method-name")) throw new MessageError.MALFORMED("object must have method-name");
         if (!r_buf.is_value()) throw new MessageError.MALFORMED("method-name must be a string");
         if (r_buf.get_value().get_value_type() != typeof(string)) throw new MessageError.MALFORMED("method-name must be a string");
