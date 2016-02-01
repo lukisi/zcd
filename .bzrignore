@@ -24,6 +24,7 @@ rpcdesign_sample_interfaces.c
 rpcdesign_sample_skeleton.c
 rpcdesign_sample_stub.c
 testsuites/test_zcd_tcp/test_zcd_tcp.c
+testsuites/test_zcd_tcp/fake.c
 Makefile.in
 Makefile
 *.lo

@@ -90,14 +90,15 @@ rpcdesign_LDADD = \
 
 test_zcd_tcp_SOURCES = \
 	testsuites/test_zcd_tcp/test_zcd_tcp.vala \
+	testsuites/test_zcd_tcp/fake.vala \
 	zcd.vapi \
 	$(NULL)
 
 test_zcd_tcp_VALAFLAGS = \
 	--pkg glib-2.0 \
 	--pkg gee-0.8 \
-	--pkg pth-tasklet \
 	--pkg tasklet-system \
+	--pkg pth-tasklet \
 	$(NULL)
 
 test_zcd_tcp_CPPFLAGS = \

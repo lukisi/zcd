@@ -277,7 +277,7 @@ namespace zcd
                 }
                 if (m != null) free(m);
             }
-            // assert_not_reached ??
+            // point not_reached
         }
     }
     internal class TcpDispatchTasklet : Object, ITaskletSpawnable
@@ -605,7 +605,8 @@ namespace zcd
     internal const string s_unicast_request_id = "ID";
     internal const string s_unicast_request_request = "request";
     internal const string s_unicast_request_request_wait_reply = "wait-reply";
-    internal const string s_unicast_request_request_unicastid = "unicastid";
+    internal const string s_unicast_request_request_unicast_id = "unicast-id";
+    internal const string s_unicast_request_request_source_id = "source-id";
     internal const string s_unicast_keepalive = "unicast-keepalive";
     internal const string s_unicast_keepalive_id = "ID";
     internal const string s_unicast_response = "unicast-response";
@@ -615,7 +616,8 @@ namespace zcd
     internal const string s_broadcast_request_id = "ID";
     internal const string s_broadcast_request_request = "request";
     internal const string s_broadcast_request_request_send_ack = "send-ack";
-    internal const string s_broadcast_request_request_broadcastid = "broadcastid";
+    internal const string s_broadcast_request_request_broadcast_id = "broadcast-id";
+    internal const string s_broadcast_request_request_source_id = "source-id";
     internal const string s_broadcast_ack = "broadcast-ack";
     internal const string s_broadcast_ack_id = "ID";
     internal const string s_broadcast_ack_mac = "MAC";
@@ -765,7 +767,7 @@ namespace zcd
                             out unicast_request_request_source_id,
                             out unicast_request_request_method_name,
                             out unicast_request_request_args);
-                        string unicast_request_request_unicastid = parse_unicastid(node_req);
+                        string unicast_request_request_unicast_id = parse_unicast_id(node_req);
                         if (del_ser.is_my_own_message(unicast_request_id))
                         {
                             return null;
@@ -773,7 +775,7 @@ namespace zcd
                         UdpCallerInfo caller_info = new UdpCallerInfo(dev, rmt_ip, unicast_request_request_source_id);
                         IZcdDispatcher? disp = del_req.get_dispatcher_unicast(
                             unicast_request_id,
-                            unicast_request_request_unicastid,
+                            unicast_request_request_unicast_id,
                             unicast_request_request_method_name,
                             new ArrayList<string>.wrap(unicast_request_request_args),
                             caller_info);
@@ -908,13 +910,13 @@ namespace zcd
                             out broadcast_request_request_source_id,
                             out broadcast_request_request_method_name,
                             out broadcast_request_request_args);
-                        string broadcast_request_request_broadcastid = parse_broadcastid(node_req);
+                        string broadcast_request_request_broadcast_id = parse_broadcast_id(node_req);
                         if (del_ser.is_my_own_message(broadcast_request_id))
                             return null;
                         UdpCallerInfo caller_info = new UdpCallerInfo(dev, rmt_ip, broadcast_request_request_source_id);
                         IZcdDispatcher? disp = del_req.get_dispatcher_broadcast(
                             broadcast_request_id,
-                            broadcast_request_request_broadcastid,
+                            broadcast_request_request_broadcast_id,
                             broadcast_request_request_method_name,
                             new ArrayList<string>.wrap(broadcast_request_request_args),
                             caller_info);
@@ -1021,18 +1023,23 @@ namespace zcd
 
     public void send_unicast_request
                 (string dev, uint16 port, int id,
-                 string unicastid,
+                 string unicast_id,
                  string m_name,
                  Gee.List<string> arguments,
+                 string source_id,
                  bool wait_reply) throws Error
     {
         // check JSON elements
-        Json.Node* j_unicastid;
+        Json.Node* j_unicast_id;
+        Json.Node* j_source_id;
         Gee.List<Json.Node> j_arguments = new ArrayList<Json.Node>();
         try {
             Json.Parser p = new Json.Parser();
-            p.load_from_data(unicastid);
-            j_unicastid = p.get_root().copy();
+            p.load_from_data(unicast_id);
+            j_unicast_id = p.get_root().copy();
+            p = new Json.Parser();
+            p.load_from_data(source_id);
+            j_source_id = p.get_root().copy();
             foreach (string argument in arguments)
             {
                 p = new Json.Parser();
@@ -1048,7 +1055,8 @@ namespace zcd
             .set_member_name(s_unicast_request).begin_object()
                 .set_member_name(s_unicast_request_id).add_int_value(id)
                 .set_member_name(s_unicast_request_request).begin_object()
-                    .set_member_name(s_unicast_request_request_unicastid).add_value(j_unicastid)
+                    .set_member_name(s_unicast_request_request_unicast_id).add_value(j_unicast_id)
+                    .set_member_name(s_unicast_request_request_source_id).add_value(j_source_id)
                     .set_member_name(s_unicast_request_request_wait_reply).add_boolean_value(wait_reply)
                     .set_member_name("method-name").add_string_value(m_name)
                     .set_member_name("arguments").begin_array();
@@ -1067,23 +1075,28 @@ namespace zcd
         cs.sendto(msg.data, msg.length);
         // We use pointers to Json.Node because of a bug in vapi file of json-glib, which should be fixed in valac 0.28
         // Method b.add_value should declare that the argument is 'owned'.
-        // If 'j_unicastid' was not a pointer, here the release of 'b' would make the release of 'j_unicastid' to fail.
+        // If 'j_unicast_id' was not a pointer, here the release of 'b' would make the release of 'j_unicast_id' to fail.
     }
 
     public void send_broadcast_request
                 (string dev, uint16 port, int id,
-                 string broadcastid,
+                 string broadcast_id,
                  string m_name,
                  Gee.List<string> arguments,
+                 string source_id,
                  bool send_ack) throws Error
     {
         // check JSON elements
-        Json.Node* j_broadcastid;
+        Json.Node* j_broadcast_id;
+        Json.Node* j_source_id;
         Gee.List<Json.Node> j_arguments = new ArrayList<Json.Node>();
         try {
             Json.Parser p = new Json.Parser();
-            p.load_from_data(broadcastid);
-            j_broadcastid = p.get_root().copy();
+            p.load_from_data(broadcast_id);
+            j_broadcast_id = p.get_root().copy();
+            p = new Json.Parser();
+            p.load_from_data(source_id);
+            j_source_id = p.get_root().copy();
             foreach (string argument in arguments)
             {
                 p = new Json.Parser();
@@ -1099,7 +1112,8 @@ namespace zcd
             .set_member_name(s_broadcast_request).begin_object()
                 .set_member_name(s_broadcast_request_id).add_int_value(id)
                 .set_member_name(s_broadcast_request_request).begin_object()
-                    .set_member_name(s_broadcast_request_request_broadcastid).add_value(j_broadcastid)
+                    .set_member_name(s_broadcast_request_request_broadcast_id).add_value(j_broadcast_id)
+                    .set_member_name(s_broadcast_request_request_source_id).add_value(j_source_id)
                     .set_member_name(s_broadcast_request_request_send_ack).add_boolean_value(send_ack)
                     .set_member_name("method-name").add_string_value(m_name)
                     .set_member_name("arguments").begin_array();
@@ -1170,16 +1184,16 @@ namespace zcd
         return generate_stream(node);
     }
 
-    internal string parse_unicastid(Json.Node buf_rootnode) throws MessageError
+    internal string parse_unicast_id(Json.Node buf_rootnode) throws MessageError
     {
         Json.Reader r_buf = new Json.Reader(buf_rootnode);
         assert(r_buf.is_object());
-        if (!r_buf.read_member(s_unicast_request_request_unicastid))
-            throw new MessageError.MALFORMED(@"$(s_unicast_request_request) must have $(s_unicast_request_request_unicastid)");
+        if (!r_buf.read_member(s_unicast_request_request_unicast_id))
+            throw new MessageError.MALFORMED(@"$(s_unicast_request_request) must have $(s_unicast_request_request_unicast_id)");
         if (!r_buf.is_object() && !r_buf.is_array())
-            throw new MessageError.MALFORMED(@"$(s_unicast_request_request_unicastid) must be a valid JSON tree");
+            throw new MessageError.MALFORMED(@"$(s_unicast_request_request_unicast_id) must be a valid JSON tree");
         r_buf.end_member();
-        unowned Json.Node node = buf_rootnode.get_object().get_member(s_unicast_request_request_unicastid);
+        unowned Json.Node node = buf_rootnode.get_object().get_member(s_unicast_request_request_unicast_id);
         return generate_stream(node);
     }
 
@@ -1196,16 +1210,16 @@ namespace zcd
         return generate_stream(node);
     }
 
-    internal string parse_broadcastid(Json.Node buf_rootnode) throws MessageError
+    internal string parse_broadcast_id(Json.Node buf_rootnode) throws MessageError
     {
         Json.Reader r_buf = new Json.Reader(buf_rootnode);
         assert(r_buf.is_object());
-        if (!r_buf.read_member(s_broadcast_request_request_broadcastid))
-            throw new MessageError.MALFORMED(@"$(s_broadcast_request_request) must have $(s_broadcast_request_request_broadcastid)");
+        if (!r_buf.read_member(s_broadcast_request_request_broadcast_id))
+            throw new MessageError.MALFORMED(@"$(s_broadcast_request_request) must have $(s_broadcast_request_request_broadcast_id)");
         if (!r_buf.is_object() && !r_buf.is_array())
-            throw new MessageError.MALFORMED(@"$(s_broadcast_request_request_broadcastid) must be a valid JSON tree");
+            throw new MessageError.MALFORMED(@"$(s_broadcast_request_request_broadcast_id) must be a valid JSON tree");
         r_buf.end_member();
-        unowned Json.Node node = buf_rootnode.get_object().get_member(s_broadcast_request_request_broadcastid);
+        unowned Json.Node node = buf_rootnode.get_object().get_member(s_broadcast_request_request_broadcast_id);
         return generate_stream(node);
     }
 

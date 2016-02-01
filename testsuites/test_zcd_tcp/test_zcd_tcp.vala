@@ -37,7 +37,6 @@ class SimpleTaskletSpawner : Object, ITaskletSpawnable
 
 ITasklet real_tasklet;
 FakeTaskletSystemImplementer fake_tasklet;
-IChannel ch_server_gets_connection;
 
 void main(string[] args)
 {
@@ -68,31 +67,84 @@ void test_client_call_tcp()
 
     PthTaskletImplementer.init();
     real_tasklet = PthTaskletImplementer.get_tasklet_system();
-    fake_tasklet = new FakeTaskletSystemImplementer();
+    fake_tasklet = new FakeTaskletSystemImplementer(real_tasklet);
     ch_server_accepts_connection = real_tasklet.get_channel();
     ch_metronome_test_client_call_tcp = real_tasklet.get_channel();
+    ch_client_waits_reply = real_tasklet.get_channel();
 
     real_tasklet.spawn(new SimpleTaskletSpawner(metronome_test_client_call_tcp));
     zcd.init_tasklet_system(fake_tasklet);
 
-    // Prepare a TcpClient. This does not open a connection yet.
-    string ser_my_peer_id = "{\"typename\":\"NetsukukuPeerID\",\"value\":{\"id\":123456}}";
-    string ser_dest_unicast_id = "{\"typename\":\"NetsukukuUnicastID\",\"value\":{\"id\":749723}}";
-    TcpClient tcp = zcd.tcp_client("169.254.0.1", 269, ser_my_peer_id, ser_dest_unicast_id);
+    try {
+        fake_tasklet.prepare_get_client_stream_socket(
+            /* recv func */
+            (b, maxlen) => {
+                /*uint8* b, size_t maxlen*/
+                print(@"going to fake a recv of at most $(maxlen) bytes.\n");
+                error("not implemented yet");
+                // TODO
+                return 0; /*size_t*/
+            },
+            /* send func */
+            (b, len) => {
+                /*uint8* b, size_t len*/
+                print(@"going to fake a send of $(len) bytes.\n");
+                if (len == 4) print(@" first 4 bytes are $(*(b+0)), $(*(b+1)), $(*(b+2)), $(*(b+3)).\n");
+                else
+                {
+                    string s = (string)b;
+                    print(@" content: '$(s)'.\n");
+                }
+                // TODO improve output?
+                return;
+            },
+            /* close func */
+            () => {
+                print(@"going to fake closing of connection.\n");
+                // TODO error on future trials?
+                return;
+            }
+        );
+        // Prepare a TcpClient. This does not open a connection yet.
+        string ser_my_source_id = "{\"typename\":\"NetsukukuSourceID\",\"value\":{\"id\":123456}}";
+        string ser_dest_unicast_id = "{\"typename\":\"NetsukukuUnicastID\",\"value\":{\"id\":749723}}";
+        TcpClient tcp = zcd.tcp_client("169.254.0.1", 269, ser_my_source_id, ser_dest_unicast_id);
 
-    // simulate a remote call.
-    ch_metronome_test_client_call_tcp.send(0);
-    string res = tcp.enqueue_call("a.b", new ArrayList<string>.wrap({"1", "\"ab\""}), true);
+        // simulate a remote call.
+        ch_metronome_test_client_call_tcp.send(0);
+        string res = tcp.enqueue_call("a.b", new ArrayList<string>.wrap({"1", "\"ab\""}), true);
 
-    print(@"res = $(res)\n");
-    real_tasklet.ms_wait(100);
+        print(@"res = $(res)\n");
+        real_tasklet.ms_wait(100);
+    }
+    catch (ZCDError e)
+    {
+        error(@"Got a ZdcError: $(e.message)");
+    }
 
     PthTaskletImplementer.kill();
 }
 
-void metronome_a()
+IChannel ch_metronome_test_server_receive_tcp;
+IChannel ch_server_gets_connection;
+IChannel ch_server_gets_message;
+int state_of_test_server_receive_tcp;
+void metronome_test_server_receive_tcp()
 {
-    print("metronome_a started.\n");
+    state_of_test_server_receive_tcp = 0;
+    ch_server_gets_connection.send("169.254.23.45"); // peer address
+    ch_server_gets_connection.send("169.254.0.1"); // my address
+    ch_metronome_test_server_receive_tcp.recv();
+    // first 4 bytes of message
+    // after we'll be on status 1
+    state_of_test_server_receive_tcp = 1;
+    ch_server_gets_message.send((uint8)0);
+    ch_server_gets_message.send((uint8)0);
+    ch_server_gets_message.send((uint8)0);
+    ch_server_gets_message.send((uint8)196);
+    ch_metronome_test_server_receive_tcp.recv();
+    string msg = "{\"method-name\":\"a.b\",\"source-id\":{\"typename\":\"NetsukukuSourceID\",\"value\":{\"id\":123456}},\"unicast-id\":{\"typename\":\"NetsukukuUnicastID\",\"value\":{\"id\":749723}},\"wait-reply\":true,\"arguments\":[1,\"ab\"]}";
+    ch_server_gets_message.send(msg);
 }
 
 void test_server_receive_tcp()
@@ -103,20 +155,88 @@ void test_server_receive_tcp()
 
     PthTaskletImplementer.init();
     real_tasklet = PthTaskletImplementer.get_tasklet_system();
-    fake_tasklet = new FakeTaskletSystemImplementer();
+    fake_tasklet = new FakeTaskletSystemImplementer(real_tasklet);
+    ch_metronome_test_server_receive_tcp = real_tasklet.get_channel();
     ch_server_gets_connection = real_tasklet.get_channel();
+    ch_server_gets_message = real_tasklet.get_channel();
 
-    real_tasklet.spawn(new SimpleTaskletSpawner(metronome_a));
+    real_tasklet.spawn(new SimpleTaskletSpawner(metronome_test_server_receive_tcp));
     zcd.init_tasklet_system(fake_tasklet);
 
     var dlg = new MyTcpDelegate();
     var err = new MyTcpAcceptErrorHandler();
+    fake_tasklet.prepare_get_server_stream_socket(
+        /* accept func */
+        () => {
+            print(@"going to fake command accept on socket.\n");
+            string peer_address = (string)ch_server_gets_connection.recv();
+            string my_address = (string)ch_server_gets_connection.recv();
+            print(@"going to fake a connection from $(peer_address) to $(my_address).\n");
+            FakeConnectedStreamSocket ret = new FakeConnectedStreamSocket(
+                /* recv func */
+                (b, maxlen) => {
+                    /*uint8* b, size_t maxlen*/
+                    print(@"going to fake a recv of at most $(maxlen) bytes.\n");
+                    if (state_of_test_server_receive_tcp == 0)
+                    {
+                        ch_metronome_test_server_receive_tcp.send(0);
+                        assert(maxlen >= 4);
+                        uint8 b0 = (uint8)ch_server_gets_message.recv();
+                        uint8 b1 = (uint8)ch_server_gets_message.recv();
+                        uint8 b2 = (uint8)ch_server_gets_message.recv();
+                        uint8 b3 = (uint8)ch_server_gets_message.recv();
+                        *(b+0) = b0;
+                        *(b+1) = b1;
+                        *(b+2) = b2;
+                        *(b+3) = b3;
+                        print(@"returning 4 bytes: $(*(b+0)), $(*(b+1)), $(*(b+2)), $(*(b+3)).\n");
+                        return 4; /*size_t*/
+                    }
+                    if (state_of_test_server_receive_tcp == 1)
+                    {
+                        ch_metronome_test_server_receive_tcp.send(0);
+                        string s = (string)ch_server_gets_message.recv();
+                        print(@"copying $(s.length) bytes...\n");
+                        GLib.Memory.copy(b, s, s.length);
+                        print(@"returning size_t = $(s.length) bytes.\n");
+                        return s.length; /*size_t*/
+                    }
+                    error("not implemented yet");
+                    // TODO
+                    return 0; /*size_t*/
+                },
+                /* send func */
+                (b, len) => {
+                    /*uint8* b, size_t len*/
+                    print(@"going to fake a send of $(len) bytes.\n");
+                    if (len == 4) print(@" first 4 bytes are $(*(b+0)), $(*(b+1)), $(*(b+2)), $(*(b+3)).\n");
+                    else
+                    {
+                        string s = (string)b;
+                        print(@" content: '$(s)'.\n");
+                    }
+                    // TODO improve output?
+                    return;
+                },
+                /* close func */
+                () => {
+                    print(@"going to fake closing of connection.\n");
+                    // TODO error on future trials?
+                    return;
+                },
+                peer_address,
+                my_address
+            );
+            return ret;
+        }
+    );
     zcd.tcp_listen(dlg, err, 269);
 
     real_tasklet.ms_wait(100);
-    ch_server_gets_connection.send(0);
+    // simulate a remote call.
+    //
 
-    real_tasklet.ms_wait(100);
+    real_tasklet.ms_wait(1000);
 
     PthTaskletImplementer.kill();
 }
@@ -124,6 +244,42 @@ void test_server_receive_tcp()
 class MyTcpDelegate : Object, IZcdTcpDelegate
 {
     public IZcdTcpRequestHandler get_new_handler()
+    {
+        return new MyTcpRequestHandler();
+    }
+}
+
+class MyTcpRequestHandler : Object, IZcdTcpRequestHandler
+{
+    public void set_unicast_id(string unicast_id)
+    {
+        error("not implemented yet");
+    }
+
+    public void set_method_name(string m_name)
+    {
+        error("not implemented yet");
+    }
+
+    public void add_argument(string arg)
+    {
+        error("not implemented yet");
+    }
+
+    public void set_caller_info(TcpCallerInfo caller_info)
+    {
+        error("not implemented yet");
+    }
+
+    public IZcdDispatcher? get_dispatcher()
+    {
+        return new MyTcpDispatcher();
+    }
+}
+
+class MyTcpDispatcher : Object, IZcdDispatcher
+{
+    public string execute()
     {
         error("not implemented yet");
     }
@@ -134,119 +290,6 @@ class MyTcpAcceptErrorHandler : Object, IZcdTcpAcceptErrorHandler
     public void error_handler(Error e)
     {
         error("error should not happen");
-    }
-}
-
-internal class FakeTaskletSystemImplementer : Object, ITasklet
-{
-    public void schedule()
-    {
-        real_tasklet.schedule();
-    }
-
-    public void ms_wait(int msec)
-    {
-        real_tasklet.ms_wait(msec);
-    }
-
-    [NoReturn]
-    public void exit_tasklet(void * ret)
-    {
-        real_tasklet.exit_tasklet(ret);
-    }
-
-    public ITaskletHandle spawn(ITaskletSpawnable sp, bool joinable=false)
-    {
-        return real_tasklet.spawn(sp, joinable);
-    }
-
-    public TaskletCommandResult exec_command(string cmdline) throws Error
-    {
-        return real_tasklet.exec_command(cmdline);
-    }
-
-    public IServerStreamSocket get_server_stream_socket(uint16 port, string? my_addr=null) throws Error
-    {
-        return new FakeServerStreamSocket(port, my_addr);
-    }
-
-    public IConnectedStreamSocket get_client_stream_socket(string dest_addr, uint16 dest_port, string? my_addr=null) throws Error
-    {
-        print(@"It's been asked a connection to $(dest_addr):$(dest_port)\n");
-        if (my_addr == null) print("  and my_addr is null.\n");
-        else print(@"  and my_addr is $(my_addr).\n");
-        ch_server_accepts_connection.recv();
-        print(@"We fake the connection accepted.\n");
-        return new FakeConnectedStreamSocket(dest_addr, dest_port, my_addr);
-    }
-
-    public IServerDatagramSocket get_server_datagram_socket(uint16 port, string dev) throws Error
-    {
-        return real_tasklet.get_server_datagram_socket(port, dev);
-    }
-
-    public IClientDatagramSocket get_client_datagram_socket(uint16 port, string dev) throws Error
-    {
-        return real_tasklet.get_client_datagram_socket(port, dev);
-    }
-
-    public IChannel get_channel()
-    {
-        return real_tasklet.get_channel();
-    }
-
-    private class FakeServerStreamSocket : Object, IServerStreamSocket
-    {
-        public FakeServerStreamSocket(uint16 port, string? my_addr)
-        {
-            print(@"going to fake creation of socket for listening on port $(port).\n");
-        }
-
-        public IConnectedStreamSocket accept() throws Error
-        {
-            print(@"going to fake command accept on socket.\n");
-            ch_server_gets_connection.recv();
-            print(@"going to fake a connection.\n");
-            error("not implemented yet");
-        }
-
-        public void close() throws Error
-        {
-            error("not implemented yet");
-        }
-    }
-
-    private class FakeConnectedStreamSocket : Object, IConnectedStreamSocket
-    {
-        public FakeConnectedStreamSocket(string dest_addr, uint16 dest_port, string? my_addr)
-        {
-        }
-
-        public unowned string _peer_address_getter() {error("not implemented yet");}
-        public unowned string _my_address_getter() {error("not implemented yet");}
-
-        public size_t recv(uint8* b, size_t maxlen) throws Error
-        {
-            print(@"going to fake a recv of at most $(maxlen) bytes.\n");
-            ch_client_waits_reply.send(0);
-            error("not implemented yet");
-        }
-
-        public void send(uint8* b, size_t len) throws Error
-        {
-            print(@"going to fake a send of $(len) bytes.\n");
-            if (len == 4) print(@" first 4 bytes are $(*(b+0)), $(*(b+1)), $(*(b+2)), $(*(b+3)).\n");
-            else
-            {
-                string s = (string)b;
-                print(@" content: '$(s)'.\n");
-            }
-        }
-
-        public void close() throws Error
-        {
-            error("not implemented yet");
-        }
     }
 }
 
