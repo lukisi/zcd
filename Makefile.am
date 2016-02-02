@@ -18,6 +18,7 @@ TESTS = \
 	test_tcpclient_1 \
 	test_tcpserver_1 \
 	test_tcpserver_2 \
+	test_tcpserver_3 \
 	$(NULL)
 
 XFAIL_TESTS = \
@@ -28,6 +29,7 @@ check_PROGRAMS = \
 	test_tcpclient_1 \
 	test_tcpserver_1 \
 	test_tcpserver_2 \
+	test_tcpserver_3 \
 	$(NULL)
 
 libmacgetter_la_SOURCES = \
@@ -179,6 +181,36 @@ test_tcpserver_2_CPPFLAGS = \
 	$(NULL)
 
 test_tcpserver_2_LDADD = \
+	$(GOBJECT_LIBS) \
+	$(GEE_LIBS) \
+	$(TASKLETSYSTEM_LIBS) \
+	$(PTHTASKLET_LIBS) \
+	$(builddir)/libzcd.la \
+	$(NULL)
+
+test_tcpserver_3_SOURCES = \
+	testsuites/test_tcpserver_3/test_tcpserver_3.vala \
+	testsuites/test_tcpserver_3/fake.vala \
+	zcd.vapi \
+	$(NULL)
+
+test_tcpserver_3_VALAFLAGS = \
+	--pkg glib-2.0 \
+	--pkg gee-0.8 \
+	--pkg tasklet-system \
+	--pkg pth-tasklet \
+	$(NULL)
+
+test_tcpserver_3_CPPFLAGS = \
+	-w \
+	$(GOBJECT_CFLAGS) \
+	$(GEE_CFLAGS) \
+	$(TASKLETSYSTEM_CFLAGS) \
+	$(PTHTASKLET_CFLAGS) \
+	-I$(srcdir) \
+	$(NULL)
+
+test_tcpserver_3_LDADD = \
 	$(GOBJECT_LIBS) \
 	$(GEE_LIBS) \
 	$(TASKLETSYSTEM_LIBS) \

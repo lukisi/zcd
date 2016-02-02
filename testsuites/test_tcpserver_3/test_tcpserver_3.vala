@@ -41,7 +41,6 @@ FakeTaskletSystemImplementer fake_tasklet;
 IChannel ch_metronome;
 IChannel ch_connection;
 IChannel ch_clientmessage;
-IChannel ch_server_response;
 int status;
 const string test_unicast_id = "749723";
 const string test_source_id = "123456";
@@ -55,7 +54,7 @@ void metronome()
     // first 4 bytes of message
     // after we'll be on status 1
     status = 1;
-    string msg = @"{\"method-name\":\"$(method_name)\",\"source-id\":{\"typename\":\"NetsukukuSourceID\",\"value\":{\"id\":$(test_source_id)}},\"unicast-id\":{\"typename\":\"NetsukukuUnicastID\",\"value\":{\"id\":$(test_unicast_id)}},\"wait-reply\":true,\"arguments\":[{\"argument\":1},{\"argument\":\"ab\"}]}";
+    string msg = @"{\"method-name\":\"$(method_name)\",\"source-id\":{\"typename\":\"NetsukukuSourceID\",\"value\":{\"id\":$(test_source_id)}},\"unicast-id\":{\"typename\":\"NetsukukuUnicastID\",\"value\":{\"id\":$(test_unicast_id)}},\"wait-reply\":false,\"arguments\":[{\"argument\":1},{\"argument\":\"ab\"}]}";
     ch_clientmessage.send((uint8)0);
     ch_clientmessage.send((uint8)0);
     ch_clientmessage.send((uint8)0);
@@ -65,7 +64,6 @@ void metronome()
     // after we'll be on status 2
     status = 2;
     ch_clientmessage.send(msg);
-    ch_server_response.recv();
     print("test complete.\n");
 }
 
@@ -75,7 +73,7 @@ bool check_dispatcher_executed = false;
 void main()
 {
     /* This test acts as a server that receives a call in TCP.
-     * A server listens to TCP port 269. It receives a request and correctly reacts calling the IZcdTcpDelegate that has been passed. Then, it correctly sends back the response.
+     * A server listens to TCP port 269. It receives a request and correctly reacts calling the IZcdTcpDelegate that has been passed. The request specifies to not wait for the reply. Hence the library spawns a tasklet to call the dispatcher, then goes back to receive more requests.
      */
 
     PthTaskletImplementer.init();
@@ -84,7 +82,6 @@ void main()
     ch_metronome = real_tasklet.get_channel();
     ch_connection = real_tasklet.get_channel();
     ch_clientmessage = real_tasklet.get_channel();
-    ch_server_response = real_tasklet.get_channel();
 
     ITaskletHandle h_metronome = real_tasklet.spawn(new SimpleTaskletSpawner(metronome), true);
     zcd.init_tasklet_system(fake_tasklet);
@@ -138,16 +135,7 @@ void main()
                 (b, len) => {
                     /*uint8* b, size_t len*/
                     print(@"going to fake a send of $(len) bytes.\n");
-                    if (len == 4) print(@" first 4 bytes are $(*(b+0)), $(*(b+1)), $(*(b+2)), $(*(b+3)).\n");
-                    else
-                    {
-                        string s = (string)b;
-                        print(@" content: '$(s)'.\n");
-                        assert("" in s);
-                        assert(check_dispatcher_executed);
-                        ch_server_response.send(0);
-                    }
-                    return;
+                    assert_not_reached();
                 },
                 /* close func */
                 () => {
@@ -220,7 +208,9 @@ class MyTcpDispatcher : Object, IZcdDispatcher
     public string execute()
     {
         check_dispatcher_executed = true;
-        print("Dispatcher.execute: we fake a correctly completed 'void' remote call.\n");
+        print("Dispatcher.execute: we fake a long job.\n");
+        real_tasklet.ms_wait(1000);
+        print("Dispatcher.execute: we should not get there.\n");
         return "{\"return-value\":null}";
     }
 }
