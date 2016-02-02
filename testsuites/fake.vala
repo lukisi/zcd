@@ -121,10 +121,10 @@ internal class FakeTaskletSystemImplementer : Object, ITasklet
 internal delegate FakeConnectedStreamSocket ServerStreamSocketAccept();
 internal class FakeServerStreamSocket : Object, IServerStreamSocket
 {
-    private ServerStreamSocketAccept accept_func;
-    public FakeServerStreamSocket(owned ServerStreamSocketAccept accept_func)
+    private unowned ServerStreamSocketAccept accept_func;
+    public FakeServerStreamSocket(ServerStreamSocketAccept accept_func)
     {
-        this.accept_func = (owned) accept_func;
+        this.accept_func = accept_func;
     }
 
     public IConnectedStreamSocket accept() throws Error

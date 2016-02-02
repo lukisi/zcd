@@ -218,10 +218,11 @@ namespace zcd
                     wait_reply = r_buf.get_boolean_value();
                     r_buf.end_member();
                     if (!r_buf.read_member("unicast-id")) throw new MessageError.MALFORMED("root must have unicast-id");
-                    if (!r_buf.is_value()) throw new MessageError.MALFORMED("unicast-id must be a string");
-                    if (r_buf.get_value().get_value_type() != typeof(string)) throw new MessageError.MALFORMED("unicast-id must be a string");
-                    unicast_id = r_buf.get_string_value();
+                    if (!r_buf.is_object() && !r_buf.is_array())
+                        throw new MessageError.MALFORMED(@"unicast-id must be a valid JSON tree");
                     r_buf.end_member();
+                    unowned Json.Node node = buf_rootnode.get_object().get_member("unicast-id");
+                    unicast_id = generate_stream(node);
                     parse_method_call(buf_rootnode, out source_id, out method_name, out args);
                 } catch (Error e) {
                     // log message
@@ -1228,9 +1229,8 @@ namespace zcd
         Json.Reader r_buf = new Json.Reader(buf_rootnode);
         assert(r_buf.is_object());
         if (!r_buf.read_member("source-id")) throw new MessageError.MALFORMED("object must have source-id");
-        if (!r_buf.is_value()) throw new MessageError.MALFORMED("source-id must be a string");
-        if (r_buf.get_value().get_value_type() != typeof(string)) throw new MessageError.MALFORMED("source-id must be a string");
-        source_id = r_buf.get_string_value();
+        if (!r_buf.is_object() && !r_buf.is_array())
+            throw new MessageError.MALFORMED(@"source-id must be a valid JSON tree");
         r_buf.end_member();
         if (!r_buf.read_member("method-name")) throw new MessageError.MALFORMED("object must have method-name");
         if (!r_buf.is_value()) throw new MessageError.MALFORMED("method-name must be a string");
@@ -1252,6 +1252,8 @@ namespace zcd
             unowned Json.Node node = buf_rootnode.get_object().get_array_member("arguments").get_element(j);
             args[j] = generate_stream(node);
         }
+        unowned Json.Node node = buf_rootnode.get_object().get_member("source-id");
+        source_id = generate_stream(node);
     }
 
     internal string generate_stream(Json.Node node)

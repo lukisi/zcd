@@ -15,11 +15,13 @@ bin_PROGRAMS = \
 	$(NULL)
 
 TESTS = \
-	test_zcd_tcp \
+	test_tcpclient_1 \
+	test_tcpserver_1 \
 	$(NULL)
 
 check_PROGRAMS = \
-	test_zcd_tcp \
+	test_tcpclient_1 \
+	test_tcpserver_1 \
 	$(NULL)
 
 libmacgetter_la_SOURCES = \
@@ -88,20 +90,20 @@ rpcdesign_LDADD = \
 	$(GEE_LIBS) \
 	$(NULL)
 
-test_zcd_tcp_SOURCES = \
-	testsuites/test_zcd_tcp/test_zcd_tcp.vala \
-	testsuites/test_zcd_tcp/fake.vala \
+test_tcpclient_1_SOURCES = \
+	testsuites/test_tcpclient_1/test_tcpclient_1.vala \
+	testsuites/test_tcpclient_1/fake.vala \
 	zcd.vapi \
 	$(NULL)
 
-test_zcd_tcp_VALAFLAGS = \
+test_tcpclient_1_VALAFLAGS = \
 	--pkg glib-2.0 \
 	--pkg gee-0.8 \
 	--pkg tasklet-system \
 	--pkg pth-tasklet \
 	$(NULL)
 
-test_zcd_tcp_CPPFLAGS = \
+test_tcpclient_1_CPPFLAGS = \
 	-w \
 	$(GOBJECT_CFLAGS) \
 	$(GEE_CFLAGS) \
@@ -110,7 +112,37 @@ test_zcd_tcp_CPPFLAGS = \
 	-I$(srcdir) \
 	$(NULL)
 
-test_zcd_tcp_LDADD = \
+test_tcpclient_1_LDADD = \
+	$(GOBJECT_LIBS) \
+	$(GEE_LIBS) \
+	$(TASKLETSYSTEM_LIBS) \
+	$(PTHTASKLET_LIBS) \
+	$(builddir)/libzcd.la \
+	$(NULL)
+
+test_tcpserver_1_SOURCES = \
+	testsuites/test_tcpserver_1/test_tcpserver_1.vala \
+	testsuites/test_tcpserver_1/fake.vala \
+	zcd.vapi \
+	$(NULL)
+
+test_tcpserver_1_VALAFLAGS = \
+	--pkg glib-2.0 \
+	--pkg gee-0.8 \
+	--pkg tasklet-system \
+	--pkg pth-tasklet \
+	$(NULL)
+
+test_tcpserver_1_CPPFLAGS = \
+	-w \
+	$(GOBJECT_CFLAGS) \
+	$(GEE_CFLAGS) \
+	$(TASKLETSYSTEM_CFLAGS) \
+	$(PTHTASKLET_CFLAGS) \
+	-I$(srcdir) \
+	$(NULL)
+
+test_tcpserver_1_LDADD = \
 	$(GOBJECT_LIBS) \
 	$(GEE_LIBS) \
 	$(TASKLETSYSTEM_LIBS) \
