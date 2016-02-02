@@ -20,7 +20,7 @@ using Gee;
 using TaskletSystem;
 using zcd;
 
-internal class FakeTaskletSystemImplementer : Object, ITasklet
+public class FakeTaskletSystemImplementer : Object, ITasklet
 {
     private ITasklet real_tasklet;
     public FakeTaskletSystemImplementer(ITasklet real_tasklet)
@@ -118,8 +118,8 @@ internal class FakeTaskletSystemImplementer : Object, ITasklet
     }
 }
 
-internal delegate FakeConnectedStreamSocket ServerStreamSocketAccept();
-internal class FakeServerStreamSocket : Object, IServerStreamSocket
+public delegate FakeConnectedStreamSocket ServerStreamSocketAccept();
+public class FakeServerStreamSocket : Object, IServerStreamSocket
 {
     private unowned ServerStreamSocketAccept accept_func;
     public FakeServerStreamSocket(ServerStreamSocketAccept accept_func)
@@ -138,10 +138,10 @@ internal class FakeServerStreamSocket : Object, IServerStreamSocket
     }
 }
 
-internal delegate size_t ConnectedStreamSocketRecv(uint8* b, size_t maxlen);
-internal delegate void ConnectedStreamSocketSend(uint8* b, size_t len);
-internal delegate void ConnectedStreamSocketClose();
-internal class FakeConnectedStreamSocket : Object, IConnectedStreamSocket
+public delegate size_t ConnectedStreamSocketRecv(uint8* b, size_t maxlen);
+public delegate void ConnectedStreamSocketSend(uint8* b, size_t len);
+public delegate void ConnectedStreamSocketClose();
+public class FakeConnectedStreamSocket : Object, IConnectedStreamSocket
 {
     private ConnectedStreamSocketRecv recv_func;
     private ConnectedStreamSocketSend send_func;
