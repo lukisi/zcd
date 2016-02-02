@@ -125,7 +125,6 @@ void main()
                         return s.length; /*size_t*/
                     }
                     error("not implemented yet");
-                    // TODO keep on testing
                 },
                 /* send func */
                 (b, len) => {
@@ -140,13 +139,11 @@ void main()
                         assert(check_dispatcher_executed);
                         ch_server_response.send(0);
                     }
-                    // TODO improve output?
                     return;
                 },
                 /* close func */
                 () => {
                     print(@"going to fake closing of connection.\n");
-                    // TODO error on future trials?
                     return;
                 },
                 peer_address,

@@ -20,6 +20,7 @@ using Gee;
 using TaskletSystem;
 using zcd;
 
+public delegate void ClientConnectStreamSocket();
 public class FakeTaskletSystemImplementer : Object, ITasklet
 {
     private ITasklet real_tasklet;
@@ -34,14 +35,17 @@ public class FakeTaskletSystemImplementer : Object, ITasklet
         this.accept_func = (owned) accept_func;
     }
 
+    private ClientConnectStreamSocket client_connect_func;
     private ConnectedStreamSocketRecv client_recv_func;
     private ConnectedStreamSocketSend client_send_func;
     private ConnectedStreamSocketClose client_close_func;
     public void prepare_get_client_stream_socket
-    (owned ConnectedStreamSocketRecv client_recv_func,
+    (owned ClientConnectStreamSocket client_connect_func,
+     owned ConnectedStreamSocketRecv client_recv_func,
      owned ConnectedStreamSocketSend client_send_func,
      owned ConnectedStreamSocketClose client_close_func)
     {
+        this.client_connect_func = (owned) client_connect_func;
         this.client_recv_func = (owned) client_recv_func;
         this.client_send_func = (owned) client_send_func;
         this.client_close_func = (owned) client_close_func;
@@ -99,6 +103,9 @@ public class FakeTaskletSystemImplementer : Object, ITasklet
         client_recv_func = null;
         client_send_func = null;
         client_close_func = null;
+        print(@"going to fake the request of connection.\n");
+        client_connect_func();
+        print(@"got the fake connection.\n");
         return ret;
     }
 
