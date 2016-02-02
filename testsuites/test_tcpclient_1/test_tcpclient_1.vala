@@ -64,7 +64,7 @@ void metronome()
 void main()
 {
     /* This test acts as a client for a remote call in TCP.
-     * 
+     * A program gets a TcpClient to connect to 169.254.0.1 on port 269, to talk to identity 749723 from identity 123456. Then, it uses the object to transmit a call and get a response. The module requests the connection and the sending of a well formatted message. Then the testsuite fakes the reception of a well formatted message as reply: the program gets the string that represents the reply.
      */
 
     PthTaskletImplementer.init();

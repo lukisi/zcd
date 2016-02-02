@@ -25,6 +25,7 @@ rpcdesign_sample_skeleton.c
 rpcdesign_sample_stub.c
 testsuites/test_tcpclient_1/test_tcpclient_1.c
 testsuites/test_tcpserver_1/test_tcpserver_1.c
+testsuites/test_tcpserver_2/test_tcpserver_2.c
 fake.c
 Makefile.in
 Makefile

@@ -72,7 +72,7 @@ bool check_dispatcher_executed = false;
 void main()
 {
     /* This test acts as a server that receives a call in TCP.
-     * A server listens to TCP port 269. It receives a request and correctly reacts calling the IZcdTcpDelegate that has been passed. Then, it correctly sends back the response.
+     * A server listens to TCP port 269. It receives a request and correctly reacts calling the IZcdTcpDelegate that has been passed. The request specifies to send the reply, but the dispatcher provided by the delegate returns an invalid string (not a JSON). Hence the library aborts the program.
      */
 
     PthTaskletImplementer.init();
@@ -211,8 +211,8 @@ class MyTcpDispatcher : Object, IZcdDispatcher
     public string execute()
     {
         check_dispatcher_executed = true;
-        print("Dispatcher.execute: we fake a correctly completed 'void' remote call.\n");
-        return "{\"return-value\":null}";
+        print("Dispatcher.execute: we fake a incorrect reply.\n");
+        return "shit";
     }
 }
 
