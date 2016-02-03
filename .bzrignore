@@ -30,7 +30,9 @@ test_tcpserver_1.c
 test_tcpserver_2.c
 test_tcpserver_3.c
 test_udpclient_1.c
+test_udpclient_2.c
 test_udpserver_1.c
+test_udpserver_2.c
 fake.c
 Makefile.in
 Makefile
