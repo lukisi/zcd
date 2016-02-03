@@ -51,6 +51,18 @@ public class FakeTaskletSystemImplementer : Object, ITasklet
         this.client_close_func = (owned) client_close_func;
     }
 
+    private ServerDatagramSocketRecvFrom udp_recvfrom_func;
+    public void prepare_get_server_datagram_socket(owned ServerDatagramSocketRecvFrom udp_recvfrom_func)
+    {
+        this.udp_recvfrom_func = (owned) udp_recvfrom_func;
+    }
+
+    private ClientDatagramSocketSendTo udp_sendto_func;
+    public void prepare_get_client_datagram_socket(owned ClientDatagramSocketSendTo udp_sendto_func)
+    {
+        this.udp_sendto_func = (owned) udp_sendto_func;
+    }
+
     public void schedule()
     {
         real_tasklet.schedule();
@@ -111,12 +123,19 @@ public class FakeTaskletSystemImplementer : Object, ITasklet
 
     public IServerDatagramSocket get_server_datagram_socket(uint16 port, string dev) throws Error
     {
-        return real_tasklet.get_server_datagram_socket(port, dev);
+        print(@"going to fake creation of UDP socket for listening on device $(dev) and UDP port $(port).\n");
+        assert(udp_recvfrom_func != null);
+        FakeServerDatagramSocket ret = new FakeServerDatagramSocket((owned) udp_recvfrom_func);
+        udp_recvfrom_func = null;
+        return ret;
     }
 
     public IClientDatagramSocket get_client_datagram_socket(uint16 port, string dev) throws Error
     {
-        return real_tasklet.get_client_datagram_socket(port, dev);
+        print(@"going to fake creation of UDP socket for sending on device $(dev) and UDP port $(port).\n");
+        assert(udp_sendto_func != null);
+        FakeClientDatagramSocket ret = new FakeClientDatagramSocket(udp_sendto_func);
+        return ret;
     }
 
     public IChannel get_channel()
@@ -186,5 +205,40 @@ public class FakeConnectedStreamSocket : Object, IConnectedStreamSocket
     {
         close_func();
     }
+}
+
+public delegate size_t ClientDatagramSocketSendTo(uint8* b, size_t len);
+public class FakeClientDatagramSocket : Object, IClientDatagramSocket
+{
+    private unowned ClientDatagramSocketSendTo sendto_func;
+    public FakeClientDatagramSocket
+    (ClientDatagramSocketSendTo sendto_func)
+    {
+        this.sendto_func = sendto_func;
+    }
+
+	public void close() {}
+
+	public size_t sendto(uint8* b, size_t len)
+	{
+	    return sendto_func(b, len);
+	}
+}
+
+public delegate size_t ServerDatagramSocketRecvFrom(uint8* b, size_t maxlen, out string rmt_ip, out uint16 rmt_port);
+public class FakeServerDatagramSocket : Object, IServerDatagramSocket
+{
+    private ServerDatagramSocketRecvFrom recvfrom_func;
+    public FakeServerDatagramSocket
+    (owned ServerDatagramSocketRecvFrom recvfrom_func)
+    {
+        this.recvfrom_func = (owned) recvfrom_func;
+    }
+
+	public void close() {}
+	public size_t recvfrom(uint8* b, size_t maxlen, out string rmt_ip, out uint16 rmt_port)
+	{
+	    return recvfrom_func(b, maxlen, out rmt_ip, out rmt_port);
+	}
 }
 

@@ -1028,7 +1028,7 @@ namespace zcd
                  string m_name,
                  Gee.List<string> arguments,
                  string source_id,
-                 bool wait_reply) throws Error
+                 bool wait_reply) throws ZCDError
     {
         // check JSON elements
         Json.Node* j_unicast_id;
@@ -1072,8 +1072,12 @@ namespace zcd
         .end_object();
         Json.Node node = b.get_root();
         string msg = generate_stream(node);
-        IClientDatagramSocket cs = tasklet.get_client_datagram_socket(port, dev);
-        cs.sendto(msg.data, msg.length);
+        try {
+            IClientDatagramSocket cs = tasklet.get_client_datagram_socket(port, dev);
+            cs.sendto(msg.data, msg.length);
+        } catch (Error e) {
+            throw new ZCDError.GENERIC("Trying to send message");
+        }
         // We use pointers to Json.Node because of a bug in vapi file of json-glib, which should be fixed in valac 0.28
         // Method b.add_value should declare that the argument is 'owned'.
         // If 'j_unicast_id' was not a pointer, here the release of 'b' would make the release of 'j_unicast_id' to fail.
@@ -1085,7 +1089,7 @@ namespace zcd
                  string m_name,
                  Gee.List<string> arguments,
                  string source_id,
-                 bool send_ack) throws Error
+                 bool send_ack) throws ZCDError
     {
         // check JSON elements
         Json.Node* j_broadcast_id;
@@ -1129,8 +1133,12 @@ namespace zcd
         .end_object();
         Json.Node node = b.get_root();
         string msg = generate_stream(node);
-        IClientDatagramSocket cs = tasklet.get_client_datagram_socket(port, dev);
-        cs.sendto(msg.data, msg.length);
+        try {
+            IClientDatagramSocket cs = tasklet.get_client_datagram_socket(port, dev);
+            cs.sendto(msg.data, msg.length);
+        } catch (Error e) {
+            throw new ZCDError.GENERIC("Trying to send message");
+        }
     }
 
     internal string build_json_keepalive(int id)

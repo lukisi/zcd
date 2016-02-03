@@ -21,6 +21,8 @@ TESTS = \
 	test_tcpserver_1 \
 	test_tcpserver_2 \
 	test_tcpserver_3 \
+	test_udpclient_1 \
+	test_udpserver_1 \
 	$(NULL)
 
 XFAIL_TESTS = \
@@ -35,6 +37,8 @@ check_PROGRAMS = \
 	test_tcpserver_1 \
 	test_tcpserver_2 \
 	test_tcpserver_3 \
+	test_udpclient_1 \
+	test_udpserver_1 \
 	$(NULL)
 
 libmacgetter_la_SOURCES = \
@@ -282,6 +286,72 @@ test_tcpserver_3_LDADD = \
 	$(PTHTASKLET_LIBS) \
 	$(builddir)/libzcd.la \
 	$(NULL)
+
+
+
+
+test_udpclient_1_SOURCES = \
+	testsuites/test_udpclient_1/test_udpclient_1.vala \
+	testsuites/test_udpclient_1/fake.vala \
+	zcd.vapi \
+	$(NULL)
+
+test_udpclient_1_VALAFLAGS = \
+	--pkg glib-2.0 \
+	--pkg gee-0.8 \
+	--pkg tasklet-system \
+	--pkg pth-tasklet \
+	$(NULL)
+
+test_udpclient_1_CPPFLAGS = \
+	-w \
+	$(GOBJECT_CFLAGS) \
+	$(GEE_CFLAGS) \
+	$(TASKLETSYSTEM_CFLAGS) \
+	$(PTHTASKLET_CFLAGS) \
+	-I$(srcdir) \
+	$(NULL)
+
+test_udpclient_1_LDADD = \
+	$(GOBJECT_LIBS) \
+	$(GEE_LIBS) \
+	$(TASKLETSYSTEM_LIBS) \
+	$(PTHTASKLET_LIBS) \
+	$(builddir)/libzcd.la \
+	$(NULL)
+
+test_udpserver_1_SOURCES = \
+	testsuites/test_udpserver_1/test_udpserver_1.vala \
+	testsuites/test_udpserver_1/fake.vala \
+	zcd.vapi \
+	$(NULL)
+
+test_udpserver_1_VALAFLAGS = \
+	--pkg glib-2.0 \
+	--pkg gee-0.8 \
+	--pkg tasklet-system \
+	--pkg pth-tasklet \
+	$(NULL)
+
+test_udpserver_1_CPPFLAGS = \
+	-w \
+	$(GOBJECT_CFLAGS) \
+	$(GEE_CFLAGS) \
+	$(TASKLETSYSTEM_CFLAGS) \
+	$(PTHTASKLET_CFLAGS) \
+	-I$(srcdir) \
+	$(NULL)
+
+test_udpserver_1_LDADD = \
+	$(GOBJECT_LIBS) \
+	$(GEE_LIBS) \
+	$(TASKLETSYSTEM_LIBS) \
+	$(PTHTASKLET_LIBS) \
+	$(builddir)/libzcd.la \
+	$(NULL)
+
+
+
 
 vapidir = $(datadir)/vala/vapi
 dist_vapi_DATA = \
