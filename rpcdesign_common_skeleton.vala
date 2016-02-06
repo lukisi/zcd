@@ -27,8 +27,6 @@ using zcd;
 
 namespace SampleRpc
 {
-    /*namespace ModRpc
-    {*/
         internal ITasklet tasklet;
 
         public void init_tasklet_system(ITasklet _tasklet)
@@ -294,7 +292,6 @@ namespace SampleRpc
                 return now.is_younger(this);
             }
         }
-    /*}*/
 }
     """);
     write_file("common_skeleton.vala", contents);

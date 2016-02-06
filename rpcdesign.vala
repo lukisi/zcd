@@ -29,7 +29,7 @@ void main()
       * sample_skeleton.vala
       * sample_stub.vala
      Afterwards, you can:
-      * Modify main namespace (AppDomain) in sample_*.vala
+      * Modify main namespace (SampleRpc) in *.vala
       * Create a convenience library with common_helpers.vala
       * Build the library with remaining files.
      */

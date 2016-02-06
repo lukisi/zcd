@@ -27,8 +27,6 @@ using zcd;
 
 namespace SampleRpc
 {
-    /*namespace ModRpc
-    {*/
         public errordomain StubError
         {
             DID_NOT_WAIT_REPLY,
@@ -203,7 +201,6 @@ namespace SampleRpc
                 return null;
             }
         }
-    /*}*/
 }
     """);
     write_file("common_stub.vala", contents);

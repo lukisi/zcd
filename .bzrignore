@@ -77,4 +77,5 @@ test/test_serializables.c
 test/testrpc.h
 test/testrpc.vapi
 test/m4/*
+test/buildlibsources/*.vala
 

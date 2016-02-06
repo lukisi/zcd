@@ -26,8 +26,6 @@ using zcd;
 
 namespace SampleRpc
 {
-    /*namespace ModRpc
-    {*/
     """);
 
     foreach (Root r in roots)
@@ -732,7 +730,6 @@ namespace SampleRpc
     }
 
     contents += prettyformat("""
-    /*}*/
 }
     """);
 

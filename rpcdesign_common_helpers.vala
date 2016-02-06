@@ -25,8 +25,6 @@ using Gee;
 
 namespace SampleRpc
 {
-    /*namespace ModRpc
-    {*/
         public errordomain HelperDeserializeError {
             GENERIC
         }
@@ -1015,7 +1013,6 @@ namespace SampleRpc
                 return root;
             });
         }
-    /*}*/
 }
     """);
     write_file("common_helpers.vala", contents);

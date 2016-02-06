@@ -27,8 +27,6 @@ using TaskletSystem;
 
 namespace SampleRpc
 {
-    /*namespace ModRpc
-    {*/
     """);
 
     foreach (Root r in roots)
@@ -836,7 +834,6 @@ namespace SampleRpc
             map_udp_listening[k_map] = del_ser;
             return zcd.udp_listen(del_req, del_ser, del_err, port, dev);
         }
-    /*}*/
 }
     """);
 
