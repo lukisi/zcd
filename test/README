@@ -1,0 +1,54 @@
+This directory contains stuff for a *manual* test, to be done after installation
+ of ZCD on the system.
+
+Test del supporto di ZCD alle identità multiple.
+
+Avvio diverse macchine virtuali tutte collegate allo stesso broadcast domain
+ di modo che un messaggio in broadcast raggiunga tutti i nodi. (in realtà le
+ macchine virtuali sono tutte collegate ad un unico collision domain)
+
+Su ogni macchina è assegnato un indirizzo IP univoco in 10.1.1.0/24 sulla scheda
+ eth1 e una rotta che indica come diretti vicini tutti in quella classe.
+
+Su ogni macchina (nodo) un unico processo è in ascolto sulla porta scelta (269)
+ sia UDP che TCP. Un nodo però può avere una o più identità, ognuna
+ identificata da un intero.
+
+L'oggetto usato come BroadcastID contiene un set di interi destinatari.
+
+Chiamiamo l'identità "operatore". Definiamo queste interfacce:
+
+Operatore op
+ Notificatore note
+  void scrivi(string msg)
+ Risponditore res
+  string salutami()
+
+Su un nodo metto un unico processo in ascolto su una specifica scheda (eth1) e
+ uno specifico indirizzo IP con il comando 'test_listen'.
+   test_listen <dev> <ip> <id1> [<id2> ...]
+ Questo comando prende un elenco di interi come parametri, oltre al nome della
+ interfaccia di rete e all'indirizzo IP.
+ Il processo crea una identità per ogni intero passato.
+ Si mette in ascolto sia con tcp_listen che con udp_listen.
+
+Poi abbiamo i comandi:
+ . test_scrivi <dev> <sourceid> <msg> <id1> [<id2> ...]
+   Questo comando usa un Broadcast per chiamare op.note.scrivi
+   come interfaccia usa <dev> e come BroadcastID tutti gli <idX> passati e
+   come SourceID usa <sourceid>
+   Il processo 'test_listen' che riceve, su ogni identità destinataria scrive
+   a video il messaggio "operatore xxx: messaggio da operatore yyy: MSG"
+   Il comando 'test_scrivi' scrive a video l'elenco dei MAC che hanno segnalato la ricezione.
+ . test_salutami <dest_ip> <sourceid> <destid>
+   Questo comando usa un TcpClient per chiamare op.res.salutami
+   come indirizzo destinazione usa <dest_ip> e come UnicastID usa <destid> e
+   come SourceID usa <sourceid>
+   Il processo 'test_listen' che riceve, se riconosce una sua identità come
+   destinataria, scrive a video il messaggio "operatore xxx: saluto da operatore
+   yyy, contraccambio" e poi risponde con la stringa "ciao yyy da xxx."
+   Il comando 'test_salutami' scrive il risultato a video.
+ . test_salutami2 <dev> <sourceid> <destid>
+   Analogo, ma usando un Unicast che usa come interfaccia <dev>.
+
+

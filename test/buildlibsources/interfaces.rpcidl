@@ -1,0 +1,6 @@
+Operatore op
+ Notificatore note
+  void scrivi(string msg)
+ Risponditore res
+  string salutami()
+
