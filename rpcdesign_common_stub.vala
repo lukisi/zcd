@@ -23,11 +23,12 @@ void make_common_stub(Gee.List<Root> roots, Gee.List<Exception> errors)
     string contents = prettyformat("""
 using Gee;
 using TaskletSystem;
+using zcd;
 
-namespace zcd
+namespace SampleRpc
 {
-    namespace ModRpc
-    {
+    /*namespace ModRpc
+    {*/
         public errordomain StubError
         {
             DID_NOT_WAIT_REPLY,
@@ -75,6 +76,7 @@ namespace zcd
                 string m_name, Gee.List<string> arguments,
                 string dev,
                 uint16 port,
+                string s_source_id,
                 string s_unicast_id,
                 bool wait_reply) throws ZCDError, StubError
         {
@@ -103,7 +105,7 @@ namespace zcd
                 }
             }
             try {
-                send_unicast_request(dev, port, id, s_unicast_id, m_name, arguments, wait_reply);
+                send_unicast_request(dev, port, id, s_unicast_id, m_name, arguments, s_source_id, wait_reply);
             } catch (Error e) {
                 throw new StubError.GENERIC(e.message);
             }
@@ -132,6 +134,7 @@ namespace zcd
                 string m_name, Gee.List<string> arguments,
                 Gee.Collection<string> devs,
                 uint16 port,
+                string s_source_id,
                 string s_broadcast_id,
                 IAckCommunicator? notify_ack) throws ZCDError, StubError
         {
@@ -166,7 +169,7 @@ namespace zcd
                     }
                 }
                 try {
-                    send_broadcast_request(dev, port, id, s_broadcast_id, m_name, arguments, (notify_ack != null));
+                    send_broadcast_request(dev, port, id, s_broadcast_id, m_name, arguments, s_source_id, (notify_ack != null));
                     ok = true;
                 } catch (Error e) {
                     last_error_message = e.message;
@@ -200,7 +203,7 @@ namespace zcd
                 return null;
             }
         }
-    }
+    /*}*/
 }
     """);
     write_file("common_stub.vala", contents);

@@ -33,9 +33,8 @@ interfaces.rpcidl
 
 using Gee;
 using zcd;
-using zcd.ModRpc;
 
-namespace AppDomain
+namespace SampleRpc
 {
     """);
     foreach (Exception exc in errors)
@@ -101,8 +100,6 @@ namespace AppDomain
         """);
     }
 
-    if (!("UnicastID" in classes)) classes.add("UnicastID");
-    if (!("BroadcastID" in classes)) classes.add("BroadcastID");
     foreach (string c in classes)
     {
         contents += prettyformat(
@@ -115,6 +112,17 @@ namespace AppDomain
     }
 
     contents += prettyformat("""
+    public interface ISourceID : Object
+    {
+    }
+
+    public interface IUnicastID : Object
+    {
+    }
+
+    public interface IBroadcastID : Object
+    {
+    }
 }
     """);
 

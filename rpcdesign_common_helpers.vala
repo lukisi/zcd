@@ -23,10 +23,10 @@ void make_common_helpers(Gee.List<Root> roots, Gee.List<Exception> errors)
     string contents = prettyformat("""
 using Gee;
 
-namespace zcd
+namespace SampleRpc
 {
-    namespace ModRpc
-    {
+    /*namespace ModRpc
+    {*/
         public errordomain HelperDeserializeError {
             GENERIC
         }
@@ -979,7 +979,7 @@ namespace zcd
             return cb.ret;
         }
 
-        /* Helper functions to build JSON unicastid and broadcastid */
+        /* Helper functions to build JSON sourceid, unicastid and broadcastid */
 
         public string prepare_direct_object(Object obj)
         {
@@ -992,7 +992,7 @@ namespace zcd
             return g.to_data(null);
         }
 
-        /* Helper functions to read JSON unicastid and broadcastid */
+        /* Helper functions to read JSON sourceid, unicastid and broadcastid */
 
         internal void read_direct(string js, IJsonReaderElement cb) throws HelperDeserializeError, HelperNotJsonError
         {
@@ -1015,7 +1015,7 @@ namespace zcd
                 return root;
             });
         }
-    }
+    /*}*/
 }
     """);
     write_file("common_helpers.vala", contents);

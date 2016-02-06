@@ -23,12 +23,11 @@ void make_sample_stub(Gee.List<Root> roots, Gee.List<Exception> errors)
     string contents = prettyformat("""
 using Gee;
 using zcd;
-using zcd.ModRpc;
 
-namespace AppDomain
+namespace SampleRpc
 {
-    namespace ModRpc
-    {
+    /*namespace ModRpc
+    {*/
     """);
 
     foreach (Root r in roots)
@@ -83,9 +82,9 @@ namespace AppDomain
     foreach (Root r in roots)
     {
         contents += prettyformat("""
-        public I""" + r.rootclass + """Stub get_""" + r.rootname + """_tcp_client(string peer_address, uint16 peer_port)
+        public I""" + r.rootclass + """Stub get_""" + r.rootname + """_tcp_client(string peer_address, uint16 peer_port, ISourceID source_id, IUnicastID unicast_id)
         {
-            return new """ + r.rootclass + """TcpClientRootStub(peer_address, peer_port);
+            return new """ + r.rootclass + """TcpClientRootStub(peer_address, peer_port, source_id, unicast_id);
         }
 
         """);
@@ -98,6 +97,8 @@ namespace AppDomain
             private TcpClient client;
             private string peer_address;
             private uint16 peer_port;
+            private string s_source_id;
+            private string s_unicast_id;
             private bool hurry;
             private bool wait_reply;
         """);
@@ -108,11 +109,13 @@ namespace AppDomain
             """);
         }
         contents += prettyformat("""
-            public """ + r.rootclass + """TcpClientRootStub(string peer_address, uint16 peer_port)
+            public """ + r.rootclass + """TcpClientRootStub(string peer_address, uint16 peer_port, ISourceID source_id, IUnicastID unicast_id)
             {
                 this.peer_address = peer_address;
                 this.peer_port = peer_port;
-                client = tcp_client(peer_address, peer_port);
+                s_source_id = prepare_direct_object(source_id);
+                s_unicast_id = prepare_direct_object(unicast_id);
+                client = tcp_client(peer_address, peer_port, s_source_id, s_unicast_id);
                 hurry = false;
                 wait_reply = true;
         """);
@@ -161,7 +164,7 @@ namespace AppDomain
             {
                 if (hurry && !client.is_queue_empty())
                 {
-                    client = tcp_client(peer_address, peer_port);
+                    client = tcp_client(peer_address, peer_port, s_source_id, s_unicast_id);
                 }
                 // TODO See destructor of TcpClient. If the low level library ZCD is able to ensure
                 //  that the destructor is not called when a call is in progress, then this
@@ -179,9 +182,9 @@ namespace AppDomain
     foreach (Root r in roots)
     {
         contents += prettyformat("""
-        public I""" + r.rootclass + """Stub get_""" + r.rootname + """_unicast(string dev, uint16 port, UnicastID unicast_id, bool wait_reply)
+        public I""" + r.rootclass + """Stub get_""" + r.rootname + """_unicast(string dev, uint16 port, ISourceID source_id, IUnicastID unicast_id, bool wait_reply)
         {
-            return new """ + r.rootclass + """UnicastRootStub(dev, port, unicast_id, wait_reply);
+            return new """ + r.rootclass + """UnicastRootStub(dev, port, source_id, unicast_id, wait_reply);
         }
 
         """);
@@ -191,6 +194,7 @@ namespace AppDomain
         contents += prettyformat("""
         internal class """ + r.rootclass + """UnicastRootStub : Object, I""" + r.rootclass + """Stub
         {
+            private string s_source_id;
             private string s_unicast_id;
             private string dev;
             private uint16 port;
@@ -203,8 +207,9 @@ namespace AppDomain
             """);
         }
         contents += prettyformat("""
-            public """ + r.rootclass + """UnicastRootStub(string dev, uint16 port, UnicastID unicast_id, bool wait_reply)
+            public """ + r.rootclass + """UnicastRootStub(string dev, uint16 port, ISourceID source_id, IUnicastID unicast_id, bool wait_reply)
             {
+                s_source_id = prepare_direct_object(source_id);
                 s_unicast_id = prepare_direct_object(unicast_id);
                 this.dev = dev;
                 this.port = port;
@@ -233,7 +238,7 @@ namespace AppDomain
         contents += prettyformat("""
             private string call(string m_name, Gee.List<string> arguments) throws ZCDError, StubError
             {
-                return call_unicast_udp(m_name, arguments, dev, port, s_unicast_id, wait_reply);
+                return call_unicast_udp(m_name, arguments, dev, port, s_source_id, s_unicast_id, wait_reply);
             }
         }
 
@@ -244,9 +249,9 @@ namespace AppDomain
     {
         contents += prettyformat("""
         public I""" + r.rootclass + """Stub get_""" + r.rootname + """_broadcast
-        (Gee.Collection<string> devs, uint16 port, BroadcastID broadcast_id, IAckCommunicator? notify_ack=null)
+        (Gee.Collection<string> devs, uint16 port, ISourceID source_id, IBroadcastID broadcast_id, IAckCommunicator? notify_ack=null)
         {
-            return new """ + r.rootclass + """BroadcastRootStub(devs, port, broadcast_id, notify_ack);
+            return new """ + r.rootclass + """BroadcastRootStub(devs, port, source_id, broadcast_id, notify_ack);
         }
 
         """);
@@ -256,6 +261,7 @@ namespace AppDomain
         contents += prettyformat("""
         internal class """ + r.rootclass + """BroadcastRootStub : Object, I""" + r.rootclass + """Stub
         {
+            private string s_source_id;
             private string s_broadcast_id;
             private Gee.Collection<string> devs;
             private uint16 port;
@@ -269,8 +275,9 @@ namespace AppDomain
         }
         contents += prettyformat("""
             public """ + r.rootclass + """BroadcastRootStub
-            (Gee.Collection<string> devs, uint16 port, BroadcastID broadcast_id, IAckCommunicator? notify_ack=null)
+            (Gee.Collection<string> devs, uint16 port, ISourceID source_id, IBroadcastID broadcast_id, IAckCommunicator? notify_ack=null)
             {
+                s_source_id = prepare_direct_object(source_id);
                 s_broadcast_id = prepare_direct_object(broadcast_id);
                 this.devs = new ArrayList<string>();
                 this.devs.add_all(devs);
@@ -300,7 +307,7 @@ namespace AppDomain
         contents += prettyformat("""
             private string call(string m_name, Gee.List<string> arguments) throws ZCDError, StubError
             {
-                return call_broadcast_udp(m_name, arguments, devs, port, s_broadcast_id, notify_ack);
+                return call_broadcast_udp(m_name, arguments, devs, port, s_source_id, s_broadcast_id, notify_ack);
             }
         }
 
@@ -725,7 +732,7 @@ namespace AppDomain
     }
 
     contents += prettyformat("""
-    }
+    /*}*/
 }
     """);
 

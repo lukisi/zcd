@@ -23,13 +23,12 @@ void make_sample_skeleton(Gee.List<Root> roots, Gee.List<Exception> errors)
     string contents = prettyformat("""
 using Gee;
 using zcd;
-using zcd.ModRpc;
 using TaskletSystem;
 
-namespace AppDomain
+namespace SampleRpc
 {
-    namespace ModRpc
-    {
+    /*namespace ModRpc
+    {*/
     """);
 
     foreach (Root r in roots)
@@ -93,7 +92,7 @@ namespace AppDomain
     foreach (Root r in roots)
     {
         contents += prettyformat(
-@"          public abstract I$(r.rootclass)Skeleton? get_$(r.rootname)(CallerInfo caller);");
+@"          public abstract Gee.List<I$(r.rootclass)Skeleton> get_$(r.rootname)_set(CallerInfo caller);");
     }
     contents += prettyformat("""
         }
@@ -113,17 +112,18 @@ namespace AppDomain
             private string m_name;
             private ArrayList<string> args;
             private CallerInfo caller_info;
-            private I""" + r.rootclass + """Skeleton """ + r.rootname + """;
-            public Zcd""" + r.rootclass + """Dispatcher(I""" + r.rootclass + """Skeleton """ + r.rootname + """, string m_name, Gee.List<string> args, CallerInfo caller_info)
+            private Gee.List<I""" + r.rootclass + """Skeleton> """ + r.rootname + """_set;
+            public Zcd""" + r.rootclass + """Dispatcher(Gee.List<I""" + r.rootclass + """Skeleton> """ + r.rootname + """_set, string m_name, Gee.List<string> args, CallerInfo caller_info)
             {
-                this.""" + r.rootname + """ = """ + r.rootname + """;
+                this.""" + r.rootname + """_set = new ArrayList<I""" + r.rootclass + """Skeleton>();
+                this.""" + r.rootname + """_set.add_all(""" + r.rootname + """_set);
                 this.m_name = m_name;
                 this.args = new ArrayList<string>();
                 this.args.add_all(args);
                 this.caller_info = caller_info;
             }
 
-            private string execute_or_throw_deserialize() throws InSkeletonDeserializeError
+            private string execute_or_throw_deserialize(I""" + r.rootclass + """Skeleton """ + r.rootname + """) throws InSkeletonDeserializeError
             {
                 string ret;
         """);
@@ -439,11 +439,25 @@ namespace AppDomain
 
             public string execute()
             {
-                string ret;
-                try {
-                    ret = execute_or_throw_deserialize();
-                } catch(InSkeletonDeserializeError e) {
-                    ret = prepare_error("DeserializeError", "GENERIC", e.message);
+                assert(! """ + r.rootname + """_set.is_empty);
+                string ret = "";
+                if (""" + r.rootname + """_set.size == 1)
+                {
+                    try {
+                        ret = execute_or_throw_deserialize(""" + r.rootname + """_set[0]);
+                    } catch(InSkeletonDeserializeError e) {
+                        ret = prepare_error("DeserializeError", "GENERIC", e.message);
+                    }
+                }
+                else
+                {
+                    foreach (var """ + r.rootname + """ in """ + r.rootname + """_set)
+                    {
+                        try {
+                            execute_or_throw_deserialize(""" + r.rootname + """);
+                        } catch(InSkeletonDeserializeError e) {
+                        }
+                    }
                 }
                 return ret;
             }
@@ -454,9 +468,21 @@ namespace AppDomain
     }
 
     contents += prettyformat("""
-    """);
+        public class TcpclientCallerInfo : CallerInfo
+        {
+            internal TcpclientCallerInfo(string my_address, string peer_address, ISourceID sourceid, IUnicastID unicastid)
+            {
+                this.my_address = my_address;
+                this.peer_address = peer_address;
+                this.sourceid = sourceid;
+                this.unicastid = unicastid;
+            }
+            public string my_address {get; private set;}
+            public string peer_address {get; private set;}
+            public ISourceID sourceid {get; private set;}
+            public IUnicastID unicastid {get; private set;}
+        }
 
-    contents += prettyformat("""
         internal class ZcdTcpDelegate : Object, IZcdTcpDelegate
         {
             private IRpcDelegate dlg;
@@ -477,7 +503,8 @@ namespace AppDomain
             private IRpcDelegate dlg;
             private string m_name;
             private ArrayList<string> args;
-            private zcd.ModRpc.TcpCallerInfo? caller_info;
+            private string unicast_id;
+            private TcpclientCallerInfo? caller_info;
             public ZcdTcpRequestHandler(IRpcDelegate dlg)
             {
                 this.dlg = dlg;
@@ -496,14 +523,71 @@ namespace AppDomain
                 args.add(arg);
             }
 
-            public void set_caller_info(zcd.TcpCallerInfo caller_info)
+            public void set_unicast_id (string unicast_id)
             {
-                this.caller_info = new zcd.ModRpc.TcpCallerInfo(caller_info.my_addr, caller_info.peer_addr);
+                this.unicast_id = unicast_id;
+            }
+
+            public void set_caller_info(TcpCallerInfo caller_info)
+            {
+                ISourceID sourceid;
+                IUnicastID unicastid;
+               {
+                // deserialize IUnicastID unicastid
+                Object val;
+                try {
+                    val = read_direct_object_notnull(typeof(IUnicastID), unicast_id);
+                } catch (HelperNotJsonError e) {
+                    critical(@"Error parsing JSON for unicast_id: $(e.message)");
+                    error(   @" unicast_id: $(unicast_id)");
+                } catch (HelperDeserializeError e) {
+                    // couldn't verify if it's for me
+                    warning(@"get_dispatcher_unicast: couldn't verify if it's for me: $(e.message)");
+                    return;
+                }
+                if (val is ISerializable)
+                {
+                    if (!((ISerializable)val).check_deserialization())
+                    {
+                        // couldn't verify if it's for me
+                        warning(@"get_dispatcher_unicast: couldn't verify if it's for me: bad deserialization");
+                        return;
+                    }
+                }
+                unicastid = (IUnicastID)val;
+               }
+               {
+                // deserialize ISourceID sourceid
+                Object val;
+                try {
+                    val = read_direct_object_notnull(typeof(ISourceID), caller_info.source_id);
+                } catch (HelperNotJsonError e) {
+                    critical(@"Error parsing JSON for source_id: $(e.message)");
+                    error(   @" unicast_id: $(caller_info.source_id)");
+                } catch (HelperDeserializeError e) {
+                    // couldn't verify whom it's from
+                    warning(@"get_dispatcher_unicast: couldn't verify whom it's from: $(e.message)");
+                    return;
+                }
+                if (val is ISerializable)
+                {
+                    if (!((ISerializable)val).check_deserialization())
+                    {
+                        // couldn't verify if it's for me
+                        warning(@"get_dispatcher_unicast: couldn't verify whom it's from: bad deserialization");
+                        return;
+                    }
+                }
+                sourceid = (ISourceID)val;
+               }
+                this.caller_info = new TcpclientCallerInfo(caller_info.my_address, caller_info.peer_address, sourceid, unicastid);
             }
 
             public IZcdDispatcher? get_dispatcher()
             {
-                IZcdDispatcher ret;
+                IZcdDispatcher? ret = null;
+              if (caller_info != null)
+              {
     """);
 
     string nextroot = "";
@@ -512,9 +596,9 @@ namespace AppDomain
         contents += prettyformat("""
                 """ + nextroot + """if (m_name.has_prefix(""" + @"\"$(r.rootname)" + """."))
                 {
-                    I""" + r.rootclass + """Skeleton? """ + r.rootname + """ = dlg.get_""" + r.rootname + """(caller_info);
-                    if (""" + r.rootname + """ == null) ret = null;
-                    else ret = new Zcd""" + r.rootclass + """Dispatcher(""" + r.rootname + """, m_name, args, caller_info);
+                    Gee.List<I""" + r.rootclass + """Skeleton> """ + r.rootname + """_set = dlg.get_""" + r.rootname + """_set(caller_info);
+                    if (""" + r.rootname + """_set.is_empty) ret = null;
+                    else ret = new Zcd""" + r.rootclass + """Dispatcher(""" + r.rootname + """_set, m_name, args, caller_info);
                 }
         """);
         nextroot = "else ";
@@ -525,6 +609,7 @@ namespace AppDomain
                 {
                     ret = new ZcdDispatcherForError("DeserializeError", "GENERIC", @"Unknown root in method name: \"$(m_name)\"");
                 }
+              }
                 args = new ArrayList<string>();
                 m_name = "";
                 caller_info = null;
@@ -535,28 +620,32 @@ namespace AppDomain
 
         public class UnicastCallerInfo : CallerInfo
         {
-            internal UnicastCallerInfo(string dev, string peer_address, UnicastID unicastid)
+            internal UnicastCallerInfo(string dev, string peer_address, ISourceID sourceid, IUnicastID unicastid)
             {
                 this.dev = dev;
                 this.peer_address = peer_address;
+                this.sourceid = sourceid;
                 this.unicastid = unicastid;
             }
             public string dev {get; private set;}
             public string peer_address {get; private set;}
-            public UnicastID unicastid {get; private set;}
+            public ISourceID sourceid {get; private set;}
+            public IUnicastID unicastid {get; private set;}
         }
 
         public class BroadcastCallerInfo : CallerInfo
         {
-            internal BroadcastCallerInfo(string dev, string peer_address, BroadcastID broadcastid)
+            internal BroadcastCallerInfo(string dev, string peer_address, ISourceID sourceid, IBroadcastID broadcastid)
             {
                 this.dev = dev;
                 this.peer_address = peer_address;
+                this.sourceid = sourceid;
                 this.broadcastid = broadcastid;
             }
             public string dev {get; private set;}
             public string peer_address {get; private set;}
-            public BroadcastID broadcastid {get; private set;}
+            public ISourceID sourceid {get; private set;}
+            public IBroadcastID broadcastid {get; private set;}
         }
 
         internal class ZcdUdpRequestMessageDelegate : Object, IZcdUdpRequestMessageDelegate
@@ -570,12 +659,15 @@ namespace AppDomain
             public IZcdDispatcher? get_dispatcher_unicast(
                 int id, string unicast_id,
                 string m_name, Gee.List<string> arguments,
-                zcd.UdpCallerInfo caller_info)
+                UdpCallerInfo caller_info)
             {
-                // deserialize UnicastID unicastid
+                ISourceID sourceid;
+                IUnicastID unicastid;
+               {
+                // deserialize IUnicastID unicastid
                 Object val;
                 try {
-                    val = read_direct_object_notnull(typeof(UnicastID), unicast_id);
+                    val = read_direct_object_notnull(typeof(IUnicastID), unicast_id);
                 } catch (HelperNotJsonError e) {
                     critical(@"Error parsing JSON for unicast_id: $(e.message)");
                     error(   @" unicast_id: $(unicast_id)");
@@ -593,9 +685,34 @@ namespace AppDomain
                         return null;
                     }
                 }
-                UnicastID unicastid = (UnicastID)val;
+                unicastid = (IUnicastID)val;
+               }
+               {
+                // deserialize ISourceID sourceid
+                Object val;
+                try {
+                    val = read_direct_object_notnull(typeof(ISourceID), caller_info.source_id);
+                } catch (HelperNotJsonError e) {
+                    critical(@"Error parsing JSON for source_id: $(e.message)");
+                    error(   @" unicast_id: $(caller_info.source_id)");
+                } catch (HelperDeserializeError e) {
+                    // couldn't verify whom it's from
+                    warning(@"get_dispatcher_unicast: couldn't verify whom it's from: $(e.message)");
+                    return null;
+                }
+                if (val is ISerializable)
+                {
+                    if (!((ISerializable)val).check_deserialization())
+                    {
+                        // couldn't verify if it's for me
+                        warning(@"get_dispatcher_unicast: couldn't verify whom it's from: bad deserialization");
+                        return null;
+                    }
+                }
+                sourceid = (ISourceID)val;
+               }
                 // call delegate
-                UnicastCallerInfo my_caller_info = new UnicastCallerInfo(caller_info.dev, caller_info.peer_addr, unicastid);
+                UnicastCallerInfo my_caller_info = new UnicastCallerInfo(caller_info.dev, caller_info.peer_address, sourceid, unicastid);
                 IZcdDispatcher ret;
     """);
 
@@ -605,9 +722,9 @@ namespace AppDomain
         contents += prettyformat("""
                 """ + nextroot + """if (m_name.has_prefix(""" + @"\"$(r.rootname)" + """."))
                 {
-                    I""" + r.rootclass + """Skeleton? """ + r.rootname + """ = dlg.get_""" + r.rootname + """(my_caller_info);
-                    if (""" + r.rootname + """ == null) ret = null;
-                    else ret = new Zcd""" + r.rootclass + """Dispatcher(""" + r.rootname + """, m_name, arguments, my_caller_info);
+                    Gee.List<I""" + r.rootclass + """Skeleton> """ + r.rootname + """_set = dlg.get_""" + r.rootname + """_set(my_caller_info);
+                    if (""" + r.rootname + """_set.is_empty) ret = null;
+                    else ret = new Zcd""" + r.rootclass + """Dispatcher(""" + r.rootname + """_set, m_name, arguments, my_caller_info);
                 }
         """);
         nextroot = "else ";
@@ -624,12 +741,15 @@ namespace AppDomain
             public IZcdDispatcher? get_dispatcher_broadcast(
                 int id, string broadcast_id,
                 string m_name, Gee.List<string> arguments,
-                zcd.UdpCallerInfo caller_info)
+                UdpCallerInfo caller_info)
             {
-                // deserialize BroadcastID broadcastid
+                ISourceID sourceid;
+                IBroadcastID broadcastid;
+               {
+                // deserialize IBroadcastID broadcastid
                 Object val;
                 try {
-                    val = read_direct_object_notnull(typeof(BroadcastID), broadcast_id);
+                    val = read_direct_object_notnull(typeof(IBroadcastID), broadcast_id);
                 } catch (HelperNotJsonError e) {
                     critical(@"Error parsing JSON for broadcast_id: $(e.message)");
                     error(   @" broadcast_id: $(broadcast_id)");
@@ -647,9 +767,34 @@ namespace AppDomain
                         return null;
                     }
                 }
-                BroadcastID broadcastid = (BroadcastID)val;
+                broadcastid = (IBroadcastID)val;
+               }
+               {
+                // deserialize ISourceID sourceid
+                Object val;
+                try {
+                    val = read_direct_object_notnull(typeof(ISourceID), caller_info.source_id);
+                } catch (HelperNotJsonError e) {
+                    critical(@"Error parsing JSON for source_id: $(e.message)");
+                    error(   @" unicast_id: $(caller_info.source_id)");
+                } catch (HelperDeserializeError e) {
+                    // couldn't verify whom it's from
+                    warning(@"get_dispatcher_unicast: couldn't verify whom it's from: $(e.message)");
+                    return null;
+                }
+                if (val is ISerializable)
+                {
+                    if (!((ISerializable)val).check_deserialization())
+                    {
+                        // couldn't verify if it's for me
+                        warning(@"get_dispatcher_unicast: couldn't verify whom it's from: bad deserialization");
+                        return null;
+                    }
+                }
+                sourceid = (ISourceID)val;
+               }
                 // call delegate
-                BroadcastCallerInfo my_caller_info = new BroadcastCallerInfo(caller_info.dev, caller_info.peer_addr, broadcastid);
+                BroadcastCallerInfo my_caller_info = new BroadcastCallerInfo(caller_info.dev, caller_info.peer_address, sourceid, broadcastid);
                 IZcdDispatcher ret;
     """);
 
@@ -659,9 +804,9 @@ namespace AppDomain
         contents += prettyformat("""
                 """ + nextroot + """if (m_name.has_prefix(""" + @"\"$(r.rootname)" + """."))
                 {
-                    I""" + r.rootclass + """Skeleton? """ + r.rootname + """ = dlg.get_""" + r.rootname + """(my_caller_info);
-                    if (""" + r.rootname + """ == null) ret = null;
-                    else ret = new Zcd""" + r.rootclass + """Dispatcher(""" + r.rootname + """, m_name, arguments, my_caller_info);
+                    Gee.List<I""" + r.rootclass + """Skeleton> """ + r.rootname + """_set = dlg.get_""" + r.rootname + """_set(my_caller_info);
+                    if (""" + r.rootname + """_set.is_empty) ret = null;
+                    else ret = new Zcd""" + r.rootclass + """Dispatcher(""" + r.rootname + """_set, m_name, arguments, my_caller_info);
                 }
         """);
         nextroot = "else ";
@@ -691,7 +836,7 @@ namespace AppDomain
             map_udp_listening[k_map] = del_ser;
             return zcd.udp_listen(del_req, del_ser, del_err, port, dev);
         }
-    }
+    /*}*/
 }
     """);
 

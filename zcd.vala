@@ -1157,7 +1157,7 @@ namespace zcd
     internal string build_json_ack(string dev, int id)
     {
         // build JSON message
-        string mac = get_mac(dev);
+        string mac = get_mac(dev).up();
         Json.Builder b = new Json.Builder();
         b.begin_object()
             .set_member_name(s_broadcast_ack).begin_object()

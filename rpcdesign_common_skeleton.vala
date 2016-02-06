@@ -23,11 +23,12 @@ void make_common_skeleton(Gee.List<Root> roots, Gee.List<Exception> errors)
     string contents = prettyformat("""
 using Gee;
 using TaskletSystem;
+using zcd;
 
-namespace zcd
+namespace SampleRpc
 {
-    namespace ModRpc
-    {
+    /*namespace ModRpc
+    {*/
         internal ITasklet tasklet;
 
         public void init_tasklet_system(ITasklet _tasklet)
@@ -43,17 +44,7 @@ namespace zcd
 
         public abstract class CallerInfo : Object
         {
-        }
-
-        public class TcpCallerInfo : CallerInfo
-        {
-            internal TcpCallerInfo(string my_address, string peer_address)
-            {
-                this.my_address = my_address;
-                this.peer_address = peer_address;
-            }
-            public string my_address {get; private set;}
-            public string peer_address {get; private set;}
+            internal CallerInfo() {}
         }
 
         internal const string s_unicast_service_prefix_response = "RESPONSE:";
@@ -303,7 +294,7 @@ namespace zcd
                 return now.is_younger(this);
             }
         }
-    }
+    /*}*/
 }
     """);
     write_file("common_skeleton.vala", contents);
