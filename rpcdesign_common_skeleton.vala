@@ -42,7 +42,6 @@ namespace SampleRpc
 
         public abstract class CallerInfo : Object
         {
-            internal CallerInfo() {}
         }
 
         internal const string s_unicast_service_prefix_response = "RESPONSE:";
