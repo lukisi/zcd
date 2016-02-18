@@ -1016,7 +1016,7 @@ namespace zcd
                     warning(@"udp_listen: Error sending ack: $(e.message)");
                     // ignore this one, hope better luck on the other ones
                 }
-                tasklet.ms_wait(5);
+                tasklet.ms_wait(Random.int_range(10, 200));
             }
             return null;
         }
