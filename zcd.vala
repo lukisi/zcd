@@ -914,6 +914,14 @@ namespace zcd
                         string broadcast_request_request_broadcast_id = parse_broadcast_id(node_req);
                         if (del_ser.is_my_own_message(broadcast_request_id))
                             return null;
+                        if (broadcast_request_request_send_ack)
+                        {
+                            UdpAckTasklet t = new UdpAckTasklet();
+                            t.dev = dev;
+                            t.port = port;
+                            t.id = broadcast_request_id;
+                            tasklet.spawn(t);
+                        }
                         UdpCallerInfo caller_info = new UdpCallerInfo(dev, rmt_ip, broadcast_request_request_source_id);
                         IZcdDispatcher? disp = del_req.get_dispatcher_broadcast(
                             broadcast_request_id,
@@ -923,14 +931,6 @@ namespace zcd
                             caller_info);
                         if (disp != null)
                         {
-                            if (broadcast_request_request_send_ack)
-                            {
-                                UdpAckTasklet t = new UdpAckTasklet();
-                                t.dev = dev;
-                                t.port = port;
-                                t.id = broadcast_request_id;
-                                tasklet.spawn(t);
-                            }
                             disp.execute();
                             // done
                         }
