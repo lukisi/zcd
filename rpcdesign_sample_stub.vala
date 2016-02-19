@@ -180,9 +180,9 @@ namespace SampleRpc
     foreach (Root r in roots)
     {
         contents += prettyformat("""
-        public I""" + r.rootclass + """Stub get_""" + r.rootname + """_unicast(string dev, uint16 port, ISourceID source_id, IUnicastID unicast_id, bool wait_reply)
+        public I""" + r.rootclass + """Stub get_""" + r.rootname + """_unicast(string dev, uint16 port, string src_ip, ISourceID source_id, IUnicastID unicast_id, bool wait_reply)
         {
-            return new """ + r.rootclass + """UnicastRootStub(dev, port, source_id, unicast_id, wait_reply);
+            return new """ + r.rootclass + """UnicastRootStub(dev, port, src_ip, source_id, unicast_id, wait_reply);
         }
 
         """);
@@ -196,6 +196,7 @@ namespace SampleRpc
             private string s_unicast_id;
             private string dev;
             private uint16 port;
+            private string src_ip;
             private bool wait_reply;
         """);
         foreach (ModuleRemote mo in r.modules)
@@ -205,12 +206,13 @@ namespace SampleRpc
             """);
         }
         contents += prettyformat("""
-            public """ + r.rootclass + """UnicastRootStub(string dev, uint16 port, ISourceID source_id, IUnicastID unicast_id, bool wait_reply)
+            public """ + r.rootclass + """UnicastRootStub(string dev, uint16 port, string src_ip, ISourceID source_id, IUnicastID unicast_id, bool wait_reply)
             {
                 s_source_id = prepare_direct_object(source_id);
                 s_unicast_id = prepare_direct_object(unicast_id);
                 this.dev = dev;
                 this.port = port;
+                this.src_ip = src_ip;
                 this.wait_reply = wait_reply;
         """);
         foreach (ModuleRemote mo in r.modules)
@@ -236,7 +238,7 @@ namespace SampleRpc
         contents += prettyformat("""
             private string call(string m_name, Gee.List<string> arguments) throws ZCDError, StubError
             {
-                return call_unicast_udp(m_name, arguments, dev, port, s_source_id, s_unicast_id, wait_reply);
+                return call_unicast_udp(m_name, arguments, dev, port, src_ip, s_source_id, s_unicast_id, wait_reply);
             }
         }
 
@@ -247,9 +249,9 @@ namespace SampleRpc
     {
         contents += prettyformat("""
         public I""" + r.rootclass + """Stub get_""" + r.rootname + """_broadcast
-        (Gee.Collection<string> devs, uint16 port, ISourceID source_id, IBroadcastID broadcast_id, IAckCommunicator? notify_ack=null)
+        (Gee.List<string> devs, Gee.List<string> src_ips, uint16 port, ISourceID source_id, IBroadcastID broadcast_id, IAckCommunicator? notify_ack=null)
         {
-            return new """ + r.rootclass + """BroadcastRootStub(devs, port, source_id, broadcast_id, notify_ack);
+            return new """ + r.rootclass + """BroadcastRootStub(devs, src_ips, port, source_id, broadcast_id, notify_ack);
         }
 
         """);
@@ -261,7 +263,8 @@ namespace SampleRpc
         {
             private string s_source_id;
             private string s_broadcast_id;
-            private Gee.Collection<string> devs;
+            private Gee.List<string> devs;
+            private Gee.List<string> src_ips;
             private uint16 port;
             private IAckCommunicator? notify_ack;
         """);
@@ -273,12 +276,14 @@ namespace SampleRpc
         }
         contents += prettyformat("""
             public """ + r.rootclass + """BroadcastRootStub
-            (Gee.Collection<string> devs, uint16 port, ISourceID source_id, IBroadcastID broadcast_id, IAckCommunicator? notify_ack=null)
+            (Gee.List<string> devs, Gee.List<string> src_ips, uint16 port, ISourceID source_id, IBroadcastID broadcast_id, IAckCommunicator? notify_ack=null)
             {
                 s_source_id = prepare_direct_object(source_id);
                 s_broadcast_id = prepare_direct_object(broadcast_id);
                 this.devs = new ArrayList<string>();
                 this.devs.add_all(devs);
+                this.src_ips = new ArrayList<string>();
+                this.src_ips.add_all(src_ips);
                 this.port = port;
                 this.notify_ack = notify_ack;
         """);
@@ -305,7 +310,7 @@ namespace SampleRpc
         contents += prettyformat("""
             private string call(string m_name, Gee.List<string> arguments) throws ZCDError, StubError
             {
-                return call_broadcast_udp(m_name, arguments, devs, port, s_source_id, s_broadcast_id, notify_ack);
+                return call_broadcast_udp(m_name, arguments, devs, src_ips, port, s_source_id, s_broadcast_id, notify_ack);
             }
         }
 

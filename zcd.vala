@@ -1023,12 +1023,13 @@ namespace zcd
     }
 
     public void send_unicast_request
-                (string dev, uint16 port, int id,
+                (int id,
                  string unicast_id,
                  string m_name,
                  Gee.List<string> arguments,
                  string source_id,
-                 bool wait_reply) throws ZCDError
+                 bool wait_reply,
+                 string dev, uint16 port, string? src_ip=null) throws ZCDError
     {
         // check JSON elements
         Json.Node* j_unicast_id;
@@ -1073,7 +1074,7 @@ namespace zcd
         Json.Node node = b.get_root();
         string msg = generate_stream(node);
         try {
-            IClientDatagramSocket cs = tasklet.get_client_datagram_socket(port, dev);
+            IClientDatagramSocket cs = tasklet.get_client_datagram_socket(port, dev, src_ip);
             cs.sendto(msg.data, msg.length);
         } catch (Error e) {
             throw new ZCDError.GENERIC("Trying to send message");
@@ -1084,12 +1085,13 @@ namespace zcd
     }
 
     public void send_broadcast_request
-                (string dev, uint16 port, int id,
+                (int id,
                  string broadcast_id,
                  string m_name,
                  Gee.List<string> arguments,
                  string source_id,
-                 bool send_ack) throws ZCDError
+                 bool send_ack,
+                 string dev, uint16 port, string? src_ip=null) throws ZCDError
     {
         // check JSON elements
         Json.Node* j_broadcast_id;
@@ -1134,7 +1136,7 @@ namespace zcd
         Json.Node node = b.get_root();
         string msg = generate_stream(node);
         try {
-            IClientDatagramSocket cs = tasklet.get_client_datagram_socket(port, dev);
+            IClientDatagramSocket cs = tasklet.get_client_datagram_socket(port, dev, src_ip);
             cs.sendto(msg.data, msg.length);
         } catch (Error e) {
             throw new ZCDError.GENERIC("Trying to send message");

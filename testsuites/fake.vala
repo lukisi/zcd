@@ -130,7 +130,7 @@ public class FakeTaskletSystemImplementer : Object, ITasklet
         return ret;
     }
 
-    public IClientDatagramSocket get_client_datagram_socket(uint16 port, string dev) throws Error
+    public IClientDatagramSocket get_client_datagram_socket(uint16 port, string dev, string? my_addr = null) throws Error
     {
         print(@"going to fake creation of UDP socket for sending on device $(dev) and UDP port $(port).\n");
         assert(udp_sendto_func != null);

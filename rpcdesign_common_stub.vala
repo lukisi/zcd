@@ -74,6 +74,7 @@ namespace SampleRpc
                 string m_name, Gee.List<string> arguments,
                 string dev,
                 uint16 port,
+                string src_ip,
                 string s_source_id,
                 string s_unicast_id,
                 bool wait_reply) throws ZCDError, StubError
@@ -103,7 +104,7 @@ namespace SampleRpc
                 }
             }
             try {
-                send_unicast_request(dev, port, id, s_unicast_id, m_name, arguments, s_source_id, wait_reply);
+                send_unicast_request(id, s_unicast_id, m_name, arguments, s_source_id, wait_reply, dev, port, src_ip);
             } catch (Error e) {
                 throw new StubError.GENERIC(e.message);
             }
@@ -130,7 +131,8 @@ namespace SampleRpc
 
         internal string call_broadcast_udp(
                 string m_name, Gee.List<string> arguments,
-                Gee.Collection<string> devs,
+                Gee.List<string> devs,
+                Gee.List<string> src_ips,
                 uint16 port,
                 string s_source_id,
                 string s_broadcast_id,
@@ -139,8 +141,11 @@ namespace SampleRpc
             ArrayList<IChannel> lst_ch = new ArrayList<IChannel>();
             bool ok = false;
             string last_error_message = "";
-            foreach (string dev in devs)
+            assert(devs.size == src_ips.size);
+            for (int i = 0; i < devs.size; i++)
             {
+                string dev = devs[i];
+                string src_ip = src_ips[i];
                 int id = Random.int_range(0, int.MAX);
                 string k_map = @"$(dev):$(port)";
                 ZcdUdpServiceMessageDelegate? del_ser = null;
@@ -167,7 +172,7 @@ namespace SampleRpc
                     }
                 }
                 try {
-                    send_broadcast_request(dev, port, id, s_broadcast_id, m_name, arguments, s_source_id, (notify_ack != null));
+                    send_broadcast_request(id, s_broadcast_id, m_name, arguments, s_source_id, (notify_ack != null), dev, port, src_ip);
                     ok = true;
                 } catch (Error e) {
                     last_error_message = e.message;
