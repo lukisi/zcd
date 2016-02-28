@@ -89,6 +89,17 @@ public class FakeTaskletSystemImplementer : Object, ITasklet
         return real_tasklet.exec_command(cmdline);
     }
 
+    public size_t read(int fd, void* b, size_t maxlen) throws GLib.Error
+    {
+        return real_tasklet.read(fd, b, maxlen);
+    }
+
+    public size_t write(int fd, void* b, size_t count) throws Error
+    {
+        return real_tasklet.write(fd, b, count);
+    }
+
+
     public IServerStreamSocket get_server_stream_socket(uint16 port, string? my_addr=null) throws Error
     {
         print(@"going to fake creation of socket for listening on port $(port).\n");
