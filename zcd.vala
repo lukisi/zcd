@@ -243,38 +243,64 @@ namespace zcd
                 IZcdDispatcher? disp = req.get_dispatcher();
                 if (disp == null)
                 {
-                    // log message
-                    warning("tcp_listen: Delegate did not return a dispatcher for a received message.");
-                    // close connection
-                    try {c.close();} catch (Error e) {}
-                    // abort tasklet
-                    if (m != null) free(m);
-                    return null;
-                }
+                    // might happen for identity-aware requests made via TCP
+                    if (wait_reply)
+                    {
+                        // TODO this scenario should be clearly specified in ZCD documents.
+                        // The following is a quick and dirty work-around.
 
-                // Execute
-                if (wait_reply)
-                {
-                    string resp = disp.execute();
-                    string ret_s = build_json_response(resp);
-                    // Send response
-                    try {
-                        send_one_message(c, ret_s);
-                    } catch (SendMessageError e) {
-                        // log message
-                        warning(@"tcp_listen: Error sending JSON of response: $(e.message)");
-                        // close connection
-                        try {c.close();} catch (Error e) {}
-                        // abort tasklet
-                        if (m != null) free(m);
-                        return null;
+                        // prepare a "error" JSON
+                        var b = new Json.Builder();
+                        b.begin_object()
+                            .set_member_name("error-domain").add_string_value("DeserializeError")
+                            .set_member_name("error-code").add_string_value("GENERIC")
+                            .set_member_name("error-message").add_string_value("No dispatcher. Maybe not this identity in this node?")
+                        .end_object();
+                        var g = new Json.Generator();
+                        g.pretty = false;
+                        g.root = b.get_root();
+                        string resp = g.to_data(null);
+                        string ret_s = build_json_response(resp);
+                        // Send response
+                        try {
+                            send_one_message(c, ret_s);
+                        } catch (SendMessageError e) {
+                            // log message
+                            warning(@"tcp_listen: Error sending JSON of response: $(e.message)");
+                            // close connection
+                            try {c.close();} catch (Error e) {}
+                            // abort tasklet
+                            if (m != null) free(m);
+                            return null;
+                        }
                     }
                 }
                 else
                 {
-                    TcpDispatchTasklet t = new TcpDispatchTasklet();
-                    t.disp = disp;
-                    tasklet.spawn(t);
+                    // Execute
+                    if (wait_reply)
+                    {
+                        string resp = disp.execute();
+                        string ret_s = build_json_response(resp);
+                        // Send response
+                        try {
+                            send_one_message(c, ret_s);
+                        } catch (SendMessageError e) {
+                            // log message
+                            warning(@"tcp_listen: Error sending JSON of response: $(e.message)");
+                            // close connection
+                            try {c.close();} catch (Error e) {}
+                            // abort tasklet
+                            if (m != null) free(m);
+                            return null;
+                        }
+                    }
+                    else
+                    {
+                        TcpDispatchTasklet t = new TcpDispatchTasklet();
+                        t.disp = disp;
+                        tasklet.spawn(t);
+                    }
                 }
                 if (m != null) free(m);
             }
