@@ -467,14 +467,16 @@ namespace zcd
         uint8 buf_numbytes[4];
         size_t maxlen = 4;
         uint8* b = buf_numbytes;
+        bool no_bytes_read = true;
         while (maxlen > 0)
         {
             try {
                 size_t len = c.recv(b, maxlen);
+                no_bytes_read = false;
                 maxlen -= len;
                 b += len;
             } catch (Error e) {
-                if (maxlen == 4)
+                if (no_bytes_read)
                 {
                     // normal closing from client, abnormal if from server.
                     return false;
