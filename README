@@ -1,0 +1,16 @@
+Part of Netsukuku.
+
+ZCD - Zero Configuration Dispatchers
+This package builds a framework with which is possible to make Remote Procedure
+Call onto nodes in the neighborhood or elsewhere.
+The ''ntkd'' daemon depends on it.
+
+It has some peculiar features:
+ * It supports broadcast (or multicast) messages (procedure call) to the nodes
+   in the neighborhood.
+ * The node does not need to have a route in the tables in order to send a
+   message (procedure call) to a specific node in the neighborhood.
+ * It is NIC-centric. A message (procedure call) can tell which NIC of the source
+   node it comes from and to which NIC of the destination node it is sent.
+ * It supports the presence of multiple identities on a single node.
+
