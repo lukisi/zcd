@@ -380,7 +380,11 @@ namespace SampleRpc
                         }
                         else if (me.returntype.has_suffix("?"))
                         {
-                            error(@"not implemented yet $(me.returntype)");
+                            contents += prettyformat("""
+                        """ + try_indent + me.returntype + """ result = """ + method_call + """
+                        """ + try_indent + """if (result == null) ret = prepare_return_value_null();
+                        """ + try_indent + """else ret = prepare_return_value_object(result);
+                            """);
                         }
                         else
                         {
