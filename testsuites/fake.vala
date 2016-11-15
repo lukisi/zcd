@@ -84,9 +84,9 @@ public class FakeTaskletSystemImplementer : Object, ITasklet
         return real_tasklet.spawn(sp, joinable);
     }
 
-    public TaskletCommandResult exec_command(string cmdline) throws Error
+    public TaskletCommandResult exec_command_argv(string[] argv) throws Error
     {
-        return real_tasklet.exec_command(cmdline);
+        return real_tasklet.exec_command_argv(argv);
     }
 
     public size_t read(int fd, void* b, size_t maxlen) throws GLib.Error
