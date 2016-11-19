@@ -84,7 +84,7 @@ public class FakeTaskletSystemImplementer : Object, ITasklet
         return real_tasklet.spawn(sp, joinable);
     }
 
-    public TaskletCommandResult exec_command_argv(string[] argv) throws Error
+    public TaskletCommandResult exec_command_argv(Gee.List<string> argv) throws Error
     {
         return real_tasklet.exec_command_argv(argv);
     }
