@@ -1,3 +1,4 @@
+*~
 zcd.c
 zcd.h
 zcd.vapi
@@ -75,6 +76,7 @@ missing
 test-driver
 compile
 .valencia
+.buildconfig
 debug
 finalbuild
 test/test_listen
