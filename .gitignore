@@ -78,7 +78,8 @@ compile
 .valencia
 .buildconfig
 debug
-finalbuild
+builds
+*.anjuta*
 test/test_listen
 test/test_listen.c
 test/test_salutami
