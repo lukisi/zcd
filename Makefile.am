@@ -65,6 +65,10 @@ libzcd_la_SOURCES = \
 libzcd_la_VALAFLAGS = \
 	-H zcd.h \
 	--library zcd \
+	--vapidir $(GEE_PREFIX)/share/vala/vapi \
+	--vapidir $(JSON_PREFIX)/share/vala-0.32/vapi \
+	--vapidir $(TASKLETSYSTEM_VAPIDIR) \
+	--vapidir $(PTHTASKLET_VAPIDIR) \
 	--pkg gee-0.8 \
 	--pkg json-glib-1.0 \
 	--pkg tasklet-system \
@@ -97,6 +101,10 @@ rpcdesign_SOURCES =  \
 	$(NULL)
 
 rpcdesign_VALAFLAGS = \
+	--vapidir $(GEE_PREFIX)/share/vala/vapi \
+	--vapidir $(JSON_PREFIX)/share/vala-0.32/vapi \
+	--vapidir $(TASKLETSYSTEM_VAPIDIR) \
+	--vapidir $(PTHTASKLET_VAPIDIR) \
 	--pkg gee-0.8 \
 	$(NULL)
 
@@ -118,6 +126,10 @@ test_tcpclient_1_SOURCES = \
 	$(NULL)
 
 test_tcpclient_1_VALAFLAGS = \
+	--vapidir $(GEE_PREFIX)/share/vala/vapi \
+	--vapidir $(JSON_PREFIX)/share/vala-0.32/vapi \
+	--vapidir $(TASKLETSYSTEM_VAPIDIR) \
+	--vapidir $(PTHTASKLET_VAPIDIR) \
 	--pkg glib-2.0 \
 	--pkg gee-0.8 \
 	--pkg tasklet-system \
@@ -148,6 +160,10 @@ test_tcpclient_2_SOURCES = \
 	$(NULL)
 
 test_tcpclient_2_VALAFLAGS = \
+	--vapidir $(GEE_PREFIX)/share/vala/vapi \
+	--vapidir $(JSON_PREFIX)/share/vala-0.32/vapi \
+	--vapidir $(TASKLETSYSTEM_VAPIDIR) \
+	--vapidir $(PTHTASKLET_VAPIDIR) \
 	--pkg glib-2.0 \
 	--pkg gee-0.8 \
 	--pkg tasklet-system \
@@ -178,6 +194,10 @@ test_tcpclient_3_SOURCES = \
 	$(NULL)
 
 test_tcpclient_3_VALAFLAGS = \
+	--vapidir $(GEE_PREFIX)/share/vala/vapi \
+	--vapidir $(JSON_PREFIX)/share/vala-0.32/vapi \
+	--vapidir $(TASKLETSYSTEM_VAPIDIR) \
+	--vapidir $(PTHTASKLET_VAPIDIR) \
 	--pkg glib-2.0 \
 	--pkg gee-0.8 \
 	--pkg tasklet-system \
@@ -208,6 +228,10 @@ test_tcpserver_1_SOURCES = \
 	$(NULL)
 
 test_tcpserver_1_VALAFLAGS = \
+	--vapidir $(GEE_PREFIX)/share/vala/vapi \
+	--vapidir $(JSON_PREFIX)/share/vala-0.32/vapi \
+	--vapidir $(TASKLETSYSTEM_VAPIDIR) \
+	--vapidir $(PTHTASKLET_VAPIDIR) \
 	--pkg glib-2.0 \
 	--pkg gee-0.8 \
 	--pkg tasklet-system \
@@ -238,6 +262,10 @@ test_tcpserver_2_SOURCES = \
 	$(NULL)
 
 test_tcpserver_2_VALAFLAGS = \
+	--vapidir $(GEE_PREFIX)/share/vala/vapi \
+	--vapidir $(JSON_PREFIX)/share/vala-0.32/vapi \
+	--vapidir $(TASKLETSYSTEM_VAPIDIR) \
+	--vapidir $(PTHTASKLET_VAPIDIR) \
 	--pkg glib-2.0 \
 	--pkg gee-0.8 \
 	--pkg tasklet-system \
@@ -268,6 +296,10 @@ test_tcpserver_3_SOURCES = \
 	$(NULL)
 
 test_tcpserver_3_VALAFLAGS = \
+	--vapidir $(GEE_PREFIX)/share/vala/vapi \
+	--vapidir $(JSON_PREFIX)/share/vala-0.32/vapi \
+	--vapidir $(TASKLETSYSTEM_VAPIDIR) \
+	--vapidir $(PTHTASKLET_VAPIDIR) \
 	--pkg glib-2.0 \
 	--pkg gee-0.8 \
 	--pkg tasklet-system \
@@ -298,6 +330,10 @@ test_udpclient_1_SOURCES = \
 	$(NULL)
 
 test_udpclient_1_VALAFLAGS = \
+	--vapidir $(GEE_PREFIX)/share/vala/vapi \
+	--vapidir $(JSON_PREFIX)/share/vala-0.32/vapi \
+	--vapidir $(TASKLETSYSTEM_VAPIDIR) \
+	--vapidir $(PTHTASKLET_VAPIDIR) \
 	--pkg glib-2.0 \
 	--pkg gee-0.8 \
 	--pkg tasklet-system \
@@ -328,6 +364,10 @@ test_udpclient_2_SOURCES = \
 	$(NULL)
 
 test_udpclient_2_VALAFLAGS = \
+	--vapidir $(GEE_PREFIX)/share/vala/vapi \
+	--vapidir $(JSON_PREFIX)/share/vala-0.32/vapi \
+	--vapidir $(TASKLETSYSTEM_VAPIDIR) \
+	--vapidir $(PTHTASKLET_VAPIDIR) \
 	--pkg glib-2.0 \
 	--pkg gee-0.8 \
 	--pkg tasklet-system \
@@ -358,6 +398,10 @@ test_udpserver_1_SOURCES = \
 	$(NULL)
 
 test_udpserver_1_VALAFLAGS = \
+	--vapidir $(GEE_PREFIX)/share/vala/vapi \
+	--vapidir $(JSON_PREFIX)/share/vala-0.32/vapi \
+	--vapidir $(TASKLETSYSTEM_VAPIDIR) \
+	--vapidir $(PTHTASKLET_VAPIDIR) \
 	--pkg glib-2.0 \
 	--pkg gee-0.8 \
 	--pkg tasklet-system \
@@ -388,6 +432,10 @@ test_udpserver_2_SOURCES = \
 	$(NULL)
 
 test_udpserver_2_VALAFLAGS = \
+	--vapidir $(GEE_PREFIX)/share/vala/vapi \
+	--vapidir $(JSON_PREFIX)/share/vala-0.32/vapi \
+	--vapidir $(TASKLETSYSTEM_VAPIDIR) \
+	--vapidir $(PTHTASKLET_VAPIDIR) \
 	--pkg glib-2.0 \
 	--pkg gee-0.8 \
 	--pkg tasklet-system \

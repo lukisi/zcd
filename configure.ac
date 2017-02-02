@@ -19,9 +19,13 @@ AM_MAINTAINER_MODE([enable])
 
 PKG_CHECK_MODULES([GOBJECT], [gobject-2.0 glib-2.0])
 PKG_CHECK_MODULES([GEE], [gee-0.8])
+PKG_CHECK_VAR([GEE_PREFIX], [gee-0.8], [prefix])
 PKG_CHECK_MODULES([JSON], [json-glib-1.0])
+PKG_CHECK_VAR([JSON_PREFIX], [json-glib-1.0], [prefix])
 PKG_CHECK_MODULES([TASKLETSYSTEM], [tasklet-system])
+PKG_CHECK_VAR([TASKLETSYSTEM_VAPIDIR], [tasklet-system], [vapidir])
 PKG_CHECK_MODULES([PTHTASKLET], [pth-tasklet])
+PKG_CHECK_VAR([PTHTASKLET_VAPIDIR], [pth-tasklet], [vapidir])
 
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_FILES([Makefile zcd.pc])
