@@ -14,3 +14,5 @@ It has some peculiar features:
    node it comes from and to which NIC of the destination node it is sent.
  * It supports the presence of multiple identities on a single node.
 
+
+See documentation at https://github.com/lukisi/documentation
