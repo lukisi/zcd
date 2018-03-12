@@ -199,6 +199,13 @@ namespace SampleRpc
                                 arg""" + @"$(j)" + """ = (int)val;
                                 """);
                                 break;
+                            case "int64":
+                                contents += prettyformat("""
+                                int64 val;
+                                val = read_argument_int64_notnull(args[j]);
+                                arg""" + @"$(j)" + """ = (int)val;
+                                """);
+                                break;
                             case "uint16":
                                 contents += prettyformat("""
                                 int64 val;

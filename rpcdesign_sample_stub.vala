@@ -363,11 +363,13 @@ namespace SampleRpc
                     switch (arg.argclass)
                     {
                         case "int":
+                        case "int64":
                             contents += prettyformat("""
                     args.add(prepare_argument_int64(arg""" + @"$(j)" + """));
                             """);
                             break;
                         case "int?":
+                        case "int64?":
                             contents += prettyformat("""
                     if (arg""" + @"$(j)" + """ != null)
                         args.add(prepare_argument_int64(arg""" + @"$(j)" + """));
