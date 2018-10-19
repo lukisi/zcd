@@ -1,4 +1,9 @@
 zcd.c
+api.c
+tasklet_system.c
+listeners.c
+senders.c
+caller_info.c
 zcd.h
 zcd.vapi
 common_helpers.c

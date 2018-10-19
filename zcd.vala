@@ -1,6 +1,6 @@
 /*
  *  This file is part of Netsukuku.
- *  (c) Copyright 2015 Luca Dionisi aka lukisi <luca.dionisi@gmail.com>
+ *  (c) Copyright 2015-2018 Luca Dionisi aka lukisi <luca.dionisi@gmail.com>
  *
  *  Netsukuku is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -24,17 +24,6 @@ namespace zcd
     internal string get_mac(string iface)
     {
         return macgetter.get_mac(iface);
-    }
-
-    internal ITasklet tasklet;
-
-    public void init_tasklet_system(ITasklet _tasklet)
-    {
-        tasklet = _tasklet;
-    }
-
-    public errordomain ZCDError {
-        GENERIC
     }
 
     internal errordomain RecvMessageError {

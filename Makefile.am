@@ -58,6 +58,11 @@ libmacgetter_la_LIBADD = \
 
 libzcd_la_SOURCES = \
 	zcd.vala \
+	api.vala \
+	tasklet_system.vala \
+	listeners.vala \
+	senders.vala \
+	caller_info.vala \
 	mac-getter/hw.vapi \
 	config.vapi \
 	$(NULL)
@@ -68,7 +73,6 @@ libzcd_la_VALAFLAGS = \
 	--vapidir $(GEE_PREFIX)/share/vala/vapi \
 	--vapidir $(JSON_PREFIX)/share/vala-0.36/vapi \
 	--vapidir $(TASKLETSYSTEM_VAPIDIR) \
-	--vapidir $(PTHTASKLET_VAPIDIR) \
 	--pkg gee-0.8 \
 	--pkg json-glib-1.0 \
 	--pkg tasklet-system \
@@ -102,9 +106,6 @@ rpcdesign_SOURCES =  \
 
 rpcdesign_VALAFLAGS = \
 	--vapidir $(GEE_PREFIX)/share/vala/vapi \
-	--vapidir $(JSON_PREFIX)/share/vala-0.36/vapi \
-	--vapidir $(TASKLETSYSTEM_VAPIDIR) \
-	--vapidir $(PTHTASKLET_VAPIDIR) \
 	--pkg gee-0.8 \
 	$(NULL)
 
