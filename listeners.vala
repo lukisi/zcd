@@ -24,9 +24,11 @@ namespace zcd
     internal class ListenerHandle : Object, IListenerHandle
     {
         private ITaskletHandle th;
-        public ListenerHandle(ITaskletHandle th)
+        private ITaskletSpawnable t;
+        public ListenerHandle(ITaskletHandle th, ITaskletSpawnable t)
         {
             this.th = th;
+            this.t = t;
         }
 
         public void kill()
@@ -40,7 +42,41 @@ namespace zcd
         IStreamDelegate stream_dlg,
         IErrorHandler error_handler)
     {
-        error("not implemented yet");
+        StreamNetListenerTasklet t = new StreamNetListenerTasklet();
+        t.my_ip = my_ip;
+        t.tcp_port = tcp_port;
+        t.stream_dlg = stream_dlg;
+        t.error_handler = error_handler;
+        ITaskletHandle th = tasklet.spawn(t);
+        var ret = new ListenerHandle(th, t);
+        return ret;
+    }
+    internal class StreamNetListenerTasklet : Object, ITaskletSpawnable
+    {
+        public string my_ip;
+        public uint16 tcp_port;
+        public IStreamDelegate stream_dlg;
+        public IErrorHandler error_handler;
+        public void * func()
+        {
+            try {
+                IServerStreamNetworkSocket s = tasklet.get_server_stream_network_socket(my_ip, tcp_port);
+                while (true) {
+                    IConnectedStreamSocket c = s.accept();
+                    StreamNetListener stream_net_listener = new StreamNetListener();
+                    stream_net_listener.my_ip = my_ip;
+                    stream_net_listener.tcp_port = tcp_port;
+                    StreamConnectionHandlerTasklet t = new StreamConnectionHandlerTasklet();
+                    t.c = c;
+                    t.stream_dlg = stream_dlg;
+                    t.listener = stream_net_listener;
+                    tasklet.spawn(t);
+                }
+            } catch (Error e) {
+                err.error_handler(e.copy());
+            }
+            return null;
+        }
     }
 
     public IListenerHandle stream_system_listen(
@@ -48,7 +84,54 @@ namespace zcd
         IStreamDelegate stream_dlg,
         IErrorHandler error_handler)
     {
-        error("not implemented yet");
+        StreamSystemListenerTasklet t = new StreamSystemListenerTasklet();
+        t.listen_pathname;
+        t.stream_dlg = stream_dlg;
+        t.error_handler = error_handler;
+        ITaskletHandle th = tasklet.spawn(t);
+        var ret = new ListenerHandle(th, t);
+        return ret;
+    }
+    internal class StreamSystemListenerTasklet : Object, ITaskletSpawnable
+    {
+        public string listen_pathname;
+        public IStreamDelegate stream_dlg;
+        public IErrorHandler error_handler;
+        public void * func()
+        {
+            try {
+                IServerStreamLocalSocket s = tasklet.get_server_stream_local_socket(listen_pathname);
+                while (true) {
+                    IConnectedStreamSocket c = s.accept();
+                    StreamSystemListener stream_system_listener = new StreamSystemListener();
+                    stream_system_listener.listen_pathname = listen_pathname;
+                    StreamConnectionHandlerTasklet t = new StreamConnectionHandlerTasklet();
+                    t.c = c;
+                    t.stream_dlg = stream_dlg;
+                    t.listener = stream_system_listener;
+                    tasklet.spawn(t);
+                }
+            } catch (Error e) {
+                err.error_handler(e.copy());
+            }
+            return null;
+        }
+    }
+
+    internal class StreamConnectionHandlerTasklet : Object, ITaskletSpawnable
+    {
+        public IConnectedStreamSocket c;
+        public IStreamDelegate stream_dlg;
+
+        /* This class (ITaskletSpawnable) should be usable both for `stream_net_listen` and for `stream_system_listen`.
+        ** That is why we have a generic `Listener` here:
+        **/
+        public Listener listener;
+
+        public void * func()
+        {
+            error("not implemented yet");
+        }
     }
 
     public IListenerHandle datagram_net_listen(
