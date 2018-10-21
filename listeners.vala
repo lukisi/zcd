@@ -24,8 +24,8 @@ namespace zcd
     internal class ListenerHandle : Object, IListenerHandle
     {
         private ITaskletHandle th;
-        private ITaskletSpawnable t;
-        public ListenerHandle(ITaskletHandle th, ITaskletSpawnable t)
+        private IListenerTasklet t;
+        public ListenerHandle(ITaskletHandle th, IListenerTasklet t)
         {
             this.th = th;
             this.t = t;
@@ -33,8 +33,14 @@ namespace zcd
 
         public void kill()
         {
-            error("not implemented yet");
+            th.kill();
+            t.after_kill();
         }
+    }
+
+    internal interface IListenerTasklet : Object, ITaskletSpawnable
+    {
+        public abstract void after_kill();
     }
 
     public IListenerHandle stream_net_listen(
@@ -51,16 +57,23 @@ namespace zcd
         var ret = new ListenerHandle(th, t);
         return ret;
     }
-    internal class StreamNetListenerTasklet : Object, ITaskletSpawnable
+    internal class StreamNetListenerTasklet : Object, IListenerTasklet, ITaskletSpawnable
     {
         public string my_ip;
         public uint16 tcp_port;
         public IStreamDelegate stream_dlg;
         public IErrorHandler error_handler;
+        private IServerStreamNetworkSocket s;
+
+        public StreamNetListenerTasklet()
+        {
+            s = null;
+        }
+
         public void * func()
         {
             try {
-                IServerStreamNetworkSocket s = tasklet.get_server_stream_network_socket(my_ip, tcp_port);
+                s = tasklet.get_server_stream_network_socket(my_ip, tcp_port);
                 while (true) {
                     IConnectedStreamSocket c = s.accept();
                     StreamNetListener stream_net_listener = new StreamNetListener();
@@ -74,8 +87,19 @@ namespace zcd
                 }
             } catch (Error e) {
                 err.error_handler(e.copy());
+                if (s != null) s.close();
+                return null;
             }
-            return null;
+            assert_not_reached();
+            // This function (i.e. the tasklet) will exit after an error (signaled with IErrorHandler)
+            // or for a kill.
+        }
+
+        public void after_kill()
+        {
+            // This function should be called only after killing the tasklet.
+            assert(s != null);
+            s.close();
         }
     }
 
@@ -92,15 +116,22 @@ namespace zcd
         var ret = new ListenerHandle(th, t);
         return ret;
     }
-    internal class StreamSystemListenerTasklet : Object, ITaskletSpawnable
+    internal class StreamSystemListenerTasklet : Object, IListenerTasklet, ITaskletSpawnable
     {
         public string listen_pathname;
         public IStreamDelegate stream_dlg;
         public IErrorHandler error_handler;
+        private IServerStreamLocalSocket s;
+
+        public StreamSystemListenerTasklet()
+        {
+            s = null;
+        }
+
         public void * func()
         {
             try {
-                IServerStreamLocalSocket s = tasklet.get_server_stream_local_socket(listen_pathname);
+                s = tasklet.get_server_stream_local_socket(listen_pathname);
                 while (true) {
                     IConnectedStreamSocket c = s.accept();
                     StreamSystemListener stream_system_listener = new StreamSystemListener();
@@ -113,8 +144,19 @@ namespace zcd
                 }
             } catch (Error e) {
                 err.error_handler(e.copy());
+                if (s != null) s.close();
+                return null;
             }
-            return null;
+            assert_not_reached();
+            // This function (i.e. the tasklet) will exit after an error (signaled with IErrorHandler)
+            // or for a kill.
+        }
+
+        public void after_kill()
+        {
+            // This function should be called only after killing the tasklet.
+            assert(s != null);
+            s.close();
         }
     }
 
@@ -141,6 +183,20 @@ namespace zcd
     {
         error("not implemented yet");
     }
+    internal class DatagramNetListenerTasklet : Object, IListenerTasklet, ITaskletSpawnable
+    {
+        public void * func()
+        {
+            error("not implemented yet");
+        }
+
+        public void after_kill()
+        {
+            // This function should be called only after killing the tasklet.
+            assert(s != null);
+            s.close();
+        }
+    }
 
     internal void send_ack_net(string my_dev, uint16 udp_port, int packet_id, string ack_mac)
     {
@@ -153,6 +209,20 @@ namespace zcd
         IErrorHandler error_handler)
     {
         error("not implemented yet");
+    }
+    internal class DatagramSystemListenerTasklet : Object, IListenerTasklet, ITaskletSpawnable
+    {
+        public void * func()
+        {
+            error("not implemented yet");
+        }
+
+        public void after_kill()
+        {
+            // This function should be called only after killing the tasklet.
+            assert(s != null);
+            s.close();
+        }
     }
 
     internal void send_ack_system(send_pathname, int packet_id, string ack_mac)
