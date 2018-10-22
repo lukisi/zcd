@@ -4,6 +4,8 @@ tasklet_system.c
 listeners.c
 senders.c
 caller_info.c
+connection_protocol.c
+json_handling.c
 zcd.h
 zcd.vapi
 common_helpers.c

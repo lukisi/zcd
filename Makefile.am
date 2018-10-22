@@ -63,6 +63,8 @@ libzcd_la_SOURCES = \
 	listeners.vala \
 	senders.vala \
 	caller_info.vala \
+	connection_protocol.vala \
+	json_handling.vala \
 	mac-getter/hw.vapi \
 	config.vapi \
 	$(NULL)
