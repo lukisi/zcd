@@ -29,11 +29,6 @@ namespace zcd
         GENERIC
     }
 
-    internal bool check_valid_json(string json_tree)
-    {
-        error("not implemented yet");
-    }
-
     internal void build_unicast_request(
         string m_name,
         Gee.List<string> arguments,
@@ -135,13 +130,13 @@ namespace zcd
             Json.Reader r_buf = new Json.Reader(buf_rootnode);
             if (!r_buf.is_object()) throw new MessageError.MALFORMED("root must be an object");
 
-            if (!r_buf.read_member("method-name")) throw new MessageError.MALFORMED("object must have method-name");
+            if (!r_buf.read_member("method-name")) throw new MessageError.MALFORMED("root must have method-name");
             if (!r_buf.is_value()) throw new MessageError.MALFORMED("method-name must be a string");
             if (r_buf.get_value().get_value_type() != typeof(string)) throw new MessageError.MALFORMED("method-name must be a string");
             m_name = r_buf.get_string_value();
             r_buf.end_member();
 
-            if (!r_buf.read_member("arguments")) throw new MessageError.MALFORMED("object must have arguments");
+            if (!r_buf.read_member("arguments")) throw new MessageError.MALFORMED("root must have arguments");
             if (!r_buf.is_array()) throw new MessageError.MALFORMED("arguments must be an array");
             int num_elements = r_buf.count_elements();
             arguments = new ArrayList<string>();
@@ -391,21 +386,23 @@ namespace zcd
             p_buf.load_from_data(json_tree_request);
             unowned Json.Node buf_rootnode = p_buf.get_root();
             Json.Reader r_buf = new Json.Reader(buf_rootnode);
-            if (!r_buf.is_object()) throw new MessageError.MALFORMED("root must be an object");
+            if (!r_buf.is_object()) throw new MessageError.MALFORMED("root.request must be an object");
 
-            if (!r_buf.read_member("packet-id")) throw new MessageError.MALFORMED("root must have packet-id");
-            if (!r_buf.is_value()) throw new MessageError.MALFORMED("packet-id must be a boolean");
-            if (r_buf.get_value().get_value_type() != typeof(bool)) throw new MessageError.MALFORMED("packet-id must be a boolean");
-            packet_id = r_buf.get_boolean_value();
+            if (!r_buf.read_member("packet-id")) throw new MessageError.MALFORMED("root.request must have packet-id");
+            if (!r_buf.is_value()) throw new MessageError.MALFORMED("packet-id must be a int");
+            if (r_buf.get_value().get_value_type() != typeof(int64)) throw new MessageError.MALFORMED("packet-id must be a int");
+            int64 val = r_buf.get_int_value();
+            if (val > int.MAX || val < int.MIN) throw new MessageError.MALFORMED("packet-id overflows size of int");
+            packet_id = (int)val;
             r_buf.end_member();
 
-            if (!r_buf.read_member("method-name")) throw new MessageError.MALFORMED("object must have method-name");
+            if (!r_buf.read_member("method-name")) throw new MessageError.MALFORMED("root.request must have method-name");
             if (!r_buf.is_value()) throw new MessageError.MALFORMED("method-name must be a string");
             if (r_buf.get_value().get_value_type() != typeof(string)) throw new MessageError.MALFORMED("method-name must be a string");
             m_name = r_buf.get_string_value();
             r_buf.end_member();
 
-            if (!r_buf.read_member("arguments")) throw new MessageError.MALFORMED("object must have arguments");
+            if (!r_buf.read_member("arguments")) throw new MessageError.MALFORMED("root.request must have arguments");
             if (!r_buf.is_array()) throw new MessageError.MALFORMED("arguments must be an array");
             int num_elements = r_buf.count_elements();
             arguments = new ArrayList<string>();
@@ -422,28 +419,28 @@ namespace zcd
                 arguments.add(generate_stream(node));
             }
 
-            if (!r_buf.read_member("source-id")) throw new MessageError.MALFORMED("root must have source-id");
+            if (!r_buf.read_member("source-id")) throw new MessageError.MALFORMED("root.request must have source-id");
             if (!r_buf.is_object() && !r_buf.is_array())
                 throw new MessageError.MALFORMED(@"source-id must be a valid JSON tree");
             r_buf.end_member();
             unowned Json.Node node = buf_rootnode.get_object().get_member("source-id");
             source_id = generate_stream(node);
 
-            if (!r_buf.read_member("broadcast-id")) throw new MessageError.MALFORMED("root must have broadcast-id");
+            if (!r_buf.read_member("broadcast-id")) throw new MessageError.MALFORMED("root.request must have broadcast-id");
             if (!r_buf.is_object() && !r_buf.is_array())
                 throw new MessageError.MALFORMED(@"broadcast-id must be a valid JSON tree");
             r_buf.end_member();
             unowned Json.Node node = buf_rootnode.get_object().get_member("broadcast-id");
             broadcast_id = generate_stream(node);
 
-            if (!r_buf.read_member("src-nic")) throw new MessageError.MALFORMED("root must have src-nic");
+            if (!r_buf.read_member("src-nic")) throw new MessageError.MALFORMED("root.request must have src-nic");
             if (!r_buf.is_object() && !r_buf.is_array())
                 throw new MessageError.MALFORMED(@"src-nic must be a valid JSON tree");
             r_buf.end_member();
             unowned Json.Node node = buf_rootnode.get_object().get_member("src-nic");
             src_nic = generate_stream(node);
 
-            if (!r_buf.read_member("send-ack")) throw new MessageError.MALFORMED("root must have send-ack");
+            if (!r_buf.read_member("send-ack")) throw new MessageError.MALFORMED("root.request must have send-ack");
             if (!r_buf.is_value()) throw new MessageError.MALFORMED("send-ack must be a boolean");
             if (r_buf.get_value().get_value_type() != typeof(bool)) throw new MessageError.MALFORMED("send-ack must be a boolean");
             send_ack = r_buf.get_boolean_value();
@@ -457,20 +454,45 @@ namespace zcd
 
     internal void build_broadcast_ack(
         int packet_id,
-        int ack_mac,
+        string ack_mac,
         out string json_tree_ack)
     {
-        error("not implemented yet");
+        Json.Builder b = new Json.Builder();
+        b.begin_object().set_member_name("ack").begin_object();
+            b.set_member_name("packet-id").add_int_value(packet_id);
+            b.set_member_name("ack-mac").add_string_value(ack_mac);
+        b.end_object().end_object();
+        Json.Node node = b.get_root();
+        json_tree_request = generate_stream(node);
     }
 
     internal void parse_broadcast_ack(
         string json_tree_ack,
         out int packet_id,
-        out int ack_mac)
+        out string ack_mac)
         throws MessageError
     {
         try {
-            error("not implemented yet");
+            // The parser must not be freed until we finish with the reader.
+            Json.Parser p_buf = new Json.Parser();
+            p_buf.load_from_data(json_tree_request);
+            unowned Json.Node buf_rootnode = p_buf.get_root();
+            Json.Reader r_buf = new Json.Reader(buf_rootnode);
+            if (!r_buf.is_object()) throw new MessageError.MALFORMED("root.ack must be an object");
+
+            if (!r_buf.read_member("packet-id")) throw new MessageError.MALFORMED("root.ack must have packet-id");
+            if (!r_buf.is_value()) throw new MessageError.MALFORMED("packet-id must be a int");
+            if (r_buf.get_value().get_value_type() != typeof(int64)) throw new MessageError.MALFORMED("packet-id must be a int");
+            int64 val = r_buf.get_int_value();
+            if (val > int.MAX || val < int.MIN) throw new MessageError.MALFORMED("packet-id overflows size of int");
+            packet_id = (int)val;
+            r_buf.end_member();
+
+            if (!r_buf.read_member("ack-mac")) throw new MessageError.MALFORMED("root.ack must have ack-mac");
+            if (!r_buf.is_value()) throw new MessageError.MALFORMED("ack-mac must be a string");
+            if (r_buf.get_value().get_value_type() != typeof(string)) throw new MessageError.MALFORMED("ack-mac must be a string");
+            m_name = r_buf.get_string_value();
+            r_buf.end_member();
         } catch (MessageError e) {
             throw e;
         } catch (Error e) {
