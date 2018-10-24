@@ -111,6 +111,7 @@ test_json_handling_VALAFLAGS = \
 	--vapidir $(PTHTASKLET_VAPIDIR) \
 	--pkg glib-2.0 \
 	--pkg gee-0.8 \
+	--pkg json-glib-1.0 \
 	--pkg tasklet-system \
 	--pkg pth-tasklet \
 	$(NULL)
@@ -119,17 +120,17 @@ test_json_handling_CPPFLAGS = \
 	-w \
 	$(GOBJECT_CFLAGS) \
 	$(GEE_CFLAGS) \
+	$(JSON_CFLAGS) \
 	$(TASKLETSYSTEM_CFLAGS) \
 	$(PTHTASKLET_CFLAGS) \
-	-I$(srcdir) \
 	$(NULL)
 
 test_json_handling_LDADD = \
 	$(GOBJECT_LIBS) \
 	$(GEE_LIBS) \
+	$(JSON_LIBS) \
 	$(TASKLETSYSTEM_LIBS) \
 	$(PTHTASKLET_LIBS) \
-	$(builddir)/libzcd.la \
 	$(NULL)
 
 vapidir = $(datadir)/vala/vapi

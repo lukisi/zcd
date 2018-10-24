@@ -44,8 +44,9 @@ namespace zcd
             b.set_member_name("method-name").add_string_value(m_name);
 
             b.set_member_name("arguments").begin_array();
-                foreach (string arg in arguments)
+                for (int j = 0; j < arguments.size; j++)
                 {
+                    string arg = arguments[j];
                     var p = new Json.Parser();
                     try {
                         p.load_from_data(arg);
@@ -149,30 +150,30 @@ namespace zcd
             r_buf.end_member();
             for (int j = 0; j < num_elements; j++)
             {
-                unowned Json.Node node = buf_rootnode.get_object().get_array_member("arguments").get_element(j);
-                arguments.add(generate_stream(node));
+                unowned Json.Node node1 = buf_rootnode.get_object().get_array_member("arguments").get_element(j);
+                arguments.add(generate_stream(node1));
             }
 
             if (!r_buf.read_member("source-id")) throw new MessageError.MALFORMED("root must have source-id");
             if (!r_buf.is_object() && !r_buf.is_array())
                 throw new MessageError.MALFORMED(@"source-id must be a valid JSON tree");
             r_buf.end_member();
-            unowned Json.Node node = buf_rootnode.get_object().get_member("source-id");
-            source_id = generate_stream(node);
+            unowned Json.Node node2 = buf_rootnode.get_object().get_member("source-id");
+            source_id = generate_stream(node2);
 
             if (!r_buf.read_member("unicast-id")) throw new MessageError.MALFORMED("root must have unicast-id");
             if (!r_buf.is_object() && !r_buf.is_array())
                 throw new MessageError.MALFORMED(@"unicast-id must be a valid JSON tree");
             r_buf.end_member();
-            unowned Json.Node node = buf_rootnode.get_object().get_member("unicast-id");
-            unicast_id = generate_stream(node);
+            unowned Json.Node node3 = buf_rootnode.get_object().get_member("unicast-id");
+            unicast_id = generate_stream(node3);
 
             if (!r_buf.read_member("src-nic")) throw new MessageError.MALFORMED("root must have src-nic");
             if (!r_buf.is_object() && !r_buf.is_array())
                 throw new MessageError.MALFORMED(@"src-nic must be a valid JSON tree");
             r_buf.end_member();
-            unowned Json.Node node = buf_rootnode.get_object().get_member("src-nic");
-            src_nic = generate_stream(node);
+            unowned Json.Node node4 = buf_rootnode.get_object().get_member("src-nic");
+            src_nic = generate_stream(node4);
 
             if (!r_buf.read_member("wait-reply")) throw new MessageError.MALFORMED("root must have wait-reply");
             if (!r_buf.is_value()) throw new MessageError.MALFORMED("wait-reply must be a boolean");
@@ -254,8 +255,9 @@ namespace zcd
             b.set_member_name("method-name").add_string_value(m_name);
 
             b.set_member_name("arguments").begin_array();
-                foreach (string arg in arguments)
+                for (int j = 0; j < arguments.size; j++)
                 {
+                    string arg = arguments[j];
                     var p = new Json.Parser();
                     try {
                         p.load_from_data(arg);
@@ -415,30 +417,30 @@ namespace zcd
             r_buf.end_member();
             for (int j = 0; j < num_elements; j++)
             {
-                unowned Json.Node node = buf_rootnode.get_object().get_array_member("arguments").get_element(j);
-                arguments.add(generate_stream(node));
+                unowned Json.Node node1 = buf_rootnode.get_object().get_array_member("arguments").get_element(j);
+                arguments.add(generate_stream(node1));
             }
 
             if (!r_buf.read_member("source-id")) throw new MessageError.MALFORMED("root.request must have source-id");
             if (!r_buf.is_object() && !r_buf.is_array())
                 throw new MessageError.MALFORMED(@"source-id must be a valid JSON tree");
             r_buf.end_member();
-            unowned Json.Node node = buf_rootnode.get_object().get_member("source-id");
-            source_id = generate_stream(node);
+            unowned Json.Node node2 = buf_rootnode.get_object().get_member("source-id");
+            source_id = generate_stream(node2);
 
             if (!r_buf.read_member("broadcast-id")) throw new MessageError.MALFORMED("root.request must have broadcast-id");
             if (!r_buf.is_object() && !r_buf.is_array())
                 throw new MessageError.MALFORMED(@"broadcast-id must be a valid JSON tree");
             r_buf.end_member();
-            unowned Json.Node node = buf_rootnode.get_object().get_member("broadcast-id");
-            broadcast_id = generate_stream(node);
+            unowned Json.Node node3 = buf_rootnode.get_object().get_member("broadcast-id");
+            broadcast_id = generate_stream(node3);
 
             if (!r_buf.read_member("src-nic")) throw new MessageError.MALFORMED("root.request must have src-nic");
             if (!r_buf.is_object() && !r_buf.is_array())
                 throw new MessageError.MALFORMED(@"src-nic must be a valid JSON tree");
             r_buf.end_member();
-            unowned Json.Node node = buf_rootnode.get_object().get_member("src-nic");
-            src_nic = generate_stream(node);
+            unowned Json.Node node4 = buf_rootnode.get_object().get_member("src-nic");
+            src_nic = generate_stream(node4);
 
             if (!r_buf.read_member("send-ack")) throw new MessageError.MALFORMED("root.request must have send-ack");
             if (!r_buf.is_value()) throw new MessageError.MALFORMED("send-ack must be a boolean");
@@ -463,7 +465,7 @@ namespace zcd
             b.set_member_name("ack-mac").add_string_value(ack_mac);
         b.end_object().end_object();
         Json.Node node = b.get_root();
-        json_tree_request = generate_stream(node);
+        json_tree_ack = generate_stream(node);
     }
 
     internal void parse_broadcast_ack(
@@ -475,7 +477,7 @@ namespace zcd
         try {
             // The parser must not be freed until we finish with the reader.
             Json.Parser p_buf = new Json.Parser();
-            p_buf.load_from_data(json_tree_request);
+            p_buf.load_from_data(json_tree_ack);
             unowned Json.Node buf_rootnode = p_buf.get_root();
             Json.Reader r_buf = new Json.Reader(buf_rootnode);
             if (!r_buf.is_object()) throw new MessageError.MALFORMED("root.ack must be an object");
@@ -491,7 +493,7 @@ namespace zcd
             if (!r_buf.read_member("ack-mac")) throw new MessageError.MALFORMED("root.ack must have ack-mac");
             if (!r_buf.is_value()) throw new MessageError.MALFORMED("ack-mac must be a string");
             if (r_buf.get_value().get_value_type() != typeof(string)) throw new MessageError.MALFORMED("ack-mac must be a string");
-            m_name = r_buf.get_string_value();
+            ack_mac = r_buf.get_string_value();
             r_buf.end_member();
         } catch (MessageError e) {
             throw e;
