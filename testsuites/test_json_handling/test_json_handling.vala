@@ -22,25 +22,28 @@ using zcd;
 
 class OneSource : Object
 {
-    public int i;
+    public int i {get; set;}
 }
 
 class OneDest : Object
 {
-    public int i;
+    public int i {get; set;}
 }
 
 class MultiDest : Object
 {
-    public int i1;
-    public int i2;
-    public int i3;
+    public int i1 {get; set;}
+    public int i2 {get; set;}
+    public int i3 {get; set;}
 }
 
 class Nic : Object
 {
-    public string mac;
+    public string mac {get; set;}
 }
+
+
+
 
 public string prepare_direct_object(Object obj)
 {
@@ -70,6 +73,9 @@ public string prepare_argument_int64(int64 i)
 {
     return prepare_argument(new JsonBuilderInt64(i));
 }
+
+
+
 
 internal interface IJsonBuilderElement : Object {
     public abstract void execute(Json.Builder b);
@@ -106,37 +112,263 @@ internal class JsonBuilderObject : Object, IJsonBuilderElement
     }
 }
 
-void main() {
-    OneSource source_id = new OneSource(); source_id.i = 1;
-    OneDest unicast_id = new OneDest(); unicast_id.i = 2;
-    Nic src_nic = new Nic(); src_nic.mac = "ab:ab:ab:ab:ab:ab";
-    string json_tree_request;
-    try {
-        build_unicast_request(
-            "multiply",
-            new ArrayList<string>.wrap({
-                prepare_argument_int64(12),
-                prepare_argument_int64(42)
-            }),
-            prepare_direct_object(source_id),
-            prepare_direct_object(unicast_id),
-            prepare_direct_object(src_nic),
-            true,
-            out json_tree_request
-            );
-    } catch (InvalidJsonError e) {
-        error(@"InvalidJsonError: $(e.message)");
-    }
-    print(@"ret: '$(json_tree_request)'\n");
+
+
+
+public errordomain HelperDeserializeError {
+    GENERIC
 }
 
-/*
-{
-    "method-name":"multiply",
-    "arguments":[{"argument":12},{"argument":42}],
-    "source-id":{"typename":"OneSource","value":{}},
-    "unicast-id":{"typename":"OneDest","value":{}},
-    "src-nic":{"typename":"Nic","value":{}},
-    "wait-reply":true
+public errordomain HelperNotJsonError {
+    GENERIC
 }
-*/
+
+
+
+internal void read_direct(string js, IJsonReaderElement cb) throws HelperDeserializeError, HelperNotJsonError
+{
+    Json.Parser p = new Json.Parser();
+    try {
+        p.load_from_data(js);
+    } catch (Error e) {
+        throw new HelperNotJsonError.GENERIC(e.message);
+    }
+    Json.Reader r = new Json.Reader(p.get_root());
+    cb.execute(r);
+}
+
+public Object read_direct_object_notnull(Type expected_type, string js) throws HelperDeserializeError, HelperNotJsonError
+{
+    JsonReaderObject cb = new JsonReaderObject(expected_type, false);
+    read_direct(js, cb);
+    assert(cb.ret_ok);
+    return cb.deserialize_or_null(js, (root) => {
+        return root;
+    });
+}
+
+internal void read_argument(string js, IJsonReaderElement cb) throws HelperDeserializeError, HelperNotJsonError
+{
+    Json.Parser p = new Json.Parser();
+    try {
+        p.load_from_data(js);
+    } catch (Error e) {
+        throw new HelperNotJsonError.GENERIC(e.message);
+    }
+    Json.Reader r = new Json.Reader(p.get_root());
+    if (!r.is_object())
+        throw new HelperDeserializeError.GENERIC(@"root JSON node must be an object");
+    if (!r.read_member("argument"))
+        throw new HelperDeserializeError.GENERIC(@"root JSON node must have argument");
+    cb.execute(r);
+    r.end_member();
+}
+
+public int64? read_argument_int64_maybe(string js) throws HelperDeserializeError, HelperNotJsonError
+{
+    return read_argument_int64(js, true);
+}
+
+public int64 read_argument_int64_notnull(string js) throws HelperDeserializeError, HelperNotJsonError
+{
+    return read_argument_int64(js, false);
+}
+
+internal int64? read_argument_int64(string js, bool nullable) throws HelperDeserializeError, HelperNotJsonError
+{
+    JsonReaderInt64 cb = new JsonReaderInt64(nullable);
+    read_argument(js, cb);
+    assert(cb.ret_ok);
+    return cb.ret;
+}
+
+
+
+
+
+internal interface IJsonReaderElement : Object {
+    public abstract void execute(Json.Reader r) throws HelperDeserializeError;
+}
+
+internal class JsonReaderInt64 : Object, IJsonReaderElement
+{
+    public bool ret_ok;
+    public bool nullable;
+    public int64? ret;
+    public JsonReaderInt64(bool nullable) {
+        ret_ok = false;
+        this.nullable = nullable;
+    }
+    public void execute(Json.Reader r) throws HelperDeserializeError {
+        if (r.get_null_value())
+        {
+            if (!nullable)
+                throw new HelperDeserializeError.GENERIC("element is not nullable");
+            ret = null;
+            ret_ok = true;
+            return;
+        }
+        if (!r.is_value())
+            throw new HelperDeserializeError.GENERIC("element must be a int");
+        if (r.get_value().get_value_type() != typeof(int64))
+            throw new HelperDeserializeError.GENERIC("element must be a int");
+        ret = r.get_int_value();
+        ret_ok = true;
+    }
+}
+
+internal delegate unowned Json.Node JsonExecPath(Json.Node root);
+internal class JsonReaderObject : Object, IJsonReaderElement
+{
+    public bool ret_ok;
+    public Type expected_type;
+    public bool nullable;
+    private bool is_null;
+    private Type type;
+    public JsonReaderObject(Type expected_type, bool nullable) {
+        ret_ok = false;
+        this.expected_type = expected_type;
+        this.nullable = nullable;
+    }
+    public void execute(Json.Reader r) throws HelperDeserializeError {
+        if (r.get_null_value())
+        {
+            if (!nullable)
+                throw new HelperDeserializeError.GENERIC("element is not nullable");
+            is_null = true;
+            ret_ok = true;
+            return;
+        }
+        if (!r.is_object())
+            throw new HelperDeserializeError.GENERIC("element must be an object");
+        string typename;
+        if (!r.read_member("typename"))
+            throw new HelperDeserializeError.GENERIC("element must have typename");
+        if (!r.is_value())
+            throw new HelperDeserializeError.GENERIC("typename must be a string");
+        if (r.get_value().get_value_type() != typeof(string))
+            throw new HelperDeserializeError.GENERIC("typename must be a string");
+        typename = r.get_string_value();
+        r.end_member();
+        type = Type.from_name(typename);
+        if (type == 0)
+            throw new HelperDeserializeError.GENERIC(@"typename '$(typename)' unknown class");
+        if (!type.is_a(expected_type))
+            throw new HelperDeserializeError.GENERIC(@"typename '$(typename)' is not a '$(expected_type.name())'");
+        if (!r.read_member("value"))
+            throw new HelperDeserializeError.GENERIC("element must have value");
+        r.end_member();
+        is_null = false;
+        ret_ok = true;
+    }
+    public Object? deserialize_or_null(string js, JsonExecPath exec_path) throws HelperDeserializeError
+    {
+        assert(ret_ok);
+        if (is_null) return null;
+        // find node, copy tree, deserialize
+        Json.Parser p = new Json.Parser();
+        try {
+            p.load_from_data(js);
+        } catch (Error e) {
+            error(@"Parser error: This string should have been already parsed: $(e.message) - '$(js)'");
+        }
+        unowned Json.Node p_root = p.get_root();
+        unowned Json.Node p_value = exec_path(p_root).get_object().get_member("value");
+        Json.Node cp_value = p_value.copy();
+        return Json.gobject_deserialize(type, cp_value);
+    }
+}
+
+
+
+
+
+
+void test_unicast_request()
+{
+    string json_tree_request;
+    {
+        OneSource source_id = new OneSource(); source_id.i = 1;
+        OneDest unicast_id = new OneDest(); unicast_id.i = 2;
+        Nic src_nic = new Nic(); src_nic.mac = "ab:ab:ab:ab:ab:ab";
+        try {
+            build_unicast_request(
+                "multiply",
+                new ArrayList<string>.wrap({
+                    prepare_argument_int64(12),
+                    prepare_argument_int64(42)
+                }),
+                prepare_direct_object(source_id),
+                prepare_direct_object(unicast_id),
+                prepare_direct_object(src_nic),
+                true,
+                out json_tree_request
+                );
+        } catch (InvalidJsonError e) {
+            error(@"InvalidJsonError: $(e.message)");
+        }
+        //print(@"ret: '$(json_tree_request)'\n");
+    }
+
+    {
+        OneSource source_id;
+        OneDest unicast_id;
+        Nic src_nic;
+        int arg0;
+        int arg1;
+        string _source_id;
+        string _unicast_id;
+        string _src_nic;
+        string m_name;
+        Gee.List<string> arguments;
+        bool wait_reply;
+        try {
+            parse_unicast_request(
+                json_tree_request,
+                out m_name,
+                out arguments,
+                out _source_id,
+                out _unicast_id,
+                out _src_nic,
+                out wait_reply);
+        } catch (MessageError e) {
+            error(@"MessageError: $(e.message)");
+        }
+        try {
+            source_id = (OneSource)read_direct_object_notnull(typeof(OneSource), _source_id);
+            unicast_id = (OneDest)read_direct_object_notnull(typeof(OneDest), _unicast_id);
+            src_nic = (Nic)read_direct_object_notnull(typeof(Nic), _src_nic);
+            assert(arguments.size == 2);
+            int64 val = read_argument_int64_notnull(arguments[0]);
+            if (val > int.MAX || val < int.MIN) error("arg0 overflows size of int");
+            arg0 = (int)val;
+            val = read_argument_int64_notnull(arguments[1]);
+            if (val > int.MAX || val < int.MIN) error("arg1 overflows size of int");
+            arg1 = (int)val;
+        } catch (HelperDeserializeError e) {
+            error(@"HelperDeserializeError: $(e.message)");
+        } catch (HelperNotJsonError e) {
+            error(@"HelperNotJsonError: $(e.message)");
+        }
+        assert(source_id.i == 1);
+        assert(unicast_id.i == 2);
+        assert(src_nic.mac == "ab:ab:ab:ab:ab:ab");
+        assert(arg0 == 12);
+        assert(arg1 == 42);
+        assert(m_name == "multiply");
+        assert(wait_reply == true);
+    }
+}
+
+
+
+
+int main(string[] args)
+{
+    GLib.Test.init(ref args);
+    GLib.Test.add_func ("/json_handling/unicast_request", () => {
+        test_unicast_request();
+    });
+    GLib.Test.run();
+    return 0;
+}
