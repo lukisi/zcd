@@ -245,7 +245,7 @@ namespace zcd
         string broadcast_id,
         string src_nic,
         bool send_ack,
-        out string json_tree_request)
+        out string json_tree_packet)
         throws InvalidJsonError
     {
         Json.Builder b = new Json.Builder();
@@ -321,7 +321,7 @@ namespace zcd
             b.set_member_name("send-ack").add_boolean_value(send_ack);
         b.end_object().end_object();
         Json.Node node = b.get_root();
-        json_tree_request = generate_stream(node);
+        json_tree_packet = generate_stream(node);
     }
 
     internal void parse_broadcast_packet(
@@ -457,7 +457,7 @@ namespace zcd
     internal void build_broadcast_ack(
         int packet_id,
         string ack_mac,
-        out string json_tree_ack)
+        out string json_tree_packet)
     {
         Json.Builder b = new Json.Builder();
         b.begin_object().set_member_name("ack").begin_object();
@@ -465,7 +465,7 @@ namespace zcd
             b.set_member_name("ack-mac").add_string_value(ack_mac);
         b.end_object().end_object();
         Json.Node node = b.get_root();
-        json_tree_ack = generate_stream(node);
+        json_tree_packet = generate_stream(node);
     }
 
     internal void parse_broadcast_ack(

@@ -457,6 +457,131 @@ void test_unicast_response()
     }
 }
 
+void test_broadcast_request()
+{
+    string json_tree_packet;
+    {
+        OneSource source_id = new OneSource(); source_id.i = 1;
+        MultiDest broadcast_id = new MultiDest(); broadcast_id.i1 = 1; broadcast_id.i2 = 2; broadcast_id.i3 = 3;
+        Nic src_nic = new Nic(); src_nic.mac = "ab:ab:ab:ab:ab:ab";
+        try {
+            build_broadcast_request(
+                12345,
+                "multiply",
+                new ArrayList<string>.wrap({
+                    prepare_argument_int64(12),
+                    prepare_argument_int64(42)
+                }),
+                prepare_direct_object(source_id),
+                prepare_direct_object(broadcast_id),
+                prepare_direct_object(src_nic),
+                true,
+                out json_tree_packet
+                );
+        } catch (InvalidJsonError e) {
+            error(@"InvalidJsonError: $(e.message)");
+        }
+        //print(@"ret: '$(json_tree_packet)'\n");
+    }
+
+    {
+        OneSource source_id;
+        MultiDest broadcast_id;
+        Nic src_nic;
+        int arg0;
+        int arg1;
+        string _source_id;
+        string _broadcast_id;
+        string _src_nic;
+        int packet_id;
+        string m_name;
+        Gee.List<string> arguments;
+        bool send_ack;
+        try {
+            string? json_tree_request;
+            string? json_tree_ack;
+            parse_broadcast_packet(
+                json_tree_packet,
+                out json_tree_request,
+                out json_tree_ack);
+            assert(json_tree_ack == null);
+            assert(json_tree_request != null);
+            parse_broadcast_request(
+                json_tree_request,
+                out packet_id,
+                out m_name,
+                out arguments,
+                out _source_id,
+                out _broadcast_id,
+                out _src_nic,
+                out send_ack);
+        } catch (MessageError e) {
+            error(@"MessageError: $(e.message)");
+        }
+        try {
+            source_id = (OneSource)read_direct_object_notnull(typeof(OneSource), _source_id);
+            broadcast_id = (MultiDest)read_direct_object_notnull(typeof(MultiDest), _broadcast_id);
+            src_nic = (Nic)read_direct_object_notnull(typeof(Nic), _src_nic);
+            assert(arguments.size == 2);
+            int64 val = read_argument_int64_notnull(arguments[0]);
+            if (val > int.MAX || val < int.MIN) error("arg0 overflows size of int");
+            arg0 = (int)val;
+            val = read_argument_int64_notnull(arguments[1]);
+            if (val > int.MAX || val < int.MIN) error("arg1 overflows size of int");
+            arg1 = (int)val;
+        } catch (HelperDeserializeError e) {
+            error(@"HelperDeserializeError: $(e.message)");
+        } catch (HelperNotJsonError e) {
+            error(@"HelperNotJsonError: $(e.message)");
+        }
+        assert(source_id.i == 1);
+        assert(broadcast_id.i1 == 1);
+        assert(broadcast_id.i2 == 2);
+        assert(broadcast_id.i3 == 3);
+        assert(src_nic.mac == "ab:ab:ab:ab:ab:ab");
+        assert(arg0 == 12);
+        assert(arg1 == 42);
+        assert(m_name == "multiply");
+        assert(send_ack == true);
+    }
+}
+
+void test_broadcast_ack()
+{
+    string json_tree_packet;
+    {
+        build_broadcast_ack(
+            12345,
+            "ab:ab:ab:ab:ab:ab",
+            out json_tree_packet
+            );
+        //print(@"ret: '$(json_tree_packet)'\n");
+    }
+
+    {
+        int packet_id;
+        string ack_mac;
+        try {
+            string? json_tree_request;
+            string? json_tree_ack;
+            parse_broadcast_packet(
+                json_tree_packet,
+                out json_tree_request,
+                out json_tree_ack);
+            assert(json_tree_request == null);
+            assert(json_tree_ack != null);
+            parse_broadcast_ack(
+                json_tree_ack,
+                out packet_id,
+                out ack_mac);
+        } catch (MessageError e) {
+            error(@"MessageError: $(e.message)");
+        }
+        assert(packet_id == 12345);
+        assert(ack_mac == "ab:ab:ab:ab:ab:ab");
+    }
+}
+
 
 
 
@@ -468,6 +593,12 @@ int main(string[] args)
     });
     GLib.Test.add_func ("/json_handling/unicast_response", () => {
         test_unicast_response();
+    });
+    GLib.Test.add_func ("/json_handling/broadcast_request", () => {
+        test_broadcast_request();
+    });
+    GLib.Test.add_func ("/json_handling/broadcast_ack", () => {
+        test_broadcast_ack();
     });
     GLib.Test.run();
     return 0;
