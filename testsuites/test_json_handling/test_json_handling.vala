@@ -74,6 +74,24 @@ public string prepare_argument_int64(int64 i)
     return prepare_argument(new JsonBuilderInt64(i));
 }
 
+internal string prepare_return_value(IJsonBuilderElement cb)
+{
+    var b = new Json.Builder();
+    b.begin_object();
+    b.set_member_name("return-value");
+    cb.execute(b);
+    b.end_object();
+    var g = new Json.Generator();
+    g.pretty = false;
+    g.root = b.get_root();
+    return g.to_data(null);
+}
+
+public string prepare_return_value_int64(int64 i)
+{
+    return prepare_return_value(new JsonBuilderInt64(i));
+}
+
 
 
 
@@ -178,6 +196,44 @@ internal int64? read_argument_int64(string js, bool nullable) throws HelperDeser
 {
     JsonReaderInt64 cb = new JsonReaderInt64(nullable);
     read_argument(js, cb);
+    assert(cb.ret_ok);
+    return cb.ret;
+}
+
+internal void read_return_value(string js, IJsonReaderElement cb) throws HelperDeserializeError, HelperNotJsonError
+{
+    Json.Parser p = new Json.Parser();
+    try {
+        p.load_from_data(js);
+    } catch (Error e) {
+        throw new HelperNotJsonError.GENERIC(e.message);
+    }
+    Json.Reader r = new Json.Reader(p.get_root());
+    if (!r.is_object())
+        throw new HelperDeserializeError.GENERIC(@"root JSON node must be an object");
+    if (!r.read_member("return-value"))
+        throw new HelperDeserializeError.GENERIC(@"root JSON node must have return-value");
+    cb.execute(r);
+    r.end_member();
+}
+
+public int64? read_return_value_int64_maybe(string js)
+    throws HelperDeserializeError, HelperNotJsonError
+{
+    return read_return_value_int64(js, true);
+}
+
+public int64 read_return_value_int64_notnull(string js)
+    throws HelperDeserializeError, HelperNotJsonError
+{
+    return read_return_value_int64(js, false);
+}
+
+internal int64? read_return_value_int64(string js, bool nullable)
+    throws HelperDeserializeError, HelperNotJsonError
+{
+    JsonReaderInt64 cb = new JsonReaderInt64(nullable);
+    read_return_value(js, cb);
     assert(cb.ret_ok);
     return cb.ret;
 }
@@ -360,6 +416,47 @@ void test_unicast_request()
     }
 }
 
+void test_unicast_response()
+{
+    string json_tree_response;
+    {
+        OneSource source_id = new OneSource(); source_id.i = 1;
+        OneDest unicast_id = new OneDest(); unicast_id.i = 2;
+        Nic src_nic = new Nic(); src_nic.mac = "ab:ab:ab:ab:ab:ab";
+        try {
+            build_unicast_response(
+                prepare_return_value_int64(12*42),
+                out json_tree_response
+                );
+        } catch (InvalidJsonError e) {
+            error(@"InvalidJsonError: $(e.message)");
+        }
+        //print(@"ret: '$(json_tree_response)'\n");
+    }
+
+    {
+        string response;
+        int retval;
+        try {
+            parse_unicast_response(
+                json_tree_response,
+                out response);
+        } catch (MessageError e) {
+            error(@"MessageError: $(e.message)");
+        }
+        try {
+            int64 val = read_return_value_int64_notnull(response);
+            if (val > int.MAX || val < int.MIN) error("response overflows size of int");
+            retval = (int)val;
+        } catch (HelperDeserializeError e) {
+            error(@"HelperDeserializeError: $(e.message)");
+        } catch (HelperNotJsonError e) {
+            error(@"HelperNotJsonError: $(e.message)");
+        }
+        assert(retval == 12*42);
+    }
+}
+
 
 
 
@@ -368,6 +465,9 @@ int main(string[] args)
     GLib.Test.init(ref args);
     GLib.Test.add_func ("/json_handling/unicast_request", () => {
         test_unicast_request();
+    });
+    GLib.Test.add_func ("/json_handling/unicast_response", () => {
+        test_unicast_response();
     });
     GLib.Test.run();
     return 0;
