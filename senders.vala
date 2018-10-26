@@ -67,13 +67,13 @@ namespace zcd
         string source_id, string src_nic, string unicast_id,
         string m_name, Gee.List<string> arguments, bool wait_reply) throws ZCDError
     {
+        IConnectedStreamSocket c = null;
         bool try_again = true;
         while (try_again)
         {
             // Get a connection
             try_again = false;
             bool old_socket = false;
-            IConnectedStreamSocket c;
             if (connected_pool.is_empty) {
                 try {
                     c = get_new_connection();
@@ -113,42 +113,43 @@ namespace zcd
                 }
                 else throw new ZCDError.GENERIC(@"send_stream($(key)): Error while writing: $(e.message)");
             }
-
-            // no reply?
-            if (! wait_reply)
-            {
-                connected_pool.add(c);
-                return "";
-            }
-
-            // wait reply
-            // Get one message
-            void *m;
-            size_t s;
-            try {
-                bool got = get_one_message(c, out m, out s);
-                if (!got) throw new ZCDError.GENERIC(@"send_stream($(key)): Connection was closed while waiting reply.");
-            } catch (RecvMessageError e) {
-                throw new ZCDError.GENERIC(@"send_stream($(key)): Error receiving reply: $(e.message)");
-            }
-            unowned uint8[] buf;
-            buf = (uint8[])m;
-            buf.length = (int)s;
-            string json_tree_response = (string)m; // copy
-            free(m);
-
-            // Parse JSON
-            string response;
-            try {
-                parse_unicast_response(
-                    json_tree_response,
-                    out response);
-            } catch (MessageError e) {
-                throw new ZCDError.GENERIC(@"send_stream($(key)): Error parsing JSON of received reply: $(e.message)");
-            }
-            connected_pool.add(c);
-            return response;
         }
+        assert(c != null);
+
+        // no reply?
+        if (! wait_reply)
+        {
+            connected_pool.add(c);
+            return "";
+        }
+
+        // wait reply
+        // Get one message
+        void *m;
+        size_t s;
+        try {
+            bool got = get_one_message(c, out m, out s);
+            if (!got) throw new ZCDError.GENERIC(@"send_stream($(key)): Connection was closed while waiting reply.");
+        } catch (RecvMessageError e) {
+            throw new ZCDError.GENERIC(@"send_stream($(key)): Error receiving reply: $(e.message)");
+        }
+        unowned uint8[] buf;
+        buf = (uint8[])m;
+        buf.length = (int)s;
+        string json_tree_response = (string)m; // copy
+        free(m);
+
+        // Parse JSON
+        string response;
+        try {
+            parse_unicast_response(
+                json_tree_response,
+                out response);
+        } catch (MessageError e) {
+            throw new ZCDError.GENERIC(@"send_stream($(key)): Error parsing JSON of received reply: $(e.message)");
+        }
+        connected_pool.add(c);
+        return response;
     }
 
     public void send_datagram_net(

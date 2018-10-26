@@ -83,8 +83,8 @@ namespace zcd
                     tasklet.spawn(t);
                 }
             } catch (Error e) {
-                err.error_handler(e.copy());
-                if (s != null) s.close();
+                error_handler.error_handler(e.copy());
+                cleanup();
                 return null;
             }
             assert_not_reached();
@@ -96,7 +96,15 @@ namespace zcd
         {
             // This function should be called only after killing the tasklet.
             assert(s != null);
-            s.close();
+            cleanup();
+        }
+
+        private void cleanup()
+        {
+            if (s != null)
+            {
+                try {s.close();} catch (Error e) {}
+            }
         }
     }
 
@@ -138,8 +146,8 @@ namespace zcd
                     tasklet.spawn(t);
                 }
             } catch (Error e) {
-                err.error_handler(e.copy());
-                if (s != null) s.close();
+                error_handler.error_handler(e.copy());
+                cleanup();
                 return null;
             }
             assert_not_reached();
@@ -151,7 +159,15 @@ namespace zcd
         {
             // This function should be called only after killing the tasklet.
             assert(s != null);
-            s.close();
+            cleanup();
+        }
+
+        private void cleanup()
+        {
+            if (s != null)
+            {
+                try {s.close();} catch (Error e) {}
+            }
         }
     }
 
@@ -206,9 +222,9 @@ namespace zcd
                         (string)buf,
                         out m_name,
                         out args,
-                        out _source_id,
-                        out _unicast_id,
-                        out _src_nic,
+                        out source_id,
+                        out unicast_id,
+                        out src_nic,
                         out wait_reply);
                 } catch (MessageError e) {
                     // log message
@@ -315,9 +331,7 @@ namespace zcd
 
         public void after_kill()
         {
-            // This function should be called only after killing the tasklet.
-            assert(s != null);
-            s.close();
+            error("not implemented yet");
         }
     }
 
@@ -342,9 +356,7 @@ namespace zcd
 
         public void after_kill()
         {
-            // This function should be called only after killing the tasklet.
-            assert(s != null);
-            s.close();
+            error("not implemented yet");
         }
     }
 
