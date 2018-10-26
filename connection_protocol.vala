@@ -56,7 +56,9 @@ namespace zcd
 
     internal size_t max_msg_size = 10000000;
 
-    // the caller has to free m.
+    // The caller has to free m if m!=null.
+    // If the connection was closed, we return false and m=null.
+    // If an error is reported, m=null.
     internal bool get_one_message(IConnectedStreamSocket c, out void * m, out size_t s) throws RecvMessageError
     {
         // Get one message

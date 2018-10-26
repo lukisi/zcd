@@ -76,13 +76,10 @@ namespace zcd
                 s = tasklet.get_server_stream_network_socket(my_ip, tcp_port);
                 while (true) {
                     IConnectedStreamSocket c = s.accept();
-                    StreamNetListener stream_net_listener = new StreamNetListener();
-                    stream_net_listener.my_ip = my_ip;
-                    stream_net_listener.tcp_port = tcp_port;
                     StreamConnectionHandlerTasklet t = new StreamConnectionHandlerTasklet();
                     t.c = c;
                     t.stream_dlg = stream_dlg;
-                    t.listener = stream_net_listener;
+                    t.listener = new StreamNetListener(my_ip, tcp_port);
                     tasklet.spawn(t);
                 }
             } catch (Error e) {
@@ -170,9 +167,138 @@ namespace zcd
         **/
         public Listener listener;
 
+        private void *m;
+
         public void * func()
         {
-            error("not implemented yet");
+            m = null;
+            while (true)
+            {
+                if (m != null) free(m);
+                // Get one message
+                void * m;
+                size_t s;
+                try {
+                    bool got = get_one_message(c, out m, out s);
+                    if (!got)
+                    {
+                        // closed normally, terminate tasklet
+                        cleanup();
+                        return null;
+                    }
+                } catch (RecvMessageError e) {
+                    // log message
+                    warning(@"stream_listener: Error receiving message: $(e.message)");
+                    // terminate tasklet
+                    cleanup();
+                    return null;
+                }
+                unowned uint8[] buf;
+                buf = (uint8[])m;
+                buf.length = (int)s;
+
+                // Parse JSON
+                string source_id;
+                string unicast_id;
+                string src_nic;
+                string m_name;
+                Gee.List<string> args;
+                bool wait_reply;
+                try {
+                    parse_unicast_request(
+                        (string)buf,
+                        out m_name,
+                        out args,
+                        out _source_id,
+                        out _unicast_id,
+                        out _src_nic,
+                        out wait_reply);
+                } catch (MessageError e) {
+                    // log message
+                    warning(@"stream_listener: Error parsing JSON of received message: $(e.message)");
+                    // terminate tasklet
+                    cleanup();
+                    return null;
+                }
+
+                StreamCallerInfo caller_info = new StreamCallerInfo(
+                    source_id, src_nic, unicast_id,
+                    m_name, wait_reply, listener);
+                IStreamDispatcher? disp = stream_dlg.get_dispatcher(caller_info);
+                if (disp == null)
+                {
+                    // log message
+                    warning(@"stream_listener: Delegate stream_dlg did not recognize this message.");
+                    // Ignore this msg and terminate tasklet
+                    cleanup();
+                    return null;
+                }
+                if (wait_reply)
+                {
+                    string resp = disp.execute(m_name, args, caller_info);
+                    string json_tree_response;
+                    try {
+                        build_unicast_response(
+                            resp,
+                            out json_tree_response
+                            );
+                    } catch (InvalidJsonError e) {
+                        error(@"stream_listener: Error building JSON from my own result: $(e.message)");
+                    }
+                    // Send response
+                    try {
+                        send_one_message(c, json_tree_response);
+                    } catch (SendMessageError e) {
+                        // log message
+                        warning(@"stream_listener: Error sending JSON of response: $(e.message)");
+                        // terminate tasklet
+                        cleanup();
+                        return null;
+                    }
+                }
+                else
+                {
+                    StreamDispatchTasklet t = new StreamDispatchTasklet(
+                        disp,
+                        m_name,
+                        args,
+                        caller_info);
+                    tasklet.spawn(t);
+                }
+            }
+            // point not_reached
+        }
+
+        private void cleanup()
+        {
+            // close connection
+            try {c.close();} catch (Error e) {}
+            if (m != null) free(m);
+        }
+    }
+    internal class StreamDispatchTasklet : Object, ITaskletSpawnable
+    {
+        public StreamDispatchTasklet(
+            IStreamDispatcher disp,
+            string m_name,
+            Gee.List<string> args,
+            StreamCallerInfo caller_info)
+        {
+            this.disp = disp;
+            this.m_name = m_name;
+            this.args = args;
+            this.caller_info = caller_info;
+        }
+
+        private IStreamDispatcher disp;
+        private string m_name;
+        private Gee.List<string> args;
+        private StreamCallerInfo caller_info;
+
+        public void * func()
+        {
+            disp.execute(m_name, args, caller_info);
+            return null;
         }
     }
 
