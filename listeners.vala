@@ -176,7 +176,6 @@ namespace zcd
             {
                 if (m != null) free(m);
                 // Get one message
-                void * m;
                 size_t s;
                 try {
                     bool got = get_one_message(c, out m, out s);
