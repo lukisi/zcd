@@ -17,7 +17,6 @@
  */
 
 using Gee;
-using TaskletSystem;
 
 namespace zcd
 {
@@ -42,7 +41,7 @@ namespace zcd
 
     public interface IDatagramDispatcher : Object
     {
-        public abstract void execute(string m_name, List<string> args, DatagramCallerInfo caller_info);
+        public abstract void execute(string m_name, Gee.List<string> args, DatagramCallerInfo caller_info);
     }
 
     public interface IDatagramDelegate : Object

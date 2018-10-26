@@ -20,6 +20,7 @@ TESTS = \
 
 check_PROGRAMS = \
 	test_json_handling \
+	test_streams \
 	$(NULL)
 
 libmacgetter_la_SOURCES = \
@@ -107,6 +108,38 @@ test_json_handling_SOURCES = \
 test_json_handling_VALAFLAGS = \
 	--vapidir $(GEE_PREFIX)/share/vala/vapi \
 	--vapidir $(JSON_PREFIX)/share/vala-0.36/vapi \
+	--pkg glib-2.0 \
+	--pkg gee-0.8 \
+	--pkg json-glib-1.0 \
+	$(NULL)
+
+test_json_handling_CPPFLAGS = \
+	-w \
+	$(GOBJECT_CFLAGS) \
+	$(GEE_CFLAGS) \
+	$(JSON_CFLAGS) \
+	$(NULL)
+
+test_json_handling_LDADD = \
+	$(GOBJECT_LIBS) \
+	$(GEE_LIBS) \
+	$(JSON_LIBS) \
+	$(NULL)
+
+test_streams_SOURCES = \
+	testsuites/test_streams/test_streams.vala \
+	testsuites/test_streams/tasklet_system.vala \
+	testsuites/test_streams/api.vala \
+	testsuites/test_streams/caller_info.vala \
+	testsuites/test_streams/json_handling.vala \
+	testsuites/test_streams/connection_protocol.vala \
+	testsuites/test_streams/listeners.vala \
+	testsuites/test_streams/senders.vala \
+	$(NULL)
+
+test_streams_VALAFLAGS = \
+	--vapidir $(GEE_PREFIX)/share/vala/vapi \
+	--vapidir $(JSON_PREFIX)/share/vala-0.36/vapi \
 	--vapidir $(TASKLETSYSTEM_VAPIDIR) \
 	--vapidir $(PTHTASKLET_VAPIDIR) \
 	--pkg glib-2.0 \
@@ -116,7 +149,7 @@ test_json_handling_VALAFLAGS = \
 	--pkg pth-tasklet \
 	$(NULL)
 
-test_json_handling_CPPFLAGS = \
+test_streams_CPPFLAGS = \
 	-w \
 	$(GOBJECT_CFLAGS) \
 	$(GEE_CFLAGS) \
@@ -125,7 +158,7 @@ test_json_handling_CPPFLAGS = \
 	$(PTHTASKLET_CFLAGS) \
 	$(NULL)
 
-test_json_handling_LDADD = \
+test_streams_LDADD = \
 	$(GOBJECT_LIBS) \
 	$(GEE_LIBS) \
 	$(JSON_LIBS) \

@@ -106,7 +106,7 @@ namespace zcd
         IErrorHandler error_handler)
     {
         StreamSystemListenerTasklet t = new StreamSystemListenerTasklet();
-        t.listen_pathname;
+        t.listen_pathname = listen_pathname;
         t.stream_dlg = stream_dlg;
         t.error_handler = error_handler;
         ITaskletHandle th = tasklet.spawn(t);
@@ -131,12 +131,10 @@ namespace zcd
                 s = tasklet.get_server_stream_local_socket(listen_pathname);
                 while (true) {
                     IConnectedStreamSocket c = s.accept();
-                    StreamSystemListener stream_system_listener = new StreamSystemListener();
-                    stream_system_listener.listen_pathname = listen_pathname;
                     StreamConnectionHandlerTasklet t = new StreamConnectionHandlerTasklet();
                     t.c = c;
                     t.stream_dlg = stream_dlg;
-                    t.listener = stream_system_listener;
+                    t.listener = new StreamSystemListener(listen_pathname);
                     tasklet.spawn(t);
                 }
             } catch (Error e) {
@@ -350,7 +348,7 @@ namespace zcd
         }
     }
 
-    internal void send_ack_system(send_pathname, int packet_id, string ack_mac)
+    internal void send_ack_system(string send_pathname, int packet_id, string ack_mac)
     {
         error("not implemented yet");
     }

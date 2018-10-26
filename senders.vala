@@ -21,7 +21,7 @@ using TaskletSystem;
 
 namespace zcd
 {
-    internal HashMap<string, Gee.List<IConnectedStreamSocket> connected_pools;
+    internal HashMap<string, Gee.List<IConnectedStreamSocket>> connected_pools;
     internal delegate IConnectedStreamSocket GetNewConnection() throws Error;
 
     public string send_stream_net(
@@ -30,7 +30,7 @@ namespace zcd
         string m_name, Gee.List<string> arguments, bool wait_reply) throws ZCDError
     {
         // Handle pools of connections.
-        if (connected_pools == null) connected_pools = new HashMap<string, Gee.List<IConnectedStreamSocket>();
+        if (connected_pools == null) connected_pools = new HashMap<string, Gee.List<IConnectedStreamSocket>>();
         string key = @"network_$(peer_ip):$(tcp_port)";
         if (!connected_pools.has_key(key)) connected_pools[key] = new ArrayList<IConnectedStreamSocket>();
         Gee.List<IConnectedStreamSocket> connected_pool = connected_pools[key];
@@ -49,7 +49,7 @@ namespace zcd
         string m_name, Gee.List<string> arguments, bool wait_reply) throws ZCDError
     {
         // Handle pools of connections.
-        if (connected_pools == null) connected_pools = new HashMap<string, Gee.List<IConnectedStreamSocket>();
+        if (connected_pools == null) connected_pools = new HashMap<string, Gee.List<IConnectedStreamSocket>>();
         string key = @"local_$(send_pathname)";
         if (!connected_pools.has_key(key)) connected_pools[key] = new ArrayList<IConnectedStreamSocket>();
         Gee.List<IConnectedStreamSocket> connected_pool = connected_pools[key];
