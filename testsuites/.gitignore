@@ -1,2 +1,4 @@
 test_json_handling.c
 test_streams.c
+party_a.c
+party_b.c

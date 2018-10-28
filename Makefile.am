@@ -128,6 +128,8 @@ test_json_handling_LDADD = \
 
 test_streams_SOURCES = \
 	testsuites/test_streams/test_streams.vala \
+	testsuites/test_streams/party_a.vala \
+	testsuites/test_streams/party_b.vala \
 	testsuites/test_streams/tasklet_system.vala \
 	testsuites/test_streams/api.vala \
 	testsuites/test_streams/caller_info.vala \

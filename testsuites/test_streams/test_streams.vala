@@ -27,5 +27,39 @@ int main(string[] args)
     ITasklet tasklet = PthTaskletImplementer.get_tasklet_system();
     // Pass tasklet system to the ZCD library
     init_tasklet_system(tasklet);
+
+    // start tasklet for party_a
+    PartyATasklet t_a = new PartyATasklet();
+    ITaskletHandle th_a = tasklet.spawn(t_a);
+
+    // start tasklet for party_b
+    PartyBTasklet t_b = new PartyBTasklet();
+    ITaskletHandle th_b = tasklet.spawn(t_b);
+
+    // wait
+    while (true)
+    {
+        tasklet.ms_wait(300);
+        if (! th_a.is_running() && ! th_b.is_running()) break;
+    }
+
     return 0;
+}
+
+class PartyATasklet : Object, ITaskletSpawnable
+{
+    public void * func()
+    {
+        party_a_body();
+        return null;
+    }
+}
+
+class PartyBTasklet : Object, ITaskletSpawnable
+{
+    public void * func()
+    {
+        party_b_body();
+        return null;
+    }
 }
