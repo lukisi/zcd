@@ -57,7 +57,7 @@ namespace zcd
         var ret = new ListenerHandle(th, t);
         return ret;
     }
-    internal class StreamNetListenerTasklet : Object, IListenerTasklet, ITaskletSpawnable
+    internal class StreamNetListenerTasklet : Object, ITaskletSpawnable, IListenerTasklet
     {
         public string my_ip;
         public uint16 tcp_port;
@@ -121,7 +121,7 @@ namespace zcd
         var ret = new ListenerHandle(th, t);
         return ret;
     }
-    internal class StreamSystemListenerTasklet : Object, IListenerTasklet, ITaskletSpawnable
+    internal class StreamSystemListenerTasklet : Object, ITaskletSpawnable, IListenerTasklet
     {
         public string listen_pathname;
         public IStreamDelegate stream_dlg;
@@ -322,7 +322,7 @@ namespace zcd
     {
         error("not implemented yet");
     }
-    internal class DatagramNetListenerTasklet : Object, IListenerTasklet, ITaskletSpawnable
+    internal class DatagramNetListenerTasklet : Object, ITaskletSpawnable, IListenerTasklet
     {
         public void * func()
         {
@@ -347,7 +347,7 @@ namespace zcd
     {
         error("not implemented yet");
     }
-    internal class DatagramSystemListenerTasklet : Object, IListenerTasklet, ITaskletSpawnable
+    internal class DatagramSystemListenerTasklet : Object, ITaskletSpawnable, IListenerTasklet
     {
         public void * func()
         {
