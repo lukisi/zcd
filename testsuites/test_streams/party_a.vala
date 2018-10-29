@@ -58,6 +58,26 @@ class ServerStreamDelegate : Object, IStreamDelegate
         print(@"caller_info.unicast_id = '$(caller_info.unicast_id)'.\n");
         print(@"caller_info.m_name = '$(caller_info.m_name)'.\n");
         print(@"caller_info.wait_reply = $(caller_info.wait_reply ? "TRUE" : "FALSE").\n");
+        // use cases:
+        if (caller_info.m_name == "wrong") return null;
+        if (caller_info.m_name == "void" || caller_info.m_name == "test1") return new ServerStreamDispatcher();
         error("not implemented yet");
+    }
+}
+
+class ServerStreamDispatcher : Object, IStreamDispatcher
+{
+    public string execute(string m_name, Gee.List<string> args, StreamCallerInfo caller_info)
+    {
+        string next = "";
+        print(@"party_a executing $(m_name)(");
+        foreach (string arg in args)
+        {
+            print(@"$(next)'$(arg)'");
+            next = ", ";
+        }
+        print(")\n");
+        if (m_name == "void") return "";
+        return "{}";
     }
 }
