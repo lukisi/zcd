@@ -48,14 +48,15 @@ namespace zcd
                     string arg = arguments[j];
                     var p = new Json.Parser();
                     try {
-                        p.load_from_data(arg);
+                        parse_and_validate(p, arg);
                     } catch (Error e) {
                         throw new InvalidJsonError.GENERIC(
                             @"Error parsing JSON for argument from my own stub: $(e.message)"
                             + @" method-name: $(m_name)"
-                            + @" argument #$(j): $(arg)");
+                            + @" argument #$(j): '$(arg)'");
                     }
                     unowned Json.Node p_rootnode = p.get_root();
+                    assert(p_rootnode != null);
                     Json.Node* cp = p_rootnode.copy();
                     b.add_value(cp);
                 }
@@ -65,13 +66,14 @@ namespace zcd
             {
                 var p = new Json.Parser();
                 try {
-                    p.load_from_data(source_id);
+                    parse_and_validate(p, source_id);
                 } catch (Error e) {
                     throw new InvalidJsonError.GENERIC(
                         @"Error parsing JSON for source_id from my own stub: $(e.message)"
                         + @" string source_id : $(source_id)");
                 }
                 unowned Json.Node p_rootnode = p.get_root();
+                assert(p_rootnode != null);
                 Json.Node* cp = p_rootnode.copy();
                 b.add_value(cp);
             }
@@ -80,13 +82,14 @@ namespace zcd
             {
                 var p = new Json.Parser();
                 try {
-                    p.load_from_data(unicast_id);
+                    parse_and_validate(p, unicast_id);
                 } catch (Error e) {
                     throw new InvalidJsonError.GENERIC(
                         @"Error parsing JSON for unicast_id from my own stub: $(e.message)"
                         + @" string unicast_id : $(unicast_id)");
                 }
                 unowned Json.Node p_rootnode = p.get_root();
+                assert(p_rootnode != null);
                 Json.Node* cp = p_rootnode.copy();
                 b.add_value(cp);
             }
@@ -95,13 +98,14 @@ namespace zcd
             {
                 var p = new Json.Parser();
                 try {
-                    p.load_from_data(src_nic);
+                    parse_and_validate(p, src_nic);
                 } catch (Error e) {
                     throw new InvalidJsonError.GENERIC(
                         @"Error parsing JSON for src_nic from my own stub: $(e.message)"
                         + @" string src_nic : $(src_nic)");
                 }
                 unowned Json.Node p_rootnode = p.get_root();
+                assert(p_rootnode != null);
                 Json.Node* cp = p_rootnode.copy();
                 b.add_value(cp);
             }
@@ -125,8 +129,9 @@ namespace zcd
         try {
             // The parser must not be freed until we finish with the reader.
             Json.Parser p_buf = new Json.Parser();
-            p_buf.load_from_data(json_tree_request);
+            parse_and_validate(p_buf, json_tree_request);
             unowned Json.Node buf_rootnode = p_buf.get_root();
+            assert(buf_rootnode != null);
             Json.Reader r_buf = new Json.Reader(buf_rootnode);
             if (!r_buf.is_object()) throw new MessageError.MALFORMED("root must be an object");
 
@@ -196,13 +201,14 @@ namespace zcd
         b.begin_object();
             b.set_member_name("response");
             try {
-                p.load_from_data(response);
+                parse_and_validate(p, response);
             } catch (Error e) {
                 throw new InvalidJsonError.GENERIC(
                     @"Error parsing JSON for response from my own dispatcher: $(e.message)"
                     + @" response: $(response)");
             }
             unowned Json.Node p_rootnode = p.get_root();
+            assert(p_rootnode != null);
             Json.Node* cp = p_rootnode.copy();
             b.add_value(cp);
         b.end_object();
@@ -217,8 +223,9 @@ namespace zcd
     {
         try {
             Json.Parser p_buf = new Json.Parser();
-            p_buf.load_from_data(json_tree_response);
+            parse_and_validate(p_buf, json_tree_response);
             unowned Json.Node buf_rootnode = p_buf.get_root();
+            assert(buf_rootnode != null);
             Json.Reader r_buf = new Json.Reader(buf_rootnode);
             if (!r_buf.is_object()) throw new MessageError.MALFORMED("root must be an object");
             if (!r_buf.read_member("response")) throw new MessageError.MALFORMED("root must have response");
@@ -259,14 +266,15 @@ namespace zcd
                     string arg = arguments[j];
                     var p = new Json.Parser();
                     try {
-                        p.load_from_data(arg);
+                        parse_and_validate(p, arg);
                     } catch (Error e) {
                         throw new InvalidJsonError.GENERIC(
                             @"Error parsing JSON for argument from my own stub: $(e.message)"
                             + @" method-name: $(m_name)"
-                            + @" argument #$(j): $(arg)");
+                            + @" argument #$(j): '$(arg)'");
                     }
                     unowned Json.Node p_rootnode = p.get_root();
+                    assert(p_rootnode != null);
                     Json.Node* cp = p_rootnode.copy();
                     b.add_value(cp);
                 }
@@ -276,13 +284,14 @@ namespace zcd
             {
                 var p = new Json.Parser();
                 try {
-                    p.load_from_data(source_id);
+                    parse_and_validate(p, source_id);
                 } catch (Error e) {
                     throw new InvalidJsonError.GENERIC(
                         @"Error parsing JSON for source_id from my own stub: $(e.message)"
                         + @" string source_id : $(source_id)");
                 }
                 unowned Json.Node p_rootnode = p.get_root();
+                assert(p_rootnode != null);
                 Json.Node* cp = p_rootnode.copy();
                 b.add_value(cp);
             }
@@ -291,13 +300,14 @@ namespace zcd
             {
                 var p = new Json.Parser();
                 try {
-                    p.load_from_data(broadcast_id);
+                    parse_and_validate(p, broadcast_id);
                 } catch (Error e) {
                     throw new InvalidJsonError.GENERIC(
                         @"Error parsing JSON for broadcast_id from my own stub: $(e.message)"
                         + @" string broadcast_id : $(broadcast_id)");
                 }
                 unowned Json.Node p_rootnode = p.get_root();
+                assert(p_rootnode != null);
                 Json.Node* cp = p_rootnode.copy();
                 b.add_value(cp);
             }
@@ -306,13 +316,14 @@ namespace zcd
             {
                 var p = new Json.Parser();
                 try {
-                    p.load_from_data(src_nic);
+                    parse_and_validate(p, src_nic);
                 } catch (Error e) {
                     throw new InvalidJsonError.GENERIC(
                         @"Error parsing JSON for src_nic from my own stub: $(e.message)"
                         + @" string src_nic : $(src_nic)");
                 }
                 unowned Json.Node p_rootnode = p.get_root();
+                assert(p_rootnode != null);
                 Json.Node* cp = p_rootnode.copy();
                 b.add_value(cp);
             }
@@ -331,8 +342,9 @@ namespace zcd
     {
         try {
             Json.Parser p_buf = new Json.Parser();
-            p_buf.load_from_data(json_tree_packet);
+            parse_and_validate(p_buf, json_tree_packet);
             unowned Json.Node buf_rootnode = p_buf.get_root();
+            assert(buf_rootnode != null);
             Json.Reader r_buf = new Json.Reader(buf_rootnode);
             if (!r_buf.is_object()) throw new MessageError.MALFORMED("root must be an object");
             string[] members = r_buf.list_members();
@@ -384,8 +396,9 @@ namespace zcd
         try {
             // The parser must not be freed until we finish with the reader.
             Json.Parser p_buf = new Json.Parser();
-            p_buf.load_from_data(json_tree_request);
+            parse_and_validate(p_buf, json_tree_request);
             unowned Json.Node buf_rootnode = p_buf.get_root();
+            assert(buf_rootnode != null);
             Json.Reader r_buf = new Json.Reader(buf_rootnode);
             if (!r_buf.is_object()) throw new MessageError.MALFORMED("root.request must be an object");
 
@@ -476,8 +489,9 @@ namespace zcd
         try {
             // The parser must not be freed until we finish with the reader.
             Json.Parser p_buf = new Json.Parser();
-            p_buf.load_from_data(json_tree_ack);
+            parse_and_validate(p_buf, json_tree_ack);
             unowned Json.Node buf_rootnode = p_buf.get_root();
+            assert(buf_rootnode != null);
             Json.Reader r_buf = new Json.Reader(buf_rootnode);
             if (!r_buf.is_object()) throw new MessageError.MALFORMED("root.ack must be an object");
 
@@ -499,6 +513,13 @@ namespace zcd
         } catch (Error e) {
             throw new MessageError.MALFORMED(@"Error parsing json_tree_ack: $(e.message)");
         }
+    }
+
+    internal void parse_and_validate(Json.Parser p, string s) throws Error
+    {
+        p.load_from_data(s);
+        unowned Json.Node p_rootnode = p.get_root();
+        if (p_rootnode == null) throw new IOError.FAILED("null-root");
     }
 
     internal string generate_stream(Json.Node node)
