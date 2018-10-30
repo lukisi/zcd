@@ -27,7 +27,7 @@ void party_a_body() {
     print("party a is listening.\n");
     //
 
-    tasklet.ms_wait(10000);
+    tasklet.ms_wait(3000);
     s.kill();
     print("party a is listening no more.\n");
 }

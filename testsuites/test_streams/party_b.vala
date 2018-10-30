@@ -21,7 +21,7 @@ using zcd;
 using TaskletSystem;
 
 void party_b_body() {
-    tasklet.ms_wait(700);
+    tasklet.ms_wait(300);
     print("party b try and send 'wrong' no-reply.\n");
     try {
         string ret = send_stream_system(
@@ -32,7 +32,7 @@ void party_b_body() {
     } catch (ZCDError e) {
         error(@"ZCDError $(e.message)");
     }
-    tasklet.ms_wait(700);
+    tasklet.ms_wait(300);
     print("party b try and send 'wrong' with-reply.\n");
     try {
         string ret = send_stream_system(
@@ -43,7 +43,7 @@ void party_b_body() {
     } catch (ZCDError e) {
         print(@"Expected ZCDError $(e.message)\n");
     }
-    tasklet.ms_wait(700);
+    tasklet.ms_wait(300);
     print("party b try and send 'void' no-reply.\n");
     try {
         string ret = send_stream_system(
@@ -54,7 +54,7 @@ void party_b_body() {
     } catch (ZCDError e) {
         error(@"ZCDError $(e.message)");
     }
-    tasklet.ms_wait(700);
+    tasklet.ms_wait(300);
     print("party b try and send 'test1' with-reply.\n");
     try {
         string ret = send_stream_system(
