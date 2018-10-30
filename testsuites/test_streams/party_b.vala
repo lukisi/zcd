@@ -35,7 +35,7 @@ void party_b_body() {
     tasklet.ms_wait(300);
     print("party b try and send 'wrong' with-reply.\n");
     try {
-        string ret = send_stream_system(
+        send_stream_system(
             "conn_10_1_1_1",
             "{}", "{}", "{}",
             "wrong", new ArrayList<string>.wrap({"{}", "{}"}), true);

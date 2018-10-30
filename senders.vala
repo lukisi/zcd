@@ -158,7 +158,27 @@ namespace zcd
         string source_id, string src_nic, string broadcast_id,
         string m_name, Gee.List<string> arguments, bool send_ack) throws ZCDError
     {
-        error("not implemented yet");
+        string key = @"network_$(my_dev):$(udp_port)";
+        string json_tree_packet;
+        try {
+            build_broadcast_request(
+                packet_id,
+                m_name,
+                arguments,
+                source_id,
+                broadcast_id,
+                src_nic,
+                send_ack,
+                out json_tree_packet);
+        } catch (InvalidJsonError e) {
+             error(@"send_datagram($(key)): Error building JSON from my own request: $(e.message)");
+        }
+        try {
+            var cs = tasklet.get_client_datagram_network_socket(udp_port, my_dev);
+            cs.sendto(json_tree_packet.data, json_tree_packet.length);
+        } catch (Error e) {
+            throw new ZCDError.GENERIC(@"send_datagram($(key)): Error while writing: $(e.message)");
+        }
     }
 
     public void send_datagram_system(
@@ -167,6 +187,26 @@ namespace zcd
         string source_id, string src_nic, string broadcast_id,
         string m_name, Gee.List<string> arguments, bool send_ack) throws ZCDError
     {
-        error("not implemented yet");
+        string key = @"local_$(send_pathname)";
+        string json_tree_packet;
+        try {
+            build_broadcast_request(
+                packet_id,
+                m_name,
+                arguments,
+                source_id,
+                broadcast_id,
+                src_nic,
+                send_ack,
+                out json_tree_packet);
+        } catch (InvalidJsonError e) {
+             error(@"send_datagram($(key)): Error building JSON from my own request: $(e.message)");
+        }
+        try {
+            var cs = tasklet.get_client_datagram_local_socket(send_pathname);
+            cs.sendto(json_tree_packet.data, json_tree_packet.length);
+        } catch (Error e) {
+            throw new ZCDError.GENERIC(@"send_datagram($(key)): Error while writing: $(e.message)");
+        }
     }
 }
