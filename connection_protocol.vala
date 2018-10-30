@@ -81,15 +81,19 @@ namespace zcd
         {
             try {
                 size_t len = c.recv(b, maxlen);
+                if (len == 0)
+                {
+                    if (no_bytes_read)
+                    {
+                        // normal closing from client, abnormal if from server.
+                        return false;
+                    }
+                    throw new RecvMessageError.GENERIC("4-bytes length is missing");
+                }
                 no_bytes_read = false;
                 maxlen -= len;
                 b += len;
             } catch (Error e) {
-                if (no_bytes_read)
-                {
-                    // normal closing from client, abnormal if from server.
-                    return false;
-                }
                 throw new RecvMessageError.GENERIC(e.message);
             }
         }
@@ -119,6 +123,10 @@ namespace zcd
         {
             try {
                 size_t len = c.recv(b, maxlen);
+                if (len == 0)
+                {
+                    throw new RecvMessageError.GENERIC(@"More bytes (len=$(msglen)) were expected.");
+                }
                 maxlen -= len;
                 b += len;
             } catch (Error e) {
