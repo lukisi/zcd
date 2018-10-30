@@ -136,7 +136,7 @@ namespace zcd
         unowned uint8[] buf;
         buf = (uint8[])m;
         buf.length = (int)s;
-        string json_tree_response = (string)m; // copy
+        string json_tree_response = (string)buf; // copy
         free(m);
 
         // Parse JSON

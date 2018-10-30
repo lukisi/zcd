@@ -63,7 +63,7 @@ namespace zcd
                 unowned uint8[] buf;
                 buf = (uint8[])m;
                 buf.length = (int)s;
-                unowned string msg = (string)m;
+                unowned string msg = (string)buf;
     ** After using msg, the caller has to free m.
     **/
     internal bool get_one_message(IConnectedStreamSocket c, out void * m, out size_t s) throws RecvMessageError
