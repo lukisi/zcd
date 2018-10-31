@@ -22,18 +22,18 @@ using TaskletSystem;
 
 void party_b_body() {
     tasklet.ms_wait(300);
-    print("party b try and send 'wrong' no-reply.\n");
+    if (verbose) print("party b try and send 'wrong' no-reply.\n");
     try {
         string ret = send_stream_system(
             "conn_10_1_1_1",
             "{}", "{}", "{}",
             "wrong", new ArrayList<string>.wrap({"{}", "{}"}), false);
-        print(@"send_stream_system returns '$(ret)'\n");
+        if (verbose) print(@"send_stream_system returns '$(ret)'\n");
     } catch (ZCDError e) {
         error(@"ZCDError $(e.message)");
     }
     tasklet.ms_wait(300);
-    print("party b try and send 'wrong' with-reply.\n");
+    if (verbose) print("party b try and send 'wrong' with-reply.\n");
     try {
         send_stream_system(
             "conn_10_1_1_1",
@@ -41,27 +41,27 @@ void party_b_body() {
             "wrong", new ArrayList<string>.wrap({"{}", "{}"}), true);
         assert_not_reached();
     } catch (ZCDError e) {
-        print(@"Expected ZCDError $(e.message)\n");
+        if (verbose) print(@"Expected ZCDError $(e.message)\n");
     }
     tasklet.ms_wait(300);
-    print("party b try and send 'void' no-reply.\n");
+    if (verbose) print("party b try and send 'void' no-reply.\n");
     try {
         string ret = send_stream_system(
             "conn_10_1_1_1",
             "{}", "{}", "{}",
             "void", new ArrayList<string>.wrap({"{}", "{}"}), false);
-        print(@"send_stream_system returns '$(ret)'\n");
+        if (verbose) print(@"send_stream_system returns '$(ret)'\n");
     } catch (ZCDError e) {
         error(@"ZCDError $(e.message)");
     }
     tasklet.ms_wait(300);
-    print("party b try and send 'test1' with-reply.\n");
+    if (verbose) print("party b try and send 'test1' with-reply.\n");
     try {
         string ret = send_stream_system(
             "conn_10_1_1_1",
             "{}", "{}", "{}",
             "test1", new ArrayList<string>.wrap({"{}", "{}"}), true);
-        print(@"send_stream_system returns '$(ret)'\n");
+        if (verbose) print(@"send_stream_system returns '$(ret)'\n");
     } catch (ZCDError e) {
         error(@"ZCDError $(e.message)");
     }

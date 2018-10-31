@@ -20,8 +20,25 @@ using Gee;
 using zcd;
 using TaskletSystem;
 
+bool verbose;
+
 int main(string[] args)
 {
+    verbose = false; // default
+    OptionContext oc = new OptionContext("<options>");
+    OptionEntry[] entries = new OptionEntry[2];
+    int index = 0;
+    entries[index++] = {"verbose", 'v', 0, OptionArg.NONE, ref verbose, "Be verbose", null};
+    entries[index++] = { null };
+    oc.add_main_entries(entries, null);
+    try {
+        oc.parse(ref args);
+    }
+    catch (OptionError e) {
+        print(@"Error parsing options: $(e.message)\n");
+        return 1;
+    }
+
     // Initialize tasklet system
     PthTaskletImplementer.init();
     ITasklet tasklet = PthTaskletImplementer.get_tasklet_system();
@@ -40,10 +57,16 @@ int main(string[] args)
     while (true)
     {
         tasklet.ms_wait(300);
-        if (! th_a.is_running() && ! th_b.is_running()) break;
+        if (! th_b.is_running())
+        {
+            party_a_cleanup();
+            return 0;
+        }
+        if (! th_a.is_running())
+        {
+            error("test not completed.");
+        }
     }
-
-    return 0;
 }
 
 class PartyATasklet : Object, ITaskletSpawnable

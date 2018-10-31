@@ -20,16 +20,23 @@ using Gee;
 using zcd;
 using TaskletSystem;
 
+IListenerHandle party_a_s;
+
 void party_a_body() {
     IStreamDelegate stream_dlg = new ServerStreamDelegate();
     IErrorHandler error_handler = new ServerErrorHandler("for stream_system_listen conn_10_1_1_1");
-    IListenerHandle s = stream_system_listen("conn_10_1_1_1", stream_dlg, error_handler);
-    print("party a is listening.\n");
+    party_a_s = stream_system_listen("conn_10_1_1_1", stream_dlg, error_handler);
+    if (verbose) print("party a is listening.\n");
     //
 
     tasklet.ms_wait(3000);
-    s.kill();
-    print("party a is listening no more.\n");
+    party_a_s.kill();
+    if (verbose) print("party a has done waiting. :(\n");
+}
+
+void party_a_cleanup() {
+    party_a_s.kill();
+    if (verbose) print("party a has been shut down correctly.\n");
 }
 
 class ServerErrorHandler : Object, IErrorHandler
@@ -52,12 +59,12 @@ class ServerStreamDelegate : Object, IStreamDelegate
     {
         assert(caller_info.listener is StreamSystemListener);
         StreamSystemListener _listener = (StreamSystemListener)caller_info.listener;
-        print(@"_listener.listen_pathname = '$(_listener.listen_pathname)'.\n");
-        print(@"caller_info.source_id = '$(caller_info.source_id)'.\n");
-        print(@"caller_info.src_nic = '$(caller_info.src_nic)'.\n");
-        print(@"caller_info.unicast_id = '$(caller_info.unicast_id)'.\n");
-        print(@"caller_info.m_name = '$(caller_info.m_name)'.\n");
-        print(@"caller_info.wait_reply = $(caller_info.wait_reply ? "TRUE" : "FALSE").\n");
+        if (verbose) print(@"_listener.listen_pathname = '$(_listener.listen_pathname)'.\n");
+        if (verbose) print(@"caller_info.source_id = '$(caller_info.source_id)'.\n");
+        if (verbose) print(@"caller_info.src_nic = '$(caller_info.src_nic)'.\n");
+        if (verbose) print(@"caller_info.unicast_id = '$(caller_info.unicast_id)'.\n");
+        if (verbose) print(@"caller_info.m_name = '$(caller_info.m_name)'.\n");
+        if (verbose) print(@"caller_info.wait_reply = $(caller_info.wait_reply ? "TRUE" : "FALSE").\n");
         // use cases:
         if (caller_info.m_name == "wrong") return null;
         if (caller_info.m_name == "void" || caller_info.m_name == "test1") return new ServerStreamDispatcher();
@@ -70,13 +77,13 @@ class ServerStreamDispatcher : Object, IStreamDispatcher
     public string execute(string m_name, Gee.List<string> args, StreamCallerInfo caller_info)
     {
         string next = "";
-        print(@"party_a executing $(m_name)(");
+        if (verbose) print(@"party_a executing $(m_name)(");
         foreach (string arg in args)
         {
-            print(@"$(next)'$(arg)'");
+            if (verbose) print(@"$(next)'$(arg)'");
             next = ", ";
         }
-        print(")\n");
+        if (verbose) print(")\n");
         if (m_name == "void") return "";
         return "{}";
     }
