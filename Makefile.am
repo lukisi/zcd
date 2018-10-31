@@ -16,11 +16,14 @@ bin_PROGRAMS = \
 
 TESTS = \
 	test_json_handling \
+	test_streams \
 	$(NULL)
 
 check_PROGRAMS = \
 	test_json_handling \
 	test_streams \
+	test_datagrams \
+	radio_domain \
 	$(NULL)
 
 libmacgetter_la_SOURCES = \
@@ -108,7 +111,6 @@ test_json_handling_SOURCES = \
 test_json_handling_VALAFLAGS = \
 	--vapidir $(GEE_PREFIX)/share/vala/vapi \
 	--vapidir $(JSON_PREFIX)/share/vala-0.36/vapi \
-	--pkg glib-2.0 \
 	--pkg gee-0.8 \
 	--pkg json-glib-1.0 \
 	$(NULL)
@@ -144,7 +146,6 @@ test_streams_VALAFLAGS = \
 	--vapidir $(JSON_PREFIX)/share/vala-0.36/vapi \
 	--vapidir $(TASKLETSYSTEM_VAPIDIR) \
 	--vapidir $(PTHTASKLET_VAPIDIR) \
-	--pkg glib-2.0 \
 	--pkg gee-0.8 \
 	--pkg json-glib-1.0 \
 	--pkg tasklet-system \
@@ -166,6 +167,31 @@ test_streams_LDADD = \
 	$(JSON_LIBS) \
 	$(TASKLETSYSTEM_LIBS) \
 	$(PTHTASKLET_LIBS) \
+	$(NULL)
+
+radio_domain_SOURCES = \
+	testsuites/radio_domain/radio_domain.vala \
+	$(NULL)
+
+radio_domain_VALAFLAGS = \
+	--vapidir $(GEE_PREFIX)/share/vala/vapi \
+	--pkg gio-2.0 \
+	--pkg gio-unix-2.0 \
+	--pkg gee-0.8 \
+	--pkg posix \
+	$(NULL)
+
+radio_domain_CPPFLAGS = \
+	-w \
+	$(GOBJECT_CFLAGS) \
+	$(GIO_CFLAGS) \
+	$(GEE_CFLAGS) \
+	$(NULL)
+
+radio_domain_LDADD = \
+	$(GOBJECT_LIBS) \
+	$(GIO_LIBS) \
+	$(GEE_LIBS) \
 	$(NULL)
 
 vapidir = $(datadir)/vala/vapi
