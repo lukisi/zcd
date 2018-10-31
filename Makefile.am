@@ -22,7 +22,9 @@ TESTS = \
 check_PROGRAMS = \
 	test_json_handling \
 	test_streams \
-	test_datagrams \
+	test_datagrams_alpha \
+	test_datagrams_beta \
+	test_datagrams_gamma \
 	radio_domain \
 	$(NULL)
 
@@ -192,6 +194,123 @@ radio_domain_LDADD = \
 	$(GOBJECT_LIBS) \
 	$(GIO_LIBS) \
 	$(GEE_LIBS) \
+	$(NULL)
+
+test_datagrams_alpha_SOURCES = \
+	testsuites/test_datagrams/alpha_main.vala \
+	testsuites/test_datagrams/alpha_tasklet_system.vala \
+	testsuites/test_datagrams/alpha_api.vala \
+	testsuites/test_datagrams/alpha_caller_info.vala \
+	testsuites/test_datagrams/alpha_json_handling.vala \
+	testsuites/test_datagrams/alpha_connection_protocol.vala \
+	testsuites/test_datagrams/alpha_listeners.vala \
+	testsuites/test_datagrams/alpha_senders.vala \
+	$(NULL)
+
+test_datagrams_alpha_VALAFLAGS = \
+	--vapidir $(GEE_PREFIX)/share/vala/vapi \
+	--vapidir $(JSON_PREFIX)/share/vala-0.36/vapi \
+	--vapidir $(TASKLETSYSTEM_VAPIDIR) \
+	--vapidir $(PTHTASKLET_VAPIDIR) \
+	--pkg gee-0.8 \
+	--pkg json-glib-1.0 \
+	--pkg tasklet-system \
+	--pkg pth-tasklet \
+	$(NULL)
+
+test_datagrams_alpha_CPPFLAGS = \
+	-w \
+	$(GOBJECT_CFLAGS) \
+	$(GEE_CFLAGS) \
+	$(JSON_CFLAGS) \
+	$(TASKLETSYSTEM_CFLAGS) \
+	$(PTHTASKLET_CFLAGS) \
+	$(NULL)
+
+test_datagrams_alpha_LDADD = \
+	$(GOBJECT_LIBS) \
+	$(GEE_LIBS) \
+	$(JSON_LIBS) \
+	$(TASKLETSYSTEM_LIBS) \
+	$(PTHTASKLET_LIBS) \
+	$(NULL)
+
+test_datagrams_beta_SOURCES = \
+	testsuites/test_datagrams/beta_main.vala \
+	testsuites/test_datagrams/beta_tasklet_system.vala \
+	testsuites/test_datagrams/beta_api.vala \
+	testsuites/test_datagrams/beta_caller_info.vala \
+	testsuites/test_datagrams/beta_json_handling.vala \
+	testsuites/test_datagrams/beta_connection_protocol.vala \
+	testsuites/test_datagrams/beta_listeners.vala \
+	testsuites/test_datagrams/beta_senders.vala \
+	$(NULL)
+
+test_datagrams_beta_VALAFLAGS = \
+	--vapidir $(GEE_PREFIX)/share/vala/vapi \
+	--vapidir $(JSON_PREFIX)/share/vala-0.36/vapi \
+	--vapidir $(TASKLETSYSTEM_VAPIDIR) \
+	--vapidir $(PTHTASKLET_VAPIDIR) \
+	--pkg gee-0.8 \
+	--pkg json-glib-1.0 \
+	--pkg tasklet-system \
+	--pkg pth-tasklet \
+	$(NULL)
+
+test_datagrams_beta_CPPFLAGS = \
+	-w \
+	$(GOBJECT_CFLAGS) \
+	$(GEE_CFLAGS) \
+	$(JSON_CFLAGS) \
+	$(TASKLETSYSTEM_CFLAGS) \
+	$(PTHTASKLET_CFLAGS) \
+	$(NULL)
+
+test_datagrams_beta_LDADD = \
+	$(GOBJECT_LIBS) \
+	$(GEE_LIBS) \
+	$(JSON_LIBS) \
+	$(TASKLETSYSTEM_LIBS) \
+	$(PTHTASKLET_LIBS) \
+	$(NULL)
+
+test_datagrams_gamma_SOURCES = \
+	testsuites/test_datagrams/gamma_main.vala \
+	testsuites/test_datagrams/gamma_tasklet_system.vala \
+	testsuites/test_datagrams/gamma_api.vala \
+	testsuites/test_datagrams/gamma_caller_info.vala \
+	testsuites/test_datagrams/gamma_json_handling.vala \
+	testsuites/test_datagrams/gamma_connection_protocol.vala \
+	testsuites/test_datagrams/gamma_listeners.vala \
+	testsuites/test_datagrams/gamma_senders.vala \
+	$(NULL)
+
+test_datagrams_gamma_VALAFLAGS = \
+	--vapidir $(GEE_PREFIX)/share/vala/vapi \
+	--vapidir $(JSON_PREFIX)/share/vala-0.36/vapi \
+	--vapidir $(TASKLETSYSTEM_VAPIDIR) \
+	--vapidir $(PTHTASKLET_VAPIDIR) \
+	--pkg gee-0.8 \
+	--pkg json-glib-1.0 \
+	--pkg tasklet-system \
+	--pkg pth-tasklet \
+	$(NULL)
+
+test_datagrams_gamma_CPPFLAGS = \
+	-w \
+	$(GOBJECT_CFLAGS) \
+	$(GEE_CFLAGS) \
+	$(JSON_CFLAGS) \
+	$(TASKLETSYSTEM_CFLAGS) \
+	$(PTHTASKLET_CFLAGS) \
+	$(NULL)
+
+test_datagrams_gamma_LDADD = \
+	$(GOBJECT_LIBS) \
+	$(GEE_LIBS) \
+	$(JSON_LIBS) \
+	$(TASKLETSYSTEM_LIBS) \
+	$(PTHTASKLET_LIBS) \
 	$(NULL)
 
 vapidir = $(datadir)/vala/vapi
