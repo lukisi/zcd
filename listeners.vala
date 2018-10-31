@@ -532,6 +532,7 @@ namespace zcd
                 {
                     SendAckTasklet t = new SendAckTasklet();
                     t.packet_id = packet_id;
+                    t.listener = listener;
                     tasklet.spawn(t);
                 }
                 DatagramCallerInfo caller_info = new DatagramCallerInfo(
