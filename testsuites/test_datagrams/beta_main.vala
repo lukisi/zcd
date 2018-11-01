@@ -82,6 +82,7 @@ int main(string[] args)
 
     // TODO
 
+    tasklet.ms_wait(50);
     listen_s.kill();
     if (verbose) print("I ain't listening anymore.\n");
     return 0;
@@ -146,7 +147,7 @@ class ServerDatagramDispatcher : Object, IDatagramDispatcher
     public void execute(string m_name, Gee.List<string> args, DatagramCallerInfo caller_info)
     {
         string next = "";
-        if (verbose) print(@"party_a executing $(m_name)(");
+        if (verbose) print(@"executing $(m_name)(");
         foreach (string arg in args)
         {
             if (verbose) print(@"$(next)'$(arg)'");

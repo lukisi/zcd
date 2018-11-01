@@ -1,0 +1,40 @@
+#!/bin/bash
+
+# launch proxy demons
+./radio_domain -i 1234_wlan0 -o 567_wlan0 &
+RADIO1_PID=$!
+./radio_domain -o 1234_wlan0 -i 567_wlan0 -o 890_wlan0 &
+RADIO2_PID=$!
+./radio_domain               -o 567_wlan0 -i 890_wlan0 &
+RADIO3_PID=$!
+
+# launch testers
+./test_datagrams_alpha -v > alpha_out.txt &
+TEST_ALPHA_PID=$!
+./test_datagrams_gamma -v > gamma_out.txt &
+TEST_GAMMA_PID=$!
+# beta will signal start, launch it at last
+./test_datagrams_beta -v > beta_out.txt &
+TEST_BETA_PID=$!
+
+# wait for testers and note down their retval
+wait $TEST_ALPHA_PID
+TEST_ALPHA_RET=$?
+echo $TEST_ALPHA_RET >> alpha_out.txt
+wait $TEST_BETA_PID
+TEST_BETA_RET=$?
+echo $TEST_BETA_RET >> beta_out.txt
+wait $TEST_GAMMA_PID
+TEST_GAMMA_RET=$?
+echo $TEST_GAMMA_RET >> gamma_out.txt
+
+# kill proxy demons
+kill $RADIO1_PID
+kill $RADIO2_PID
+kill $RADIO3_PID
+
+# check testers retval
+test $TEST_ALPHA_RET -eq 0 || exit 1
+test $TEST_BETA_RET -eq 0 || exit 2
+test $TEST_GAMMA_RET -eq 0 || exit 3
+
