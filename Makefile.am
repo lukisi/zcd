@@ -6,10 +6,6 @@ lib_LTLIBRARIES = \
 	libzcd.la \
 	$(NULL)
 
-noinst_LTLIBRARIES = \
-	libmacgetter.la \
-	$(NULL)
-
 bin_PROGRAMS = \
 	rpcdesign \
 	$(NULL)
@@ -29,19 +25,7 @@ check_PROGRAMS = \
 	radio_domain \
 	$(NULL)
 
-libmacgetter_la_SOURCES = \
-	mac-getter/hw.c \
-	mac-getter/hw.h \
-	$(NULL)
-
-libmacgetter_la_CPPFLAGS = \
-	$(NULL)
-
-libmacgetter_la_LIBADD = \
-	$(NULL)
-
 libzcd_la_SOURCES = \
-	zcd.vala \
 	api.vala \
 	tasklet_system.vala \
 	listeners.vala \
@@ -49,7 +33,6 @@ libzcd_la_SOURCES = \
 	caller_info.vala \
 	connection_protocol.vala \
 	json_handling.vala \
-	mac-getter/hw.vapi \
 	config.vapi \
 	$(NULL)
 
@@ -77,7 +60,6 @@ libzcd_la_LIBADD = \
 	$(GOBJECT_LIBS) \
 	$(JSON_LIBS) \
 	$(TASKLETSYSTEM_LIBS) \
-	$(builddir)/libmacgetter.la \
 	$(NULL)
 
 rpcdesign_SOURCES =  \
