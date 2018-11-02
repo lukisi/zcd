@@ -17,6 +17,7 @@ bin_PROGRAMS = \
 TESTS = \
 	test_json_handling \
 	test_streams \
+	test_datagrams \
 	$(NULL)
 
 check_PROGRAMS = \
@@ -197,7 +198,8 @@ radio_domain_LDADD = \
 	$(NULL)
 
 test_datagrams_alpha_SOURCES = \
-	testsuites/test_datagrams/alpha_main.vala \
+	testsuites/test_datagrams/alpha_peculiar.vala \
+	testsuites/test_datagrams/alpha_common.vala \
 	testsuites/test_datagrams/alpha_tasklet_system.vala \
 	testsuites/test_datagrams/alpha_api.vala \
 	testsuites/test_datagrams/alpha_caller_info.vala \
@@ -236,7 +238,8 @@ test_datagrams_alpha_LDADD = \
 	$(NULL)
 
 test_datagrams_beta_SOURCES = \
-	testsuites/test_datagrams/beta_main.vala \
+	testsuites/test_datagrams/beta_peculiar.vala \
+	testsuites/test_datagrams/beta_common.vala \
 	testsuites/test_datagrams/beta_tasklet_system.vala \
 	testsuites/test_datagrams/beta_api.vala \
 	testsuites/test_datagrams/beta_caller_info.vala \
@@ -275,7 +278,8 @@ test_datagrams_beta_LDADD = \
 	$(NULL)
 
 test_datagrams_gamma_SOURCES = \
-	testsuites/test_datagrams/gamma_main.vala \
+	testsuites/test_datagrams/gamma_peculiar.vala \
+	testsuites/test_datagrams/gamma_common.vala \
 	testsuites/test_datagrams/gamma_tasklet_system.vala \
 	testsuites/test_datagrams/gamma_api.vala \
 	testsuites/test_datagrams/gamma_caller_info.vala \

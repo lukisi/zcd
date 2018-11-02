@@ -1,4 +1,5 @@
-*_main.c
+*_common.c
+*_peculiar.c
 *_api.c
 *_tasklet_system.c
 *_listeners.c

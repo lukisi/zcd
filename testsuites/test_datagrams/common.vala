@@ -21,8 +21,10 @@ using zcd;
 using TaskletSystem;
 
 bool verbose;
-bool launched;
 IListenerHandle listen_s;
+ArrayList<int> mymsgs;
+int mynextmsgindex;
+ServerDatagramDelegate datagram_dlg;
 
 int main(string[] args)
 {
@@ -47,42 +49,24 @@ int main(string[] args)
     // Pass tasklet system to the ZCD library
     init_tasklet_system(tasklet);
 
-    // Node alpha: pid=1234, I=wlan0
-    string listen_pathname = "recv_1234_wlan0";
-    string send_pathname = "send_1234_wlan0";
-    string ack_mac = "fe:aa:aa:aa:aa:aa";
-    // check listen_pathname does not exist
-    if (FileUtils.test(listen_pathname, FileTest.EXISTS)) error(@"pathname $(listen_pathname) exists.");
+    // check LISTEN_PATHNAME does not exist
+    if (FileUtils.test(LISTEN_PATHNAME, FileTest.EXISTS)) error(@"pathname $(LISTEN_PATHNAME) exists.");
     // IDs for my own messages:
-    ArrayList<int> mymsgs = new ArrayList<int>.wrap(
-        {1234001,1234002,1234003,1234004,1234005,1234006,1234007,1234008,1234009});
-    int mynextmsgindex = 0;
+    mymsgs = new ArrayList<int>();
+    for (int i = 1; i < 10; i++) mymsgs.add(PID*1000+i);
+    mynextmsgindex = 0;
 
-    // start tasklet for listen_pathname
-    ServerDatagramDelegate datagram_dlg = new ServerDatagramDelegate();
-    IErrorHandler error_handler = new ServerErrorHandler(@"for datagram_system_listen $(listen_pathname) $(send_pathname) $(ack_mac)");
-    listen_s = datagram_system_listen(listen_pathname, send_pathname, ack_mac, datagram_dlg, error_handler);
+    // start tasklet for LISTEN_PATHNAME
+    datagram_dlg = new ServerDatagramDelegate();
+    IErrorHandler error_handler = new ServerErrorHandler(@"for datagram_system_listen $(LISTEN_PATHNAME) $(SEND_PATHNAME) $(ACK_MAC)");
+    listen_s = datagram_system_listen(LISTEN_PATHNAME, SEND_PATHNAME, ACK_MAC, datagram_dlg, error_handler);
     if (verbose) print("I am listening.\n");
 
     // start tasklet for timeout error
     tasklet.spawn(new TimeoutTasklet());
 
-    // Behaviour node alpha.
-
-    // wait for "launch()"
-    launched = false;
-    while (! launched) tasklet.ms_wait(5);
-
-    // message: alpha1
-    int packet_id = mymsgs[mynextmsgindex++];
-    datagram_dlg.sending_msg(packet_id);
-    try {
-        send_datagram_system(send_pathname, packet_id,
-            "{}", "{}", "{}",
-            "alpha1", new ArrayList<string>(), true);
-    } catch (ZCDError e) {
-        error(@"alpha_main: alpha1: $(e.message)");
-    }
+    // Behaviour peculiar node.
+    do_peculiar();
 
     tasklet.ms_wait(50);
     listen_s.kill();
@@ -108,8 +92,10 @@ class ServerDatagramDelegate : Object, IDatagramDelegate
 {
     public ServerDatagramDelegate() {
         sent_msgs = new ArrayList<int>();
+        reported_acks = new ArrayList<string>();
     }
     private ArrayList<int> sent_msgs;
+    private ArrayList<string> reported_acks;
 
     public void sending_msg(int id) {
         sent_msgs.add(id);
@@ -123,7 +109,10 @@ class ServerDatagramDelegate : Object, IDatagramDelegate
     public void got_ack(int packet_id, string ack_mac)
     {
         if (packet_id in sent_msgs) {
-            if (verbose) print(@"Got ack for $(packet_id) from $(ack_mac).\n");
+            string reporting_ack = @"$(packet_id) from $(ack_mac)";
+            if (reporting_ack in reported_acks) return;
+            if (verbose) print(@"Got ack for $(reporting_ack).\n");
+            reported_acks.add(reporting_ack);
         }
     }
 
@@ -141,22 +130,6 @@ class ServerDatagramDelegate : Object, IDatagramDelegate
         if (verbose) print(@"caller_info.m_name = '$(caller_info.m_name)'.\n");
         if (verbose) print(@"caller_info.send_ack = $(caller_info.send_ack ? "TRUE" : "FALSE").\n");
         return new ServerDatagramDispatcher();
-    }
-}
-
-class ServerDatagramDispatcher : Object, IDatagramDispatcher
-{
-    public void execute(string m_name, Gee.List<string> args, DatagramCallerInfo caller_info)
-    {
-        string next = "";
-        if (verbose) print(@"executing $(m_name)(");
-        foreach (string arg in args)
-        {
-            if (verbose) print(@"$(next)'$(arg)'");
-            next = ", ";
-        }
-        if (verbose) print(")\n");
-        if (m_name == "launch") launched = true;
     }
 }
 
