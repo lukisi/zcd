@@ -25,6 +25,7 @@ IListenerHandle listen_s;
 ArrayList<int> mymsgs;
 int mynextmsgindex;
 ServerDatagramDelegate datagram_dlg;
+string events;
 
 int main(string[] args)
 {
@@ -61,6 +62,7 @@ int main(string[] args)
     IErrorHandler error_handler = new ServerErrorHandler(@"for datagram_system_listen $(LISTEN_PATHNAME) $(SEND_PATHNAME) $(ACK_MAC)");
     listen_s = datagram_system_listen(LISTEN_PATHNAME, SEND_PATHNAME, ACK_MAC, datagram_dlg, error_handler);
     if (verbose) print("I am listening.\n");
+    events = "";
 
     // start tasklet for timeout error
     tasklet.spawn(new TimeoutTasklet());
@@ -71,6 +73,11 @@ int main(string[] args)
     tasklet.ms_wait(50);
     listen_s.kill();
     if (verbose) print("I ain't listening anymore.\n");
+
+    // Behaviour peculiar node.
+    if (verbose) print(@"events:\n$(events)---------------\n");
+    do_peculiar_check();
+
     return 0;
 }
 
@@ -111,6 +118,7 @@ class ServerDatagramDelegate : Object, IDatagramDelegate
         if (packet_id in sent_msgs) {
             string reporting_ack = @"$(packet_id) from $(ack_mac)";
             if (reporting_ack in reported_acks) return;
+            events += @">ack_$(packet_id)_$(ack_mac)\n";
             if (verbose) print(@"Got ack for $(reporting_ack).\n");
             reported_acks.add(reporting_ack);
         }
@@ -129,6 +137,7 @@ class ServerDatagramDelegate : Object, IDatagramDelegate
         if (verbose) print(@"caller_info.broadcast_id = '$(caller_info.broadcast_id)'.\n");
         if (verbose) print(@"caller_info.m_name = '$(caller_info.m_name)'.\n");
         if (verbose) print(@"caller_info.send_ack = $(caller_info.send_ack ? "TRUE" : "FALSE").\n");
+        events += @">req_$(caller_info.packet_id)_$(caller_info.m_name)\n";
         return new ServerDatagramDispatcher();
     }
 }

@@ -47,6 +47,38 @@ void do_peculiar() {
     tasklet.ms_wait(400);
 }
 
+void do_peculiar_check() {
+    // Implicit check that alpha has been launched.
+    // Check that alpha receives ack from beta for its msg:
+    int i = events.index_of(">ack_1234001_fe:bb:bb:bb:bb:bb\n");
+    assert(i >= 0);
+    // Check that alpha doesn't receive its own req:
+    i = events.index_of(">req_1234001_alpha1\n");
+    assert(i < 0);
+    // Check that alpha doesn't receive req from gamma:
+    i = events.index_of(">req_890001_gamma1\n");
+    assert(i < 0);
+/*
+
+alpha events:
+>req_567001_launch
+>ack_1234001_fe:bb:bb:bb:bb:bb
+---------------
+
+beta events:
+>ack_567001_fe:cc:cc:cc:cc:cc
+>ack_567001_fe:aa:aa:aa:aa:aa
+>req_1234001_alpha1
+>req_890001_gamma1
+---------------
+
+gamma events:
+>req_567001_launch
+---------------
+
+*/
+}
+
 class ServerDatagramDispatcher : Object, IDatagramDispatcher
 {
     public void execute(string m_name, Gee.List<string> args, DatagramCallerInfo caller_info)
