@@ -23,7 +23,7 @@ using TaskletSystem;
 // Node beta: pid=567, I=wlan0
 const int PID = 567;
 const string LISTEN_PATHNAME = "recv_567_wlan0";
-const string ACK_MAC = "fe:bb:bb:bb:bb:bb";
+const string PSEUDOMAC = "fe:bb:bb:bb:bb:bb";
 const string SEND_PATHNAME = "send_567_wlan0";
 
 void do_peculiar() {
@@ -33,7 +33,7 @@ void do_peculiar() {
     datagram_dlg.sending_msg(packet_id);
     try {
         send_datagram_system(SEND_PATHNAME, packet_id,
-            "{}", "{}", "{}",
+            "{}", my_src_nic, "{}",
             "launch", new ArrayList<string>(), true);
     } catch (ZCDError e) {
         error(@"beta_main: launch: $(e.message)");

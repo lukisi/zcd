@@ -468,13 +468,29 @@ namespace zcd
 
     internal void build_broadcast_ack(
         int packet_id,
-        string ack_mac,
+        string src_nic,
         out string json_tree_packet)
+        throws InvalidJsonError
     {
         Json.Builder b = new Json.Builder();
         b.begin_object().set_member_name("ack").begin_object();
             b.set_member_name("packet-id").add_int_value(packet_id);
-            b.set_member_name("ack-mac").add_string_value(ack_mac);
+
+            b.set_member_name("src-nic");
+            {
+                var p = new Json.Parser();
+                try {
+                    parse_and_validate(p, src_nic);
+                } catch (Error e) {
+                    throw new InvalidJsonError.GENERIC(
+                        @"Error parsing JSON for src_nic from my own stub: $(e.message)"
+                        + @" string src_nic : $(src_nic)");
+                }
+                unowned Json.Node p_rootnode = p.get_root();
+                assert(p_rootnode != null);
+                Json.Node* cp = p_rootnode.copy();
+                b.add_value(cp);
+            }
         b.end_object().end_object();
         Json.Node node = b.get_root();
         json_tree_packet = generate_stream(node);
@@ -483,7 +499,7 @@ namespace zcd
     internal void parse_broadcast_ack(
         string json_tree_ack,
         out int packet_id,
-        out string ack_mac)
+        out string src_nic)
         throws MessageError
     {
         try {
@@ -503,11 +519,12 @@ namespace zcd
             packet_id = (int)val;
             r_buf.end_member();
 
-            if (!r_buf.read_member("ack-mac")) throw new MessageError.MALFORMED("root.ack must have ack-mac");
-            if (!r_buf.is_value()) throw new MessageError.MALFORMED("ack-mac must be a string");
-            if (r_buf.get_value().get_value_type() != typeof(string)) throw new MessageError.MALFORMED("ack-mac must be a string");
-            ack_mac = r_buf.get_string_value();
+            if (!r_buf.read_member("src-nic")) throw new MessageError.MALFORMED("root.ack must have src-nic");
+            if (!r_buf.is_object() && !r_buf.is_array())
+                throw new MessageError.MALFORMED(@"src-nic must be a valid JSON tree");
             r_buf.end_member();
+            unowned Json.Node node1 = buf_rootnode.get_object().get_member("src-nic");
+            src_nic = generate_stream(node1);
         } catch (MessageError e) {
             throw e;
         } catch (Error e) {

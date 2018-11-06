@@ -48,7 +48,7 @@ namespace zcd
     {
         public abstract bool is_my_own_message(int packet_id);
         public abstract IDatagramDispatcher? get_dispatcher(DatagramCallerInfo caller_info);
-        public abstract void got_ack(int packet_id, string ack_mac);
+        public abstract void got_ack(int packet_id, string src_nic);
     }
 
     public interface IListenerHandle : Object

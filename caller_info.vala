@@ -113,16 +113,16 @@ namespace zcd
         public DatagramNetListener(
             string my_dev,
             uint16 udp_port,
-            string ack_mac)
+            string src_nic)
         {
             this.my_dev = my_dev;
             this.udp_port = udp_port;
-            this.ack_mac = ack_mac;
+            this.src_nic = src_nic;
         }
 
         public string my_dev {get; private set;}
         public uint16 udp_port {get; private set;}
-        public string ack_mac {get; private set;}
+        public string src_nic {get; private set;}
     }
 
     public class DatagramSystemListener : Listener
@@ -130,15 +130,15 @@ namespace zcd
         public DatagramSystemListener(
             string listen_pathname,
             string send_pathname,
-            string ack_mac)
+            string src_nic)
         {
             this.listen_pathname = listen_pathname;
             this.send_pathname = send_pathname;
-            this.ack_mac = ack_mac;
+            this.src_nic = src_nic;
         }
 
         public string listen_pathname {get; private set;}
         public string send_pathname {get; private set;}
-        public string ack_mac {get; private set;}
+        public string src_nic {get; private set;}
     }
 }

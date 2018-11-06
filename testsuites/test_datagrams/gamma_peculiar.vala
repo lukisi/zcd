@@ -24,13 +24,14 @@ bool launched;
 // Node alpha: pid=890, I=wlan0
 const int PID = 890;
 const string LISTEN_PATHNAME = "recv_890_wlan0";
-const string ACK_MAC = "fe:cc:cc:cc:cc:cc";
+const string PSEUDOMAC = "fe:cc:cc:cc:cc:cc";
 const string SEND_PATHNAME = "send_890_wlan0";
 
 void do_peculiar() {
     // wait for "launch()"
     launched = false;
     while (! launched) tasklet.ms_wait(5);
+    tasklet.ms_wait(100);
 
     // wait 200 ms"
     tasklet.ms_wait(200);
@@ -40,7 +41,7 @@ void do_peculiar() {
     datagram_dlg.sending_msg(packet_id);
     try {
         send_datagram_system(SEND_PATHNAME, packet_id,
-            "{}", "{}", "{}",
+            "{}", my_src_nic, "{}",
             "gamma1", new ArrayList<string>(), false);
     } catch (ZCDError e) {
         error(@"gamma_main: gamma1: $(e.message)");

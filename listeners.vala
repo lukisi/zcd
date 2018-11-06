@@ -318,14 +318,14 @@ namespace zcd
     internal size_t max_pkt_size = 60000;
 
     public IListenerHandle datagram_net_listen(
-        string my_dev, uint16 udp_port, string ack_mac,
+        string my_dev, uint16 udp_port, string src_nic,
         IDatagramDelegate datagram_dlg,
         IErrorHandler error_handler)
     {
         DatagramNetListenerTasklet t = new DatagramNetListenerTasklet();
         t.my_dev = my_dev;
         t.udp_port = udp_port;
-        t.ack_mac = ack_mac;
+        t.src_nic = src_nic;
         t.datagram_dlg = datagram_dlg;
         t.error_handler = error_handler;
         ITaskletHandle th = tasklet.spawn(t);
@@ -336,7 +336,7 @@ namespace zcd
     {
         public string my_dev;
         public uint16 udp_port;
-        public string ack_mac;
+        public string src_nic;
         public IDatagramDelegate datagram_dlg;
         public IErrorHandler error_handler;
         private IServerDatagramNetworkSocket s;
@@ -365,7 +365,7 @@ namespace zcd
                         DatagramPktHandlerTasklet t = new DatagramPktHandlerTasklet();
                         t.msg = msg;
                         t.datagram_dlg = datagram_dlg;
-                        t.listener = new DatagramNetListener(my_dev, udp_port, ack_mac);
+                        t.listener = new DatagramNetListener(my_dev, udp_port, src_nic);
                         tasklet.spawn(t);
                     } catch (Error e) {
                         // log message temporary error
@@ -400,14 +400,14 @@ namespace zcd
     }
 
     public IListenerHandle datagram_system_listen(
-        string listen_pathname, string send_pathname, string ack_mac,
+        string listen_pathname, string send_pathname, string src_nic,
         IDatagramDelegate datagram_dlg,
         IErrorHandler error_handler)
     {
         DatagramSystemListenerTasklet t = new DatagramSystemListenerTasklet();
         t.listen_pathname = listen_pathname;
         t.send_pathname = send_pathname;
-        t.ack_mac = ack_mac;
+        t.src_nic = src_nic;
         t.datagram_dlg = datagram_dlg;
         t.error_handler = error_handler;
         ITaskletHandle th = tasklet.spawn(t);
@@ -418,7 +418,7 @@ namespace zcd
     {
         public string listen_pathname;
         public string send_pathname;
-        public string ack_mac;
+        public string src_nic;
         public IDatagramDelegate datagram_dlg;
         public IErrorHandler error_handler;
         private IServerDatagramLocalSocket s;
@@ -447,7 +447,7 @@ namespace zcd
                         DatagramPktHandlerTasklet t = new DatagramPktHandlerTasklet();
                         t.msg = msg;
                         t.datagram_dlg = datagram_dlg;
-                        t.listener = new DatagramSystemListener(listen_pathname, send_pathname, ack_mac);
+                        t.listener = new DatagramSystemListener(listen_pathname, send_pathname, src_nic);
                         tasklet.spawn(t);
                     } catch (Error e) {
                         // log message temporary error
@@ -556,17 +556,17 @@ namespace zcd
             else if (json_tree_request == null && json_tree_ack != null)
             {
                 int packet_id;
-                string ack_mac;
+                string src_nic;
                 try {
                     parse_broadcast_ack(json_tree_ack,
-                        out packet_id, out ack_mac);
+                        out packet_id, out src_nic);
                 } catch (MessageError e) {
                     // log message
                     warning(@"datagram_listener: Error parsing JSON of received ack: $(e.message)");
                     // terminate tasklet
                     return null;
                 }
-                datagram_dlg.got_ack(packet_id, ack_mac);
+                datagram_dlg.got_ack(packet_id, src_nic);
             }
             else assert_not_reached();
             return null;
@@ -584,12 +584,16 @@ namespace zcd
 
         public void * func()
         {
-            string ack_mac;
-            if (listener is DatagramNetListener) ack_mac = ((DatagramNetListener)listener).ack_mac;
-            else if (listener is DatagramSystemListener) ack_mac = ((DatagramSystemListener)listener).ack_mac;
+            string src_nic;
+            if (listener is DatagramNetListener) src_nic = ((DatagramNetListener)listener).src_nic;
+            else if (listener is DatagramSystemListener) src_nic = ((DatagramSystemListener)listener).src_nic;
             else assert_not_reached();
             string json_tree_packet;
-            build_broadcast_ack(packet_id, ack_mac, out json_tree_packet);
+            try {
+                build_broadcast_ack(packet_id, src_nic, out json_tree_packet);
+            } catch (InvalidJsonError e) {
+                error(@"SendAckTasklet: Error building JSON from my own src_nic: $(e.message)");
+            }
             for (int i = 0; i < 3; i++)
             {
                 if (listener is DatagramNetListener)

@@ -549,17 +549,23 @@ void test_broadcast_ack()
 {
     string json_tree_packet;
     {
-        build_broadcast_ack(
-            12345,
-            "ab:ab:ab:ab:ab:ab",
-            out json_tree_packet
-            );
-        //print(@"ret: '$(json_tree_packet)'\n");
+        try {
+            Nic src_nic = new Nic(); src_nic.mac = "ab:ab:ab:ab:ab:ab";
+            build_broadcast_ack(
+                12345,
+                prepare_direct_object(src_nic),
+                out json_tree_packet
+                );
+            //print(@"ret: '$(json_tree_packet)'\n");
+        } catch (InvalidJsonError e) {
+            error(@"InvalidJsonError: $(e.message)");
+        }
     }
 
     {
+        Nic src_nic;
+        string _src_nic;
         int packet_id;
-        string ack_mac;
         try {
             string? json_tree_request;
             string? json_tree_ack;
@@ -572,12 +578,19 @@ void test_broadcast_ack()
             parse_broadcast_ack(
                 json_tree_ack,
                 out packet_id,
-                out ack_mac);
+                out _src_nic);
         } catch (MessageError e) {
             error(@"MessageError: $(e.message)");
         }
+        try {
+            src_nic = (Nic)read_direct_object_notnull(typeof(Nic), _src_nic);
+        } catch (HelperDeserializeError e) {
+            error(@"HelperDeserializeError: $(e.message)");
+        } catch (HelperNotJsonError e) {
+            error(@"HelperNotJsonError: $(e.message)");
+        }
         assert(packet_id == 12345);
-        assert(ack_mac == "ab:ab:ab:ab:ab:ab");
+        assert(src_nic.mac == "ab:ab:ab:ab:ab:ab");
     }
 }
 
