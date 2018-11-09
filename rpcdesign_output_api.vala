@@ -21,7 +21,48 @@ using Gee;
 void output_api(Gee.List<Root> roots, Gee.List<Exception> errors)
 {
     string contents = prettyformat("""
+using Gee;
 
+namespace SampleRpc
+{
+    public errordomain StubError
+    {
+        DID_NOT_WAIT_REPLY,
+        GENERIC
+    }
+
+    public errordomain DeserializeError
+    {
+        GENERIC
+    }
+
+    public interface IErrorHandler : Object
+    {
+        public abstract void error_handler(Error e);
+    }
+
+    public interface IDelegate : Object
+    {
+    """);
+    foreach (Root r in roots)
+    {
+        contents += prettyformat("""
+        public abstract Gee.List<I""" + @"$(r.rootclass)" + """Skeleton> get_""" + @"$(r.rootname)" + """_set(CallerInfo caller);
+        """);
+    }
+    contents += prettyformat("""
+    }
+
+    public interface IListenerHandle : Object
+    {
+        public abstract void kill();
+    }
+
+    public interface ISerializable : Object
+    {
+        public abstract bool check_deserialization();
+    }
+}
     """);
     write_file("api.vala", contents);
 }

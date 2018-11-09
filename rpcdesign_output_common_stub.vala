@@ -21,7 +21,35 @@ using Gee;
 void output_common_stub(Gee.List<Root> roots, Gee.List<Exception> errors)
 {
     string contents = prettyformat("""
+using Gee;
+using TaskletSystem;
 
+namespace SampleRpc
+{
+    public interface IAckCommunicator : Object
+    {
+        public abstract void process_src_nics_list(Gee.List<string> src_nics_list);
+    }
+
+    internal delegate string FakeRmt(string m_name, Gee.List<string> arguments) throws zcd.ZCDError, StubError;
+
+    internal class NotifyAckTasklet : Object, ITaskletSpawnable
+    {
+        public NotifyAckTasklet(IAckCommunicator notify_ack, IChannel ch)
+        {
+            this.notify_ack = notify_ack;
+            this.ch = ch;
+        }
+        private IAckCommunicator notify_ack;
+        private IChannel ch;
+        public void * func()
+        {
+            ArrayList<string> src_nics_list = (ArrayList<string>)ch.recv();
+            notify_ack.process_src_nics_list(src_nics_list);
+            return null;
+        }
+    }
+}
     """);
     write_file("common_stub.vala", contents);
 }

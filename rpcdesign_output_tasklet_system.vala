@@ -21,7 +21,19 @@ using Gee;
 void output_tasklet_system(Gee.List<Root> roots, Gee.List<Exception> errors)
 {
     string contents = prettyformat("""
+using Gee;
+using TaskletSystem;
 
+namespace SampleRpc
+{
+    internal ITasklet tasklet;
+
+    public void init_tasklet_system(ITasklet _tasklet)
+    {
+        zcd.init_tasklet_system(_tasklet);
+        tasklet = _tasklet;
+    }
+}
     """);
     write_file("tasklet_system.vala", contents);
 }

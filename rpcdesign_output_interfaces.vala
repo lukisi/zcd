@@ -21,7 +21,144 @@ using Gee;
 void output_interfaces(Gee.List<Root> roots, Gee.List<Exception> errors)
 {
     string contents = prettyformat("""
+/*
+interfaces.rpcidl
+==========================================
+    """);
+    string[] lines = read_file("interfaces.rpcidl");
+    contents += string.joinv("\n", lines);
+    contents += prettyformat("""
+==========================================
+ */
 
+using Gee;
+
+namespace SampleRpc
+{
+    """);
+    foreach (Exception exc in errors)
+    {
+        contents += prettyformat(
+@"  public errordomain $(exc.errdomain) {");
+        foreach (string errcode in exc.errcodes)
+        {
+            contents += prettyformat(
+@"      $(errcode),");
+        }
+        contents += prettyformat("""
+    }
+
+        """);
+    }
+    ArrayList<string> classes = new ArrayList<string>();
+    ArrayList<string> interfaces = new ArrayList<string>();
+    foreach (Root r in roots) foreach (ModuleRemote m in r.modules) foreach (Method me in m.methods)
+    {
+        {
+            string ret_s = me.returntype;
+            if (!type_is_basic(ret_s))
+            {
+                ret_s = type_name(ret_s);
+                if (type_is_interface(ret_s))
+                {
+                    if (!(ret_s in interfaces)) interfaces.add(ret_s);
+                }
+                else
+                {
+                    if (!(ret_s in classes)) classes.add(ret_s);
+                }
+            }
+        }
+        foreach (Argument arg in me.args)
+        {
+            string arg_s = arg.argclass;
+
+            if (!type_is_basic(arg_s))
+            {
+                arg_s = type_name(arg_s);
+                if (type_is_interface(arg_s))
+                {
+                    if (!(arg_s in interfaces)) interfaces.add(arg_s);
+                }
+                else
+                {
+                    if (!(arg_s in classes)) classes.add(arg_s);
+                }
+            }
+        }
+    }
+
+    foreach (string i in interfaces)
+    {
+        contents += prettyformat(
+@"  public interface $(i) : Object");
+        contents += prettyformat("""
+    {
+    }
+
+        """);
+    }
+
+    foreach (string c in classes)
+    {
+        contents += prettyformat(
+@"  public class $(c) : Object");
+        contents += prettyformat("""
+    {
+    }
+
+        """);
+    }
+
+    contents += prettyformat("""
+    public interface ISourceID : Object
+    {
+    }
+
+    public interface ISrcNic : Object
+    {
+    }
+
+    public interface IUnicastID : Object
+    {
+    }
+
+    public interface IBroadcastID : Object
+    {
+    }
+}
     """);
     write_file("interfaces.vala", contents);
+}
+
+bool type_is_basic(string s)
+{
+    ArrayList<string> basic = new ArrayList<string>.wrap({
+        "void",
+        "string", "string?", "Gee.List<string>",
+        "bool", "bool?", "Gee.List<bool>",
+        "int", "int?", "Gee.List<int>",
+        "long", "long?", "Gee.List<long>",
+        "int64", "int64?", "Gee.List<int64>",
+        "uint16", "uint16?", "Gee.List<int64>",
+        "double", "double?", "Gee.List<double>",
+        "uint8[]", "uint8[]?", "Gee.List<double>",
+        });
+    return s in basic;
+}
+
+string type_name(owned string s)
+{
+    if (s.has_prefix("Gee.List<"))
+    {
+        assert(s.has_suffix(">"));
+        s = s.substring(9, s.length-10);
+    }
+    if (s.has_suffix("?")) s = s.substring(0, s.length-1);
+    return s;
+}
+
+bool type_is_interface(string s)
+{
+    return (s[0] == 'I' && s[1] >= 'A' && s[1] <= 'Z');
 }
