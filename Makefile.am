@@ -64,12 +64,15 @@ libzcd_la_LIBADD = \
 
 rpcdesign_SOURCES =  \
 	rpcdesign.vala \
-	rpcdesign_common_helpers.vala \
-	rpcdesign_common_skeleton.vala \
-	rpcdesign_common_stub.vala \
-	rpcdesign_sample_interfaces.vala \
-	rpcdesign_sample_skeleton.vala \
-	rpcdesign_sample_stub.vala \
+	rpcdesign_output_api.vala \
+	rpcdesign_output_caller_info.vala \
+	rpcdesign_output_common_helpers.vala \
+	rpcdesign_output_common_skeleton.vala \
+	rpcdesign_output_common_stub.vala \
+	rpcdesign_output_interfaces.vala \
+	rpcdesign_output_tasklet_system.vala \
+	rpcdesign_output_xxx_skeleton.vala \
+	rpcdesign_output_xxx_stub.vala \
 	$(NULL)
 
 rpcdesign_VALAFLAGS = \

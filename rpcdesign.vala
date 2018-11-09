@@ -22,12 +22,16 @@ void main()
 {
     /**
      This program reads file interfaces.rpcidl and creates the following:
-      * common_helpers.vala   
-      * common_skeleton.vala
-      * common_stub.vala
-      * sample_interfaces.vala
-      * sample_skeleton.vala
-      * sample_stub.vala
+      + common_helpers.vala
+      + interfaces.vala
+      + api.vala
+      + caller_info.vala
+      + tasklet_system.vala
+      + common_skeleton.vala
+      + common_stub.vala
+      + for each root-class xxx:
+        + xxx_skeleton.vala
+        + xxx_stub.vala
      Afterwards, you can:
       * Modify main namespace (SampleRpc) in *.vala
       * Create a convenience library with common_helpers.vala
@@ -158,12 +162,18 @@ void main()
             }
         }
     }
-    make_common_helpers(roots, errors);
-    make_common_skeleton(roots, errors);
-    make_common_stub(roots, errors);
-    make_sample_interfaces(roots, errors);
-    make_sample_skeleton(roots, errors);
-    make_sample_stub(roots, errors);
+    output_common_helpers(roots, errors);
+    output_interfaces(roots, errors);
+    output_api(roots, errors);
+    output_caller_info(roots, errors);
+    output_tasklet_system(roots, errors);
+    output_common_skeleton(roots, errors);
+    output_common_stub(roots, errors);
+    foreach (Root r in roots)
+    {
+        output_xxx_skeleton(roots, errors, r.rootname);
+        output_xxx_stub(roots, errors, r.rootname);
+    }
 }
 
 internal Root read_root(owned string line)
