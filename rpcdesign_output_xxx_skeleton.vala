@@ -20,6 +20,18 @@ using Gee;
 
 void output_xxx_skeleton(Root r, Gee.List<Exception> errors)
 {
+    /*
+     * start flow:
+            string contents = prettyformat("""
+     * break flow:
+            """);
+            contents += prettyformat("""
+     * reopen flow:
+            contents += prettyformat("""
+            """);
+     * insert variable:
+            """ + @"$(j)" + """
+    */
     string contents = prettyformat("""
 using Gee;
 using TaskletSystem;
@@ -154,13 +166,9 @@ namespace SampleRpc
     {
         string ret;
     """);
-    // """ + @"$(r.rootclass)" + """
-    // """ + @"$(r.rootname)" + """
     string s_if = "if";
     foreach (ModuleRemote mo in r.modules)
     {
-        // """ + @"$(mo.modclass)" + """
-        // """ + @"$(mo.modname)" + """
         contents += prettyformat("""
         """ + @"$(s_if)" + """ (m_name.has_prefix("""" + @"$(r.rootname)" + """.""" + @"$(mo.modname)" + """."))
         {

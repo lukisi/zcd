@@ -20,82 +20,112 @@ using Gee;
 
 void output_xxx_stub(Root r, Gee.List<Exception> errors)
 {
+    /*
+     * start flow:
+            string contents = prettyformat("""
+     * break flow:
+            """);
+            contents += prettyformat("""
+     * reopen flow:
+            contents += prettyformat("""
+            """);
+     * insert variable:
+            """ + @"$(j)" + """
+    */
     string contents = prettyformat("""
 using Gee;
 using TaskletSystem;
 
 namespace SampleRpc
 {
-    public interface INeighborhoodManagerStub : Object
+    """);
+    foreach (ModuleRemote mo in r.modules)
     {
-        public abstract void here_i_am(INeighborhoodNodeIDMessage my_id, string my_mac, string my_nic_addr) throws StubError, DeserializeError;
-        public abstract bool can_you_export(bool i_can_export) throws StubError, DeserializeError;
-        public abstract void nop() throws StubError, DeserializeError;
+        contents += prettyformat("""
+    public interface I""" + @"$(mo.modclass)" + """Stub : Object
+    {
+        """);
+        foreach (Method me in mo.methods)
+        {
+            string signature = @"$(me.returntype) $(me.name)(";
+            string nextarg = "";
+            foreach (Argument arg in me.args)
+            {
+                signature += @"$(nextarg)$(arg.argclass) $(arg.argname)";
+                nextarg = ", ";
+            }
+            signature += ") throws ";
+            foreach (Exception exc in me.errors)
+            {
+                signature += @"$(exc.errdomain), ";
+            }
+            signature += "StubError, DeserializeError";
+            contents += prettyformat("""
+        public abstract """ + @"$(signature)" + """;
+            """);
+        }
+        contents += prettyformat("""
     }
 
-    public interface IIdentityManagerStub : Object
+        """);
+    }
+    contents += prettyformat("""
+    public interface I""" + @"$(r.rootclass)" + """Stub : Object
     {
-        public abstract IDuplicationData? match_duplication(int migration_id, IIdentityID peer_id, IIdentityID old_id, IIdentityID new_id, string old_id_new_mac, string old_id_new_linklocal) throws StubError, DeserializeError;
+    """);
+    foreach (ModuleRemote mo in r.modules)
+    {
+        contents += prettyformat("""
+        protected abstract unowned I""" + @"$(mo.modclass)" + """Stub """ + @"$(mo.modname)" + """_getter();
+        public I""" + @"$(mo.modclass)" + """Stub """ + @"$(mo.modname)" + """ {get {return """ + @"$(mo.modname)" + """_getter();}}
+        """);
+    }
+    contents += prettyformat("""
     }
 
-    public interface IQspnManagerStub : Object
-    {
-        public abstract IQspnEtpMessage get_full_etp(IQspnAddress requesting_address) throws PippoError, StubError, DeserializeError;
-    }
-
-    public interface INodeStub : Object
-    {
-        protected abstract unowned INeighborhoodManagerStub neighborhood_manager_getter();
-        public INeighborhoodManagerStub neighborhood_manager {get {return neighborhood_manager_getter();}}
-        protected abstract unowned IIdentityManagerStub identity_manager_getter();
-        public IIdentityManagerStub identity_manager {get {return identity_manager_getter();}}
-        protected abstract unowned IQspnManagerStub qspn_manager_getter();
-        public IQspnManagerStub qspn_manager {get {return qspn_manager_getter();}}
-    }
-
-    public INodeStub get_node_stream_net(
+    public I""" + @"$(r.rootclass)" + """Stub get_""" + @"$(r.rootname)" + """_stream_net(
         string peer_ip, uint16 tcp_port,
         ISourceID source_id, IUnicastID unicast_id, ISrcNic src_nic,
         bool wait_reply)
     {
-        return new StreamNetNodeStub(peer_ip, tcp_port,
+        return new StreamNet""" + @"$(r.rootclass)" + """Stub(peer_ip, tcp_port,
             source_id, unicast_id, src_nic,
             wait_reply);
     }
 
-    public INodeStub get_node_stream_system(
+    public I""" + @"$(r.rootclass)" + """Stub get_""" + @"$(r.rootname)" + """_stream_system(
         string send_pathname,
         ISourceID source_id, IUnicastID unicast_id, ISrcNic src_nic,
         bool wait_reply)
     {
-        return new StreamSystemNodeStub(send_pathname,
+        return new StreamSystem""" + @"$(r.rootclass)" + """Stub(send_pathname,
             source_id, unicast_id, src_nic,
             wait_reply);
     }
 
-    public INodeStub get_node_datagram_net(
+    public I""" + @"$(r.rootclass)" + """Stub get_""" + @"$(r.rootname)" + """_datagram_net(
         string my_dev, uint16 udp_port,
         int packet_id,
         ISourceID source_id, IBroadcastID broadcast_id, ISrcNic src_nic,
         SampleRpc.IAckCommunicator? notify_ack=null)
     {
-        return new DatagramNetNodeStub(my_dev, udp_port,
+        return new DatagramNet""" + @"$(r.rootclass)" + """Stub(my_dev, udp_port,
             source_id, broadcast_id, src_nic,
             notify_ack);
     }
 
-    public INodeStub get_node_datagram_system(
+    public I""" + @"$(r.rootclass)" + """Stub get_""" + @"$(r.rootname)" + """_datagram_system(
         string send_pathname,
         int packet_id,
         ISourceID source_id, IBroadcastID broadcast_id, ISrcNic src_nic,
         SampleRpc.IAckCommunicator? notify_ack=null)
     {
-        return new DatagramSystemNodeStub(send_pathname,
+        return new DatagramSystem""" + @"$(r.rootclass)" + """Stub(send_pathname,
             source_id, broadcast_id, src_nic,
             notify_ack);
     }
 
-    internal class StreamNetNodeStub : Object, INodeStub
+    internal class StreamNet""" + @"$(r.rootclass)" + """Stub : Object, I""" + @"$(r.rootclass)" + """Stub
     {
         private string s_source_id;
         private string s_unicast_id;
@@ -103,10 +133,15 @@ namespace SampleRpc
         private string peer_ip;
         private uint16 tcp_port;
         private bool wait_reply;
-        private NeighborhoodManagerRemote _neighborhood_manager;
-        private IdentityManagerRemote _identity_manager;
-        private QspnManagerRemote _qspn_manager;
-        public StreamNetNodeStub(
+    """);
+    foreach (ModuleRemote mo in r.modules)
+    {
+        contents += prettyformat("""
+        private """ + @"$(mo.modclass)" + """Remote _""" + @"$(mo.modname)" + """;
+        """);
+    }
+    contents += prettyformat("""
+        public StreamNet""" + @"$(r.rootclass)" + """Stub(
             string peer_ip, uint16 tcp_port,
             ISourceID source_id, IUnicastID unicast_id, ISrcNic src_nic,
             bool wait_reply)
@@ -117,26 +152,28 @@ namespace SampleRpc
             this.peer_ip = peer_ip;
             this.tcp_port = tcp_port;
             this.wait_reply = wait_reply;
-            _neighborhood_manager = new NeighborhoodManagerRemote(this.call);
-            _identity_manager = new IdentityManagerRemote(this.call);
-            _qspn_manager = new QspnManagerRemote(this.call);
+    """);
+    foreach (ModuleRemote mo in r.modules)
+    {
+        contents += prettyformat("""
+            _""" + @"$(mo.modname)" + """ = new """ + @"$(mo.modclass)" + """Remote(this.call);
+        """);
+    }
+    contents += prettyformat("""
         }
 
-        protected unowned INeighborhoodManagerStub neighborhood_manager_getter()
+    """);
+    foreach (ModuleRemote mo in r.modules)
+    {
+        contents += prettyformat("""
+        protected unowned I""" + @"$(mo.modclass)" + """Stub """ + @"$(mo.modname)" + """_getter()
         {
-            return _neighborhood_manager;
+            return _""" + @"$(mo.modname)" + """;
         }
 
-        protected unowned IIdentityManagerStub identity_manager_getter()
-        {
-            return _identity_manager;
-        }
-
-        protected unowned IQspnManagerStub qspn_manager_getter()
-        {
-            return _qspn_manager;
-        }
-
+        """);
+    }
+    contents += prettyformat("""
         private string call(string m_name, Gee.List<string> arguments) throws zcd.ZCDError, StubError
         {
             string ret =
@@ -149,17 +186,22 @@ namespace SampleRpc
         }
     }
 
-    internal class StreamSystemNodeStub : Object, INodeStub
+    internal class StreamSystem""" + @"$(r.rootclass)" + """Stub : Object, I""" + @"$(r.rootclass)" + """Stub
     {
         private string s_source_id;
         private string s_unicast_id;
         private string s_src_nic;
         private string send_pathname;
         private bool wait_reply;
-        private NeighborhoodManagerRemote _neighborhood_manager;
-        private IdentityManagerRemote _identity_manager;
-        private QspnManagerRemote _qspn_manager;
-        public StreamSystemNodeStub(
+    """);
+    foreach (ModuleRemote mo in r.modules)
+    {
+        contents += prettyformat("""
+        private """ + @"$(mo.modclass)" + """Remote _""" + @"$(mo.modname)" + """;
+        """);
+    }
+    contents += prettyformat("""
+        public StreamSystem""" + @"$(r.rootclass)" + """Stub(
             string send_pathname,
             ISourceID source_id, IUnicastID unicast_id, ISrcNic src_nic,
             bool wait_reply)
@@ -169,26 +211,28 @@ namespace SampleRpc
             s_src_nic = prepare_direct_object(src_nic);
             this.send_pathname = send_pathname;
             this.wait_reply = wait_reply;
-            _neighborhood_manager = new NeighborhoodManagerRemote(this.call);
-            _identity_manager = new IdentityManagerRemote(this.call);
-            _qspn_manager = new QspnManagerRemote(this.call);
+    """);
+    foreach (ModuleRemote mo in r.modules)
+    {
+        contents += prettyformat("""
+            _""" + @"$(mo.modname)" + """ = new """ + @"$(mo.modclass)" + """Remote(this.call);
+        """);
+    }
+    contents += prettyformat("""
         }
 
-        protected unowned INeighborhoodManagerStub neighborhood_manager_getter()
+    """);
+    foreach (ModuleRemote mo in r.modules)
+    {
+        contents += prettyformat("""
+        protected unowned I""" + @"$(mo.modclass)" + """Stub """ + @"$(mo.modname)" + """_getter()
         {
-            return _neighborhood_manager;
+            return _""" + @"$(mo.modname)" + """;
         }
 
-        protected unowned IIdentityManagerStub identity_manager_getter()
-        {
-            return _identity_manager;
-        }
-
-        protected unowned IQspnManagerStub qspn_manager_getter()
-        {
-            return _qspn_manager;
-        }
-
+        """);
+    }
+    contents += prettyformat("""
         private string call(string m_name, Gee.List<string> arguments) throws zcd.ZCDError, StubError
         {
             string ret =
@@ -201,7 +245,7 @@ namespace SampleRpc
         }
     }
 
-    internal class DatagramNetNodeStub : Object, INodeStub
+    internal class DatagramNet""" + @"$(r.rootclass)" + """Stub : Object, I""" + @"$(r.rootclass)" + """Stub
     {
         private string s_source_id;
         private string s_broadcast_id;
@@ -209,10 +253,15 @@ namespace SampleRpc
         private string my_dev;
         private uint16 udp_port;
         private IAckCommunicator? notify_ack;
-        private NeighborhoodManagerRemote _neighborhood_manager;
-        private IdentityManagerRemote _identity_manager;
-        private QspnManagerRemote _qspn_manager;
-        public DatagramNetNodeStub(
+    """);
+    foreach (ModuleRemote mo in r.modules)
+    {
+        contents += prettyformat("""
+        private """ + @"$(mo.modclass)" + """Remote _""" + @"$(mo.modname)" + """;
+        """);
+    }
+    contents += prettyformat("""
+        public DatagramNet""" + @"$(r.rootclass)" + """Stub(
             string my_dev, uint16 udp_port,
             ISourceID source_id, IBroadcastID broadcast_id, ISrcNic src_nic,
             IAckCommunicator? notify_ack=null)
@@ -223,26 +272,28 @@ namespace SampleRpc
             this.my_dev = my_dev;
             this.udp_port = udp_port;
             this.notify_ack = notify_ack;
-            _neighborhood_manager = new NeighborhoodManagerRemote(this.call);
-            _identity_manager = new IdentityManagerRemote(this.call);
-            _qspn_manager = new QspnManagerRemote(this.call);
+    """);
+    foreach (ModuleRemote mo in r.modules)
+    {
+        contents += prettyformat("""
+            _""" + @"$(mo.modname)" + """ = new """ + @"$(mo.modclass)" + """Remote(this.call);
+        """);
+    }
+    contents += prettyformat("""
         }
 
-        protected unowned INeighborhoodManagerStub neighborhood_manager_getter()
+    """);
+    foreach (ModuleRemote mo in r.modules)
+    {
+        contents += prettyformat("""
+        protected unowned I""" + @"$(mo.modclass)" + """Stub """ + @"$(mo.modname)" + """_getter()
         {
-            return _neighborhood_manager;
+            return _""" + @"$(mo.modname)" + """;
         }
 
-        protected unowned IIdentityManagerStub identity_manager_getter()
-        {
-            return _identity_manager;
-        }
-
-        protected unowned IQspnManagerStub qspn_manager_getter()
-        {
-            return _qspn_manager;
-        }
-
+        """);
+    }
+    contents += prettyformat("""
         private string call(string m_name, Gee.List<string> arguments) throws zcd.ZCDError, StubError
         {
             IChannel ch = tasklet.get_channel();
@@ -279,17 +330,22 @@ namespace SampleRpc
         }
     }
 
-    internal class DatagramSystemNodeStub : Object, INodeStub
+    internal class DatagramSystem""" + @"$(r.rootclass)" + """Stub : Object, I""" + @"$(r.rootclass)" + """Stub
     {
         private string s_source_id;
         private string s_broadcast_id;
         private string s_src_nic;
         private string send_pathname;
         private IAckCommunicator? notify_ack;
-        private NeighborhoodManagerRemote _neighborhood_manager;
-        private IdentityManagerRemote _identity_manager;
-        private QspnManagerRemote _qspn_manager;
-        public DatagramSystemNodeStub(
+    """);
+    foreach (ModuleRemote mo in r.modules)
+    {
+        contents += prettyformat("""
+        private """ + @"$(mo.modclass)" + """Remote _""" + @"$(mo.modname)" + """;
+        """);
+    }
+    contents += prettyformat("""
+        public DatagramSystem""" + @"$(r.rootclass)" + """Stub(
             string send_pathname,
             ISourceID source_id, IBroadcastID broadcast_id, ISrcNic src_nic,
             IAckCommunicator? notify_ack=null)
@@ -299,26 +355,28 @@ namespace SampleRpc
             s_src_nic = prepare_direct_object(src_nic);
             this.send_pathname = send_pathname;
             this.notify_ack = notify_ack;
-            _neighborhood_manager = new NeighborhoodManagerRemote(this.call);
-            _identity_manager = new IdentityManagerRemote(this.call);
-            _qspn_manager = new QspnManagerRemote(this.call);
+    """);
+    foreach (ModuleRemote mo in r.modules)
+    {
+        contents += prettyformat("""
+            _""" + @"$(mo.modname)" + """ = new """ + @"$(mo.modclass)" + """Remote(this.call);
+        """);
+    }
+    contents += prettyformat("""
         }
 
-        protected unowned INeighborhoodManagerStub neighborhood_manager_getter()
+    """);
+    foreach (ModuleRemote mo in r.modules)
+    {
+        contents += prettyformat("""
+        protected unowned I""" + @"$(mo.modclass)" + """Stub """ + @"$(mo.modname)" + """_getter()
         {
-            return _neighborhood_manager;
+            return _""" + @"$(mo.modname)" + """;
         }
 
-        protected unowned IIdentityManagerStub identity_manager_getter()
-        {
-            return _identity_manager;
-        }
-
-        protected unowned IQspnManagerStub qspn_manager_getter()
-        {
-            return _qspn_manager;
-        }
-
+        """);
+    }
+    contents += prettyformat("""
         private string call(string m_name, Gee.List<string> arguments) throws zcd.ZCDError, StubError
         {
             IChannel ch = tasklet.get_channel();
@@ -354,31 +412,145 @@ namespace SampleRpc
             throw new StubError.DID_NOT_WAIT_REPLY(@"Didn't wait reply for a call to $(m_name)");
         }
     }
+    """);
+    foreach (ModuleRemote mo in r.modules)
+    {
+        contents += prettyformat("""
 
-    internal class NeighborhoodManagerRemote : Object, INeighborhoodManagerStub
+    internal class """ + @"$(mo.modclass)" + """Remote : Object, I""" + @"$(mo.modclass)" + """Stub
     {
         private unowned FakeRmt rmt;
-        public NeighborhoodManagerRemote(FakeRmt rmt)
+        public """ + @"$(mo.modclass)" + """Remote(FakeRmt rmt)
         {
             this.rmt = rmt;
         }
-
-        public void here_i_am(INeighborhoodNodeIDMessage arg0, string arg1, string arg2) throws StubError, DeserializeError
+        """);
+        foreach (Method me in mo.methods)
         {
-            string m_name = "node.neighborhood_manager.here_i_am";
+            string signature = @"$(me.returntype) $(me.name)(";
+            string nextarg = "";
+            for (int j = 0; j < me.args.size; j++)
+            {
+                Argument arg = me.args[j];
+                signature += @"$(nextarg)$(arg.argclass) arg$(j)";
+                nextarg = ", ";
+            }
+            signature += ") throws ";
+            foreach (Exception exc in me.errors)
+            {
+                signature += @"$(exc.errdomain), ";
+            }
+            signature += "StubError, DeserializeError";
+            contents += prettyformat("""
+
+        public """ + @"$(signature)" + """
+        {
+            string m_name = """ + @"\"$(r.rootname).$(mo.modname).$(me.name)\"" + """;
             ArrayList<string> args = new ArrayList<string>();
+            """);
+            for (int j = 0; j < me.args.size; j++)
             {
-                // serialize arg0 (INeighborhoodNodeIDMessage my_id)
-                args.add(prepare_argument_object(arg0));
-            }
+                Argument arg = me.args[j];
+                contents += prettyformat("""
             {
-                // serialize arg1 (string my_mac)
-                args.add(prepare_argument_string(arg1));
+                // serialize arg""" + @"$(j)" + """ (""" + arg.argclass + """ """ + arg.argname + """)
+                """);
+                switch (arg.argclass)
+                {
+                    case "int":
+                    case "int64":
+                        contents += prettyformat("""
+                args.add(prepare_argument_int64(arg""" + @"$(j)" + """));
+                        """);
+                        break;
+                    case "int?":
+                    case "int64?":
+                        contents += prettyformat("""
+                if (arg""" + @"$(j)" + """ != null)
+                    args.add(prepare_argument_int64(arg""" + @"$(j)" + """));
+                else
+                    args.add(prepare_argument_null());
+                        """);
+                        break;
+                    case "bool":
+                        contents += prettyformat("""
+                args.add(prepare_argument_boolean(arg""" + @"$(j)" + """));
+                        """);
+                        break;
+                    case "bool?":
+                        contents += prettyformat("""
+                if (arg""" + @"$(j)" + """ != null)
+                    args.add(prepare_argument_boolean(arg""" + @"$(j)" + """));
+                else
+                    args.add(prepare_argument_null());
+                        """);
+                        break;
+                    case "uint16":
+                        contents += prettyformat("""
+                args.add(prepare_argument_int64(arg""" + @"$(j)" + """));
+                        """);
+                        break;
+                    case "uint16?":
+                        contents += prettyformat("""
+                if (arg""" + @"$(j)" + """ != null)
+                    args.add(prepare_argument_int64(arg""" + @"$(j)" + """));
+                else
+                    args.add(prepare_argument_null());
+                        """);
+                        break;
+                    case "string":
+                        contents += prettyformat("""
+                args.add(prepare_argument_string(arg""" + @"$(j)" + """));
+                        """);
+                        break;
+                    case "string?":
+                        contents += prettyformat("""
+                if (arg""" + @"$(j)" + """ != null)
+                    args.add(prepare_argument_string(arg""" + @"$(j)" + """));
+                else
+                    args.add(prepare_argument_null());
+                        """);
+                        break;
+                    case "Gee.List<int>":
+                        contents += prettyformat("""
+                ArrayList<int64?> lst = new ArrayList<int64?>();
+                foreach (int el_i in arg""" + @"$(j)" + """) lst.add(el_i);
+                args.add(prepare_argument_array_of_int64(lst));
+                        """);
+                        break;
+                    default:
+                        if (type_is_basic(arg.argclass)) error(@"not implemented yet $(arg.argclass)");
+                        if (arg.argclass.has_prefix("Gee.List<"))
+                        {
+                            if (arg.argclass.has_suffix("?")) error(@"not supported nullable list: $(arg.argclass)");
+                            if (arg.argclass.has_suffix("?>")) error(@"not supported list of nullable: $(arg.argclass)");
+                            if (!arg.argclass.has_suffix(">")) error(@"not supported type: $(arg.argclass)");
+                            contents += prettyformat("""
+                args.add(prepare_argument_array_of_object(arg""" + @"$(j)" + """));
+                            """);
+                        }
+                        else if (arg.argclass.has_suffix("?"))
+                        {
+                            contents += prettyformat("""
+                if (arg""" + @"$(j)" + """ != null)
+                    args.add(prepare_argument_object(arg""" + @"$(j)" + """));
+                else
+                    args.add(prepare_argument_null());
+                            """);
+                        }
+                        else
+                        {
+                            contents += prettyformat("""
+                args.add(prepare_argument_object(arg""" + @"$(j)" + """));
+                            """);
+                        }
+                        break;
+                }
+                contents += prettyformat("""
             }
-            {
-                // serialize arg2 (string my_nic_addr)
-                args.add(prepare_argument_string(arg2));
+                """);
             }
+            contents += prettyformat("""
 
             string resp;
             try {
@@ -387,163 +559,134 @@ namespace SampleRpc
             catch (zcd.ZCDError e) {
                 throw new StubError.GENERIC(e.message);
             }
+            """);
+            if (me.returntype == "void")
+            {
+                contents += prettyformat("""
             // The following catch is to be added only for methods that return void.
             catch (StubError.DID_NOT_WAIT_REPLY e) {return;}
+                """);
+            }
+            contents += prettyformat("""
 
             // deserialize response
             string? error_domain = null;
             string? error_code = null;
             string? error_message = null;
             string doing = @"Reading return-value of $(m_name)";
+            """);
+            switch (me.returntype)
+            {
+                case "void":
+                    contents += prettyformat("""
             try {
                 read_return_value_void(resp, out error_domain, out error_code, out error_message);
-            } catch (HelperNotJsonError e) {
-                error(@"Error parsing JSON for return-value of $(m_name): $(e.message)");
-            } catch (HelperDeserializeError e) {
-                throw new DeserializeError.GENERIC(@"$(doing): $(e.message)");
-            }
-            if (error_domain != null)
-            {
-                string error_domain_code = @"$(error_domain).$(error_code)";
-                if (error_domain_code == "DeserializeError.GENERIC")
-                    throw new DeserializeError.GENERIC(error_message);
-                throw new DeserializeError.GENERIC(@"$(doing): unrecognized error $(error_domain_code) $(error_message)");
-            }
-            return;
-        }
-
-        public bool can_you_export(bool arg0) throws StubError, DeserializeError
-        {
-            string m_name = "node.neighborhood_manager.can_you_export";
-            ArrayList<string> args = new ArrayList<string>();
-            {
-                // serialize arg0 (bool i_can_export)
-                args.add(prepare_argument_boolean(arg0));
-            }
-
-            string resp;
+                    """);
+                    break;
+                case "string":
+                    contents += prettyformat("""
+            string ret;
             try {
-                resp = rmt(m_name, args);
-            }
-            catch (zcd.ZCDError e) {
-                throw new StubError.GENERIC(e.message);
-            }
-
-            // deserialize response
-            string? error_domain = null;
-            string? error_code = null;
-            string? error_message = null;
-            string doing = @"Reading return-value of $(m_name)";
+                ret = read_return_value_string_notnull(resp, out error_domain, out error_code, out error_message);
+                    """);
+                    break;
+                case "string?":
+                    contents += prettyformat("""
+            string? ret;
+            try {
+                ret = read_return_value_string_maybe(resp, out error_domain, out error_code, out error_message);
+                    """);
+                    break;
+                case "int":
+                    contents += prettyformat("""
+            int ret;
+            int64 val;
+            try {
+                val = read_return_value_int64_notnull(resp, out error_domain, out error_code, out error_message);
+                    """);
+                    break;
+                case "int?":
+                    contents += prettyformat("""
+            int? ret;
+            int64? val;
+            try {
+                val = read_return_value_int64_maybe(resp, out error_domain, out error_code, out error_message);
+                    """);
+                    break;
+                case "uint16":
+                    contents += prettyformat("""
+            uint16 ret;
+            int64 val;
+            try {
+                val = read_return_value_int64_notnull(resp, out error_domain, out error_code, out error_message);
+                    """);
+                    break;
+                case "uint16?":
+                    contents += prettyformat("""
+            uint16? ret;
+            int64? val;
+            try {
+                val = read_return_value_int64_maybe(resp, out error_domain, out error_code, out error_message);
+                    """);
+                    break;
+                case "bool":
+                    contents += prettyformat("""
             bool ret;
             try {
                 ret = read_return_value_bool_notnull(resp, out error_domain, out error_code, out error_message);
-            } catch (HelperNotJsonError e) {
-                error(@"Error parsing JSON for return-value of $(m_name): $(e.message)");
-            } catch (HelperDeserializeError e) {
-                throw new DeserializeError.GENERIC(@"$(doing): $(e.message)");
-            }
-            if (error_domain != null)
-            {
-                string error_domain_code = @"$(error_domain).$(error_code)";
-                if (error_domain_code == "DeserializeError.GENERIC")
-                    throw new DeserializeError.GENERIC(error_message);
-                throw new DeserializeError.GENERIC(@"$(doing): unrecognized error $(error_domain_code) $(error_message)");
-            }
-            return ret;
-        }
-
-        public void nop() throws StubError, DeserializeError
-        {
-            string m_name = "node.neighborhood_manager.nop";
-            ArrayList<string> args = new ArrayList<string>();
-
-            string resp;
+                    """);
+                    break;
+                case "bool?":
+                    contents += prettyformat("""
+            bool? ret;
             try {
-                resp = rmt(m_name, args);
-            }
-            catch (zcd.ZCDError e) {
-                throw new StubError.GENERIC(e.message);
-            }
-            // The following catch is to be added only for methods that return void.
-            catch (StubError.DID_NOT_WAIT_REPLY e) {return;}
-
-            // deserialize response
-            string? error_domain = null;
-            string? error_code = null;
-            string? error_message = null;
-            string doing = @"Reading return-value of $(m_name)";
+                ret = read_return_value_bool_maybe(resp, out error_domain, out error_code, out error_message);
+                    """);
+                    break;
+                case "Gee.List<string>":
+                    contents += prettyformat("""
+            Gee.List<string> ret;
             try {
-                read_return_value_void(resp, out error_domain, out error_code, out error_message);
-            } catch (HelperNotJsonError e) {
-                error(@"Error parsing JSON for return-value of $(m_name): $(e.message)");
-            } catch (HelperDeserializeError e) {
-                throw new DeserializeError.GENERIC(@"$(doing): $(e.message)");
-            }
-            if (error_domain != null)
-            {
-                string error_domain_code = @"$(error_domain).$(error_code)";
-                if (error_domain_code == "DeserializeError.GENERIC")
-                    throw new DeserializeError.GENERIC(error_message);
-                throw new DeserializeError.GENERIC(@"$(doing): unrecognized error $(error_domain_code) $(error_message)");
-            }
-            return;
-        }
-
-    }
-
-    internal class IdentityManagerRemote : Object, IIdentityManagerStub
-    {
-        private unowned FakeRmt rmt;
-        public IdentityManagerRemote(FakeRmt rmt)
-        {
-            this.rmt = rmt;
-        }
-
-        public IDuplicationData? match_duplication(int arg0, IIdentityID arg1, IIdentityID arg2, IIdentityID arg3, string arg4, string arg5) throws StubError, DeserializeError
-        {
-            string m_name = "node.identity_manager.match_duplication";
-            ArrayList<string> args = new ArrayList<string>();
-            {
-                // serialize arg0 (int migration_id)
-                args.add(prepare_argument_int64(arg0));
-            }
-            {
-                // serialize arg1 (IIdentityID peer_id)
-                args.add(prepare_argument_object(arg1));
-            }
-            {
-                // serialize arg2 (IIdentityID old_id)
-                args.add(prepare_argument_object(arg2));
-            }
-            {
-                // serialize arg3 (IIdentityID new_id)
-                args.add(prepare_argument_object(arg3));
-            }
-            {
-                // serialize arg4 (string old_id_new_mac)
-                args.add(prepare_argument_string(arg4));
-            }
-            {
-                // serialize arg5 (string old_id_new_linklocal)
-                args.add(prepare_argument_string(arg5));
-            }
-
-            string resp;
+                ret = read_return_value_array_of_string
+                    (resp, out error_domain, out error_code, out error_message);
+                    """);
+                    break;
+                default:
+                    if (type_is_basic(me.returntype)) error(@"not implemented yet $(me.returntype)");
+                    if (me.returntype.has_prefix("Gee.List<"))
+                    {
+                        if (me.returntype.has_suffix("?")) error(@"not supported nullable list: $(me.returntype)");
+                        if (me.returntype.has_suffix("?>")) error(@"not supported list of nullable: $(me.returntype)");
+                        if (!me.returntype.has_suffix(">")) error(@"not supported type: $(me.returntype)");
+                        string eltype = me.returntype.substring(9, me.returntype.length-10);
+                        contents += prettyformat("""
+            Gee.List<""" + eltype + """> ret;
             try {
-                resp = rmt(m_name, args);
-            }
-            catch (zcd.ZCDError e) {
-                throw new StubError.GENERIC(e.message);
-            }
-
-            // deserialize response
-            string? error_domain = null;
-            string? error_code = null;
-            string? error_message = null;
-            string doing = @"Reading return-value of $(m_name)";
+                ret = (Gee.List<""" + eltype + """>)
+                    read_return_value_array_of_object
+                    (typeof(""" + eltype + """), resp, out error_domain, out error_code, out error_message);
+                        """);
+                    }
+                    else if (me.returntype.has_suffix("?"))
+                    {
+                        string eltype = me.returntype.substring(0, me.returntype.length-1);
+                        contents += prettyformat("""
             Object? ret;
             try {
-                ret = read_return_value_object_maybe(typeof(IDuplicationData), resp, out error_domain, out error_code, out error_message);
+                ret = read_return_value_object_maybe(typeof(""" + eltype + """), resp, out error_domain, out error_code, out error_message);
+                        """);
+                    }
+                    else
+                    {
+                        contents += prettyformat("""
+            Object ret;
+            try {
+                ret = read_return_value_object_notnull(typeof(""" + me.returntype + """), resp, out error_domain, out error_code, out error_message);
+                        """);
+                    }
+                    break;
+            }
+            contents += prettyformat("""
             } catch (HelperNotJsonError e) {
                 error(@"Error parsing JSON for return-value of $(m_name): $(e.message)");
             } catch (HelperDeserializeError e) {
@@ -552,73 +695,140 @@ namespace SampleRpc
             if (error_domain != null)
             {
                 string error_domain_code = @"$(error_domain).$(error_code)";
+            """);
+            foreach (Exception err in me.errors)
+            {
+                foreach (string errcode in err.errcodes)
+                {
+                    contents += prettyformat("""
+                if (error_domain_code == """ + @"\"$(err.errdomain).$(errcode)\"" + """)
+                    throw new """ + err.errdomain + """.""" + errcode + """(error_message);
+                    """);
+                }
+            }
+            contents += prettyformat("""
                 if (error_domain_code == "DeserializeError.GENERIC")
                     throw new DeserializeError.GENERIC(error_message);
+            """);
+            contents += prettyformat("""
                 throw new DeserializeError.GENERIC(@"$(doing): unrecognized error $(error_domain_code) $(error_message)");
             }
+            """);
+            switch (me.returntype)
+            {
+                case "void":
+                    contents += prettyformat("""
+            return;
+                    """);
+                    break;
+                case "string":
+                    contents += prettyformat("""
+            return ret;
+                    """);
+                    break;
+                case "string?":
+                    contents += prettyformat("""
+            return ret;
+                    """);
+                    break;
+                case "int":
+                    contents += prettyformat("""
+            if (val > int.MAX || val < int.MIN)
+                throw new DeserializeError.GENERIC(@"$(doing): return-value overflows size of int");
+            ret = (int)val;
+            return ret;
+                    """);
+                    break;
+                case "int?":
+                    contents += prettyformat("""
+            if (val == null) ret = null;
+            else
+            {
+                if (val > int.MAX || val < int.MIN)
+                    throw new DeserializeError.GENERIC(@"$(doing): return-value overflows size of int");
+                ret = (int)val;
+            }
+            return ret;
+                    """);
+                    break;
+                case "uint16":
+                    contents += prettyformat("""
+            if (val > uint16.MAX || val < uint16.MIN)
+                throw new DeserializeError.GENERIC(@"$(doing): return-value overflows size of uint16");
+            ret = (uint16)val;
+            return ret;
+                    """);
+                    break;
+                case "uint16?":
+                    contents += prettyformat("""
+            if (val == null) ret = null;
+            else
+            {
+                if (val > uint16.MAX || val < uint16.MIN)
+                    throw new DeserializeError.GENERIC(@"$(doing): return-value overflows size of uint16");
+                ret = (uint16)val;
+            }
+            return ret;
+                    """);
+                    break;
+                case "bool":
+                    contents += prettyformat("""
+            return ret;
+                    """);
+                    break;
+                case "bool?":
+                    contents += prettyformat("""
+            return ret;
+                    """);
+                    break;
+                case "Gee.List<string>":
+                    contents += prettyformat("""
+            return ret;
+                    """);
+                    break;
+                default:
+                    if (type_is_basic(me.returntype)) error(@"not implemented yet $(me.returntype)");
+                    if (me.returntype.has_prefix("Gee.List<"))
+                    {
+                        if (me.returntype.has_suffix("?")) error(@"not supported nullable list: $(me.returntype)");
+                        if (me.returntype.has_suffix("?>")) error(@"not supported list of nullable: $(me.returntype)");
+                        if (!me.returntype.has_suffix(">")) error(@"not supported type: $(me.returntype)");
+                        contents += prettyformat("""
+            return ret;
+                        """);
+                    }
+                    else if (me.returntype.has_suffix("?"))
+                    {
+                        string eltype = me.returntype.substring(0, me.returntype.length-1);
+                        contents += prettyformat("""
             if (ret == null) return null;
             if (ret is ISerializable)
                 if (!((ISerializable)ret).check_deserialization())
                     throw new DeserializeError.GENERIC(@"$(doing): instance of $(ret.get_type().name()) has not been fully deserialized");
-            return (IDuplicationData)ret;
-        }
-
-    }
-
-    internal class QspnManagerRemote : Object, IQspnManagerStub
-    {
-        private unowned FakeRmt rmt;
-        public QspnManagerRemote(FakeRmt rmt)
-        {
-            this.rmt = rmt;
-        }
-
-        public IQspnEtpMessage get_full_etp(IQspnAddress arg0) throws PippoError, StubError, DeserializeError
-        {
-            string m_name = "node.qspn_manager.get_full_etp";
-            ArrayList<string> args = new ArrayList<string>();
-            {
-                // serialize arg0 (IQspnAddress requesting_address)
-                args.add(prepare_argument_object(arg0));
-            }
-
-            string resp;
-            try {
-                resp = rmt(m_name, args);
-            }
-            catch (zcd.ZCDError e) {
-                throw new StubError.GENERIC(e.message);
-            }
-
-            // deserialize response
-            string? error_domain = null;
-            string? error_code = null;
-            string? error_message = null;
-            string doing = @"Reading return-value of $(m_name)";
-            Object ret;
-            try {
-                ret = read_return_value_object_notnull(typeof(IQspnEtpMessage), resp, out error_domain, out error_code, out error_message);
-            } catch (HelperNotJsonError e) {
-                error(@"Error parsing JSON for return-value of $(m_name): $(e.message)");
-            } catch (HelperDeserializeError e) {
-                throw new DeserializeError.GENERIC(@"$(doing): $(e.message)");
-            }
-            if (error_domain != null)
-            {
-                string error_domain_code = @"$(error_domain).$(error_code)";
-                if (error_domain_code == "PippoError.GENERIC")
-                    throw new PippoError.GENERIC(error_message);
-                if (error_domain_code == "DeserializeError.GENERIC")
-                    throw new DeserializeError.GENERIC(error_message);
-                throw new DeserializeError.GENERIC(@"$(doing): unrecognized error $(error_domain_code) $(error_message)");
-            }
+            return (""" + eltype + """)ret;
+                        """);
+                    }
+                    else
+                    {
+                        contents += prettyformat("""
             if (ret is ISerializable)
                 if (!((ISerializable)ret).check_deserialization())
                     throw new DeserializeError.GENERIC(@"$(doing): instance of $(ret.get_type().name()) has not been fully deserialized");
-            return (IQspnEtpMessage)ret;
+            return (""" + me.returntype + """)ret;
+                        """);
+                    }
+                    break;
+            }
+            contents += prettyformat("""
         }
 
+            """);
+        }
+        contents += prettyformat("""
     }
+        """);
+    }
+    contents += prettyformat("""
 }
     """);
     write_file(@"$(r.rootname)_stub.vala", contents);
