@@ -18,7 +18,7 @@
 
 using Gee;
 
-void output_xxx_skeleton(Gee.List<Root> roots, Gee.List<Exception> errors, string xxx)
+void output_xxx_skeleton(Root r, Gee.List<Exception> errors)
 {
     string contents = prettyformat("""
 using Gee;
@@ -27,7 +27,7 @@ using TaskletSystem;
 namespace SampleRpc
 {
     """);
-    foreach (Root r in roots)
+    // just one root in this file
     {
         foreach (ModuleRemote mo in r.modules)
         {
@@ -75,17 +75,6 @@ namespace SampleRpc
         }
         contents += prettyformat("""
     }
-
-        """);
-    }
-    contents += prettyformat("""
-    internal errordomain InSkeletonDeserializeError {
-        GENERIC
-    }
-    """);
-    foreach (Root r in roots)
-    {
-        contents += prettyformat("""
 
     internal class """ + @"$(r.rootclass)" + """StreamDispatcher : Object, zcd.IStreamDispatcher
     {
@@ -175,80 +164,301 @@ namespace SampleRpc
             // """ + @"$(mo.modclass)" + """
             // """ + @"$(mo.modname)" + """
             contents += prettyformat("""
-        if (m_name.has_prefix("""" + @"$(r.rootname)" + """.""" + @"$(mo.modname)" + """."))
+        """ + @"$(s_if)" + """ (m_name.has_prefix("""" + @"$(r.rootname)" + """.""" + @"$(mo.modname)" + """."))
         {
             """);
             string s_if2 = "if";
             foreach (Method me in mo.methods)
             {
-                // """ + @"$(me.returntype)" + """
-                // """ + @"$(me.name)" + """
-                // """ + @"$(me.args)" + """
-                // """ + @"$(me.errors)" + """
+                contents += prettyformat(
+@"          $(s_if2) (m_name == \"$(r.rootname).$(mo.modname).$(me.name)\")");
                 contents += prettyformat("""
-            if (m_name == "node.neighborhood_manager.here_i_am")
             {
-                if (args.size != 3) throw new InSkeletonDeserializeError.GENERIC(@"Wrong number of arguments for $(m_name)");
+                if (args.size != """ + @"$(me.args.size)" + """) throw new InSkeletonDeserializeError.GENERIC(@"Wrong number of arguments for $(m_name)");
 
+                """);
+                if (me.args.size > 0)
+                {
+                    contents += prettyformat("""
                 // arguments:
-                INeighborhoodNodeIDMessage arg0;
-                string arg1;
-                string arg2;
+                    """);
+                    for (int j = 0; j < me.args.size; j++)
+                    {
+                        Argument arg = me.args[j];
+                        contents += prettyformat(
+@"              $(arg.argclass) arg$(j);");
+                    }
+                    contents += prettyformat("""
                 // position:
                 int j = 0;
+                    """);
+                    for (int j = 0; j < me.args.size; j++)
+                    {
+                        Argument arg = me.args[j];
+                        contents += prettyformat("""
                 {
-                    // deserialize arg0 (INeighborhoodNodeIDMessage my_id)
-                    string arg_name = "my_id";
+                    // deserialize arg""" + @"$(j) ($(arg.argclass) $(arg.argname))" + """
+                    string arg_name = """ + @"\"$(arg.argname)\"" + """;
                     string doing = @"Reading argument '$(arg_name)' for $(m_name)";
                     try {
+                        """);
+                        switch (arg.argclass)
+                        {
+                            case "string":
+                                contents += prettyformat("""
+                        arg""" + @"$(j)" + """ = read_argument_string_notnull(args[j]);
+                                """);
+                                break;
+                            case "string?":
+                                contents += prettyformat("""
+                        arg""" + @"$(j)" + """ = read_argument_string_maybe(args[j]);
+                                """);
+                                break;
+                            case "bool":
+                                contents += prettyformat("""
+                        arg""" + @"$(j)" + """ = read_argument_bool_notnull(args[j]);
+                                """);
+                                break;
+                            case "bool?":
+                                contents += prettyformat("""
+                        arg""" + @"$(j)" + """ = read_argument_bool_maybe(args[j]);
+                                """);
+                                break;
+                            case "int":
+                                contents += prettyformat("""
+                        int64 val;
+                        val = read_argument_int64_notnull(args[j]);
+                        if (val > int.MAX || val < int.MIN)
+                            throw new InSkeletonDeserializeError.GENERIC(@"$(doing): argument overflows size of int");
+                        arg""" + @"$(j)" + """ = (int)val;
+                                """);
+                                break;
+                            case "int64":
+                                contents += prettyformat("""
+                        int64 val;
+                        val = read_argument_int64_notnull(args[j]);
+                        arg""" + @"$(j)" + """ = (int)val;
+                                """);
+                                break;
+                            case "uint16":
+                                contents += prettyformat("""
+                        int64 val;
+                        val = read_argument_int64_notnull(args[j]);
+                        if (val > uint16.MAX || val < uint16.MIN)
+                            throw new InSkeletonDeserializeError.GENERIC(@"$(doing): argument overflows size of uint16");
+                        arg""" + @"$(j)" + """ = (uint16)val;
+                                """);
+                                break;
+                            case "int?":
+                                error("not implemented yet");
+                            case "Gee.List<int>":
+                                contents += prettyformat("""
+                        Gee.List<int64?> values;
+                        values = read_argument_array_of_int64(args[j]);
+                        arg""" + @"$(j)" + """ = new ArrayList<int>();
+                        foreach (int64 val in values)
+                        {
+                            if (val > int.MAX || val < int.MIN)
+                                throw new InSkeletonDeserializeError.GENERIC(@"$(doing): argument overflows size of int");
+                            arg""" + @"$(j)" + """.add((int)val);
+                        }
+                                """);
+                                break;
+                            default:
+                                if (type_is_basic(arg.argclass)) error(@"not implemented yet $(arg.argclass)");
+                                if (arg.argclass.has_prefix("Gee.List<"))
+                                {
+                                    if (arg.argclass.has_suffix("?")) error(@"not supported nullable list: $(arg.argclass)");
+                                    if (arg.argclass.has_suffix("?>")) error(@"not supported list of nullable: $(arg.argclass)");
+                                    if (!arg.argclass.has_suffix(">")) error(@"not supported type: $(arg.argclass)");
+                                    string eltype = arg.argclass.substring(9, arg.argclass.length-10);
+                                    contents += prettyformat("""
+                        Gee.List<Object> values;
+                        values = read_argument_array_of_object(typeof(""" + eltype + """), args[j]);
+                        foreach (Object val in values) if (val is ISerializable)
+                            if (!((ISerializable)val).check_deserialization())
+                                throw new InSkeletonDeserializeError.GENERIC(@"$(doing): instance of $(val.get_type().name()) has not been fully deserialized");
+                        arg""" + @"$(j)" + """ = (Gee.List<""" + eltype + """>)values;
+                                    """);
+                                }
+                                else if (arg.argclass.has_suffix("?"))
+                                {
+                                    string eltype = arg.argclass.substring(0, me.returntype.length-1);
+                                    contents += prettyformat("""
+                        Object? val;
+                        val = read_argument_object_maybe(typeof(""" + eltype + """), args[j]);
+                        if (val == null)
+                        {
+                            arg""" + @"$(j)" + """ = null;
+                        }
+                        else
+                        {
+                            if (val is ISerializable)
+                                if (!((ISerializable)val).check_deserialization())
+                                    throw new InSkeletonDeserializeError.GENERIC(@"$(doing): instance of $(val.get_type().name()) has not been fully deserialized");
+                            arg""" + @"$(j)" + """ = (""" + eltype + """)val;
+                        }
+                                    """);
+                                }
+                                else
+                                {
+                                    contents += prettyformat("""
                         Object val;
-                        val = read_argument_object_notnull(typeof(INeighborhoodNodeIDMessage), args[j]);
+                        val = read_argument_object_notnull(typeof(""" + arg.argclass + """), args[j]);
                         if (val is ISerializable)
                             if (!((ISerializable)val).check_deserialization())
                                 throw new InSkeletonDeserializeError.GENERIC(@"$(doing): instance of $(val.get_type().name()) has not been fully deserialized");
-                        arg0 = (INeighborhoodNodeIDMessage)val;
+                        arg""" + @"$(j)" + """ = (""" + arg.argclass + """)val;
+                                    """);
+                                }
+                                break;
+                        }
+                        contents += prettyformat("""
                     } catch (HelperNotJsonError e) {
-                        error(@"Error parsing JSON for argument: $(e.message)" +
-                              @" method-name: $(m_name)" +
-                              @" argument #$(j): $(args[j])");
+                        critical(@"Error parsing JSON for argument: $(e.message)");
+                        critical(@" method-name: $(m_name)");
+                        error(@" argument #$(j): $(args[j])");
                     } catch (HelperDeserializeError e) {
                         throw new InSkeletonDeserializeError.GENERIC(@"$(doing): $(e.message)");
                     }
                     j++;
                 }
-                {
-                    // deserialize arg1 (string my_mac)
-                    string arg_name = "my_mac";
-                    string doing = @"Reading argument '$(arg_name)' for $(m_name)";
-                    try {
-                        arg1 = read_argument_string_notnull(args[j]);
-                    } catch (HelperNotJsonError e) {
-                        error(@"Error parsing JSON for argument: $(e.message)" +
-                              @" method-name: $(m_name)" +
-                              @" argument #$(j): $(args[j])");
-                    } catch (HelperDeserializeError e) {
-                        throw new InSkeletonDeserializeError.GENERIC(@"$(doing): $(e.message)");
+                        """);
                     }
-                    j++;
                 }
-                {
-                    // deserialize arg2 (string my_nic_addr)
-                    string arg_name = "my_nic_addr";
-                    string doing = @"Reading argument '$(arg_name)' for $(m_name)";
-                    try {
-                        arg2 = read_argument_string_notnull(args[j]);
-                    } catch (HelperNotJsonError e) {
-                        error(@"Error parsing JSON for argument: $(e.message)" +
-                              @" method-name: $(m_name)" +
-                              @" argument #$(j): $(args[j])");
-                    } catch (HelperDeserializeError e) {
-                        throw new InSkeletonDeserializeError.GENERIC(@"$(doing): $(e.message)");
-                    }
-                    j++;
-                }
+                contents += prettyformat("""
 
-                node.neighborhood_manager.here_i_am(arg0, arg1, arg2, mod_caller_info);
-                ret = prepare_return_value_null();
+                """);
+                string try_indent = "";
+                if (me.errors.size > 0)
+                {
+                    try_indent = "    ";
+                    contents += prettyformat("""
+                try {
+                    """);
+                }
+                string args_call = "(";
+                for (int j = 0; j < me.args.size; j++) args_call += @"arg$(j), ";
+                args_call += "caller_info)";
+                string method_call = @"$(r.rootname).$(mo.modname).$(me.name)$(args_call);";
+                switch (me.returntype)
+                {
+                    case "void":
+                        contents += prettyformat("""
+                """ + try_indent + method_call + """
+                """ + try_indent + """ret = prepare_return_value_null();
+                        """);
+                        break;
+                    case "string":
+                        contents += prettyformat("""
+                """ + try_indent + """string result = """ + method_call + """
+                """ + try_indent + """ret = prepare_return_value_string(result);
+                        """);
+                        break;
+                    case "string?":
+                        contents += prettyformat("""
+                """ + try_indent + """string? result = """ + method_call + """
+                """ + try_indent + """if (result == null) ret = prepare_return_value_null();
+                """ + try_indent + """else ret = prepare_return_value_string(result);
+                        """);
+                        break;
+                    case "int":
+                        contents += prettyformat("""
+                """ + try_indent + """int result = """ + method_call + """
+                """ + try_indent + """ret = prepare_return_value_int64(result);
+                        """);
+                        break;
+                    case "int?":
+                        contents += prettyformat("""
+                """ + try_indent + """int? result = """ + method_call + """
+                """ + try_indent + """if (result == null) ret = prepare_return_value_null();
+                """ + try_indent + """else ret = prepare_return_value_int64(result);
+                        """);
+                        break;
+                    case "uint16":
+                        contents += prettyformat("""
+                """ + try_indent + """uint16 result = """ + method_call + """
+                """ + try_indent + """ret = prepare_return_value_int64(result);
+                        """);
+                        break;
+                    case "uint16?":
+                        contents += prettyformat("""
+                """ + try_indent + """uint16? result = """ + method_call + """
+                """ + try_indent + """if (result == null) ret = prepare_return_value_null();
+                """ + try_indent + """else ret = prepare_return_value_int64(result);
+                        """);
+                        break;
+                    case "bool":
+                        contents += prettyformat("""
+                """ + try_indent + """bool result = """ + method_call + """
+                """ + try_indent + """ret = prepare_return_value_boolean(result);
+                        """);
+                        break;
+                    case "bool?":
+                        contents += prettyformat("""
+                """ + try_indent + """bool? result = """ + method_call + """
+                """ + try_indent + """if (result == null) ret = prepare_return_value_null();
+                """ + try_indent + """else ret = prepare_return_value_boolean(result);
+                        """);
+                        break;
+                    case "Gee.List<string>":
+                        contents += prettyformat("""
+                """ + try_indent + """Gee.List<string> result = """ + method_call + """
+                """ + try_indent + """ret = prepare_return_value_array_of_string(result);
+                        """);
+                        break;
+                    default:
+                        if (type_is_basic(me.returntype)) error(@"not implemented yet $(me.returntype)");
+                        if (me.returntype.has_prefix("Gee.List<"))
+                        {
+                            if (me.returntype.has_suffix("?")) error(@"not supported nullable list: $(me.returntype)");
+                            if (me.returntype.has_suffix("?>")) error(@"not supported list of nullable: $(me.returntype)");
+                            if (!me.returntype.has_suffix(">")) error(@"not supported type: $(me.returntype)");
+                            contents += prettyformat("""
+                """ + try_indent + me.returntype + """ result = """ + method_call + """
+                """ + try_indent + """ret = prepare_return_value_array_of_object(result);
+                            """);
+                        }
+                        else if (me.returntype.has_suffix("?"))
+                        {
+                            contents += prettyformat("""
+                """ + try_indent + me.returntype + """ result = """ + method_call + """
+                """ + try_indent + """if (result == null) ret = prepare_return_value_null();
+                """ + try_indent + """else ret = prepare_return_value_object(result);
+                            """);
+                        }
+                        else
+                        {
+                            contents += prettyformat("""
+                """ + try_indent + me.returntype + """ result = """ + method_call + """
+                """ + try_indent + """ret = prepare_return_value_object(result);
+                            """);
+                        }
+                        break;
+                }
+                if (me.errors.size > 0)
+                {
+                    foreach (Exception err in me.errors)
+                    {
+                        contents += prettyformat("""
+                } catch (""" + err.errdomain + """ e) {
+                    string code = "";
+                        """);
+                        foreach (string code in err.errcodes)
+                        {
+                            contents += prettyformat(
+@"                          if (e is $(err.errdomain).$(code)) code = \"$(code)\";");
+                        }
+                        contents += prettyformat("""
+                    assert(code != "");
+                    ret = prepare_error(""" + @"\"$(err.errdomain)\"" + """, code, e.message);
+                        """);
+                    }
+                    contents += prettyformat("""
+                }
+                    """);
+                }
+                contents += prettyformat("""
             }
                 """);
                 s_if2 = "else if";
@@ -274,5 +484,5 @@ namespace SampleRpc
     contents += prettyformat("""
 }
     """);
-    write_file(@"$(xxx)_skeleton.vala", contents);
+    write_file(@"$(r.rootname)_skeleton.vala", contents);
 }

@@ -171,8 +171,8 @@ void main()
     output_common_stub(roots, errors);
     foreach (Root r in roots)
     {
-        output_xxx_skeleton(roots, errors, r.rootname);
-        output_xxx_stub(roots, errors, r.rootname);
+        output_xxx_skeleton(r, errors);
+        output_xxx_stub(r, errors);
     }
 }
 

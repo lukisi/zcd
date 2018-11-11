@@ -242,6 +242,10 @@ namespace SampleRpc
         }
     }
 
+    internal errordomain InSkeletonDeserializeError {
+        GENERIC
+    }
+
     public IListenerHandle stream_net_listen(IDelegate dlg, IErrorHandler err, string my_ip, uint16 tcp_port)
     {
         zcd.IListenerHandle lh =
