@@ -260,27 +260,29 @@ namespace SampleRpc
         return new ListenerHandle(lh);
     }
 
-    public IListenerHandle datagram_net_listen(IDelegate dlg, IErrorHandler err, string my_dev, uint16 udp_port, string src_nic)
+    public IListenerHandle datagram_net_listen(IDelegate dlg, IErrorHandler err, string my_dev, uint16 udp_port, ISrcNic src_nic)
     {
+        string s_src_nic = prepare_direct_object(src_nic);
         if (map_datagram_listening == null)
             map_datagram_listening = new HashMap<string, DatagramDelegate>();
         DatagramDelegate datagram_dlg = new DatagramDelegate(dlg);
         string key = @"$(my_dev):$(udp_port)";
         map_datagram_listening[key] = datagram_dlg;
         zcd.IListenerHandle lh =
-            zcd.datagram_net_listen(my_dev, udp_port, src_nic, datagram_dlg, new ErrorHandler(err, key));
+            zcd.datagram_net_listen(my_dev, udp_port, s_src_nic, datagram_dlg, new ErrorHandler(err, key));
         return new ListenerHandle(lh, key);
     }
 
-    public IListenerHandle datagram_system_listen(IDelegate dlg, IErrorHandler err, string listen_pathname, string send_pathname, string src_nic)
+    public IListenerHandle datagram_system_listen(IDelegate dlg, IErrorHandler err, string listen_pathname, string send_pathname, ISrcNic src_nic)
     {
+        string s_src_nic = prepare_direct_object(src_nic);
         if (map_datagram_listening == null)
             map_datagram_listening = new HashMap<string, DatagramDelegate>();
         DatagramDelegate datagram_dlg = new DatagramDelegate(dlg);
         string key = @"$(send_pathname)";
         map_datagram_listening[key] = datagram_dlg;
         zcd.IListenerHandle lh =
-            zcd.datagram_system_listen(listen_pathname, send_pathname, src_nic, datagram_dlg, new ErrorHandler(err, key));
+            zcd.datagram_system_listen(listen_pathname, send_pathname, s_src_nic, datagram_dlg, new ErrorHandler(err, key));
         return new ListenerHandle(lh, key);
     }
 }

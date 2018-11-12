@@ -28,7 +28,7 @@ namespace SampleRpc
 {
     public interface IAckCommunicator : Object
     {
-        public abstract void process_src_nics_list(Gee.List<string> src_nics_list);
+        public abstract void process_src_nics_list(Gee.List<ISrcNic> src_nics_list);
     }
 
     internal delegate string FakeRmt(string m_name, Gee.List<string> arguments) throws zcd.ZCDError, StubError;
@@ -44,7 +44,17 @@ namespace SampleRpc
         private IChannel ch;
         public void * func()
         {
-            ArrayList<string> src_nics_list = (ArrayList<string>)ch.recv();
+            ArrayList<string> s_src_nics_list = (ArrayList<string>)ch.recv();
+            ArrayList<ISrcNic> src_nics_list = new ArrayList<ISrcNic>();
+            foreach (string s_src_nic in s_src_nics_list)
+            {
+                try {
+                    ISrcNic src_nic = deser_src_nic(s_src_nic);
+                    src_nics_list.add(src_nic);
+                } catch (HelperDeserializeError e) {
+                    warning(@"Unrecognized ACK: $(e.message)");
+                }
+            }
             notify_ack.process_src_nics_list(src_nics_list);
             return null;
         }
