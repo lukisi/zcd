@@ -20,4 +20,6 @@ interfaces.c
 tasklet_system.c
 tester_skeleton.c
 tester_stub.c
+serializables.c
+rpc_skeleton.c
 main.c

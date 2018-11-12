@@ -356,6 +356,8 @@ testsuites/test_rpcdesign_1/api.vala : testsuites/test_rpcdesign_1/interfaces.rp
 	(cd $(srcdir)/testsuites/test_rpcdesign_1; ./rpcdesign)
 
 test_rpcdesign_1_alpha_SOURCES = \
+	testsuites/test_rpcdesign_1/serializables.vala \
+	testsuites/test_rpcdesign_1/rpc_skeleton.vala \
 	testsuites/test_rpcdesign_1/main.vala \
 	testerrpc.vapi \
 	$(NULL)
