@@ -19,7 +19,9 @@ rpcdesign_output_interfaces.c
 rpcdesign_output_tasklet_system.c
 rpcdesign_output_xxx_skeleton.c
 rpcdesign_output_xxx_stub.c
-rpcdesign
+
+testerrpc.h
+testerrpc.vapi
 
 Makefile.in
 Makefile

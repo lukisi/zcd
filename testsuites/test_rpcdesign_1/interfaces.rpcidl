@@ -1,0 +1,8 @@
+Tester tester
+ Module module
+  string get_field(IFields f, int field_num) throws OutOfRangeError
+ Another another
+  void nop()
+  void print_msg(string msg)
+Errors
+ OutOfRangeError(GENERIC,TOO_BIG,NEGATIVE)

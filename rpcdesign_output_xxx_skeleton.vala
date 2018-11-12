@@ -345,7 +345,7 @@ namespace SampleRpc
             }
             string args_call = "(";
             for (int j = 0; j < me.args.size; j++) args_call += @"arg$(j), ";
-            args_call += "caller_info)";
+            args_call += "mod_caller_info)";
             string method_call = @"$(r.rootname).$(mo.modname).$(me.name)$(args_call);";
             switch (me.returntype)
             {

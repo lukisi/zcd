@@ -2,6 +2,14 @@ NULL =
 ACLOCAL_AMFLAGS = -I m4
 .PHONY: check
 
+EXTRA_LTLIBRARIES = \
+	libtesterrpc.la \
+	$(NULL)
+
+EXTRA_PROGRAMS = \
+	test_rpcdesign_1_alpha \
+	$(NULL)
+
 lib_LTLIBRARIES = \
 	libzcd.la \
 	$(NULL)
@@ -300,6 +308,86 @@ test_datagrams_gamma_LDADD = \
 	$(JSON_LIBS) \
 	$(TASKLETSYSTEM_LIBS) \
 	$(PTHTASKLET_LIBS) \
+	$(NULL)
+
+libtesterrpc_la_SOURCES = \
+	testsuites/test_rpcdesign_1/common_helpers.vala \
+	testsuites/test_rpcdesign_1/interfaces.vala \
+	testsuites/test_rpcdesign_1/api.vala \
+	testsuites/test_rpcdesign_1/caller_info.vala \
+	testsuites/test_rpcdesign_1/tasklet_system.vala \
+	testsuites/test_rpcdesign_1/common_skeleton.vala \
+	testsuites/test_rpcdesign_1/common_stub.vala \
+	testsuites/test_rpcdesign_1/tester_skeleton.vala \
+	testsuites/test_rpcdesign_1/tester_stub.vala \
+	zcd.vapi \
+	$(NULL)
+
+libtesterrpc_la_VALAFLAGS = \
+	-H testerrpc.h \
+	--library testerrpc \
+	--vapidir $(GEE_PREFIX)/share/vala/vapi \
+	--vapidir $(JSON_PREFIX)/share/vala-0.36/vapi \
+	--vapidir $(TASKLETSYSTEM_VAPIDIR) \
+	--pkg gee-0.8 \
+	--pkg json-glib-1.0 \
+	--pkg tasklet-system \
+	$(NULL)
+
+libtesterrpc_la_CPPFLAGS = \
+	-w \
+	$(GOBJECT_CFLAGS) \
+	$(GEE_CFLAGS) \
+	$(JSON_CFLAGS) \
+	$(TASKLETSYSTEM_CFLAGS) \
+	-I$(srcdir) \
+	$(NULL)
+
+libtesterrpc_la_LIBADD = \
+	$(GEE_LIBS) \
+	$(GOBJECT_LIBS) \
+	$(JSON_LIBS) \
+	$(TASKLETSYSTEM_LIBS) \
+	$(builddir)/libzcd.la \
+	$(NULL)
+
+testsuites/test_rpcdesign_1/api.vala : testsuites/test_rpcdesign_1/interfaces.rpcidl rpcdesign
+	ln -f -s $(shell pwd)/rpcdesign $(srcdir)/testsuites/test_rpcdesign_1/rpcdesign
+	(cd $(srcdir)/testsuites/test_rpcdesign_1; ./rpcdesign)
+
+test_rpcdesign_1_alpha_SOURCES = \
+	testsuites/test_rpcdesign_1/main.vala \
+	testerrpc.vapi \
+	$(NULL)
+
+test_rpcdesign_1_alpha_VALAFLAGS = \
+	--vapidir $(GEE_PREFIX)/share/vala/vapi \
+	--vapidir $(JSON_PREFIX)/share/vala-0.36/vapi \
+	--vapidir $(TASKLETSYSTEM_VAPIDIR) \
+	--vapidir $(PTHTASKLET_VAPIDIR) \
+	--pkg gee-0.8 \
+	--pkg json-glib-1.0 \
+	--pkg tasklet-system \
+	--pkg pth-tasklet \
+	$(NULL)
+
+test_rpcdesign_1_alpha_CPPFLAGS = \
+	-w \
+	$(GOBJECT_CFLAGS) \
+	$(GEE_CFLAGS) \
+	$(JSON_CFLAGS) \
+	$(TASKLETSYSTEM_CFLAGS) \
+	$(PTHTASKLET_CFLAGS) \
+	-I$(srcdir) \
+	$(NULL)
+
+test_rpcdesign_1_alpha_LDADD = \
+	$(GOBJECT_LIBS) \
+	$(GEE_LIBS) \
+	$(JSON_LIBS) \
+	$(TASKLETSYSTEM_LIBS) \
+	$(PTHTASKLET_LIBS) \
+	$(builddir)/libtesterrpc.la \
 	$(NULL)
 
 vapidir = $(datadir)/vala/vapi
