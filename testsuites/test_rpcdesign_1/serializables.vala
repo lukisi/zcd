@@ -1,3 +1,6 @@
+using SampleRpc;
+using Gee;
+
 namespace Tester
 {
     public class UnicastID : Object, IUnicastID
@@ -12,6 +15,11 @@ namespace Tester
 
     public class SrcNic : Object, ISrcNic
     {
+        public SrcNic(string mac)
+        {
+            this.mac = mac;
+        }
+
         public string mac {get; set;}
     }
 

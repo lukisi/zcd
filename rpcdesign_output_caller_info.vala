@@ -27,10 +27,12 @@ namespace SampleRpc
 {
     public abstract class CallerInfo : Object
     {
+        internal CallerInfo() {}
     }
 
     public abstract class Listener : Object
     {
+        internal Listener() {}
     }
 
     public class StreamCallerInfo : CallerInfo
