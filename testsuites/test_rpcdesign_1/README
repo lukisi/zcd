@@ -1,0 +1,43 @@
+Su uno stesso dominio sono connessi:
+ alpha
+  eth0 fe:aa:aa:aa:aa:aa
+ beta
+  eth0 fe:bb:bb:bb:bb:bb
+ gamma
+  eth0 fe:cc:cc:cc:cc:cc
+
+beta ascolta su eth0 e su 169.254.0.1
+
+beta dice in broadcast su eth0 "io sono beta, ho 169.254.0.1"
+ma non sente nessuno
+
+alpha ascolta su eth0 e su 169.254.0.2
+
+alpha dice in broadcast su eth0 "io sono alpha, ho 169.254.0.2"
+beta riceve su eth0 e deduce:
+  alpha ha 169.254.0.2
+  alpha ha un NIC (nic_alpha) sullo stesso dominio del mio eth0
+
+beta dice in stream a 169.254.0.2 "io sono beta, ho 169.254.0.1"
+alpha risponde "OK" e deduce:
+  beta ha 169.254.0.1
+  beta ha un NIC (nic_beta) sullo stesso dominio del mio eth0
+
+gamma ascolta su eth0 e su 169.254.0.3
+
+gamma dice in broadcast su eth0 "io sono gamma, ho 169.254.0.3"
+beta riceve su eth0 e deduce:
+  gamma ha 169.254.0.3
+  gamma ha un NIC (nic_gamma) sullo stesso dominio del mio eth0
+alpha riceve su eth0 e deduce:
+  gamma ha 169.254.0.3
+  gamma ha un NIC (nic_gamma) sullo stesso dominio del mio eth0
+
+alpha dice in broadcast su eth0 "la password è pippo. Inviate ACK."
+beta riceve su eth0, scrive a video "pippo" e invia ack.
+gamma riceve su eth0, scrive a video "pippo" e invia ack.
+alpha riceve gli ack di nic_beta e nic_gamma, come si aspettava.
+
+
+void greet(string name, string ip)
+void message(string msg)

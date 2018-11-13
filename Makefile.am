@@ -31,6 +31,7 @@ check_PROGRAMS = \
 	test_datagrams_beta \
 	test_datagrams_gamma \
 	radio_domain \
+	eth_domain \
 	$(NULL)
 
 libzcd_la_SOURCES = \
@@ -185,6 +186,31 @@ radio_domain_CPPFLAGS = \
 	$(NULL)
 
 radio_domain_LDADD = \
+	$(GOBJECT_LIBS) \
+	$(GIO_LIBS) \
+	$(GEE_LIBS) \
+	$(NULL)
+
+eth_domain_SOURCES = \
+	testsuites/eth_domain/eth_domain.vala \
+	$(NULL)
+
+eth_domain_VALAFLAGS = \
+	--vapidir $(GEE_PREFIX)/share/vala/vapi \
+	--pkg gio-2.0 \
+	--pkg gio-unix-2.0 \
+	--pkg gee-0.8 \
+	--pkg posix \
+	$(NULL)
+
+eth_domain_CPPFLAGS = \
+	-w \
+	$(GOBJECT_CFLAGS) \
+	$(GIO_CFLAGS) \
+	$(GEE_CFLAGS) \
+	$(NULL)
+
+eth_domain_LDADD = \
 	$(GOBJECT_LIBS) \
 	$(GIO_LIBS) \
 	$(GEE_LIBS) \
