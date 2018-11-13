@@ -311,15 +311,15 @@ test_datagrams_gamma_LDADD = \
 	$(NULL)
 
 libtesterrpc_la_SOURCES = \
-	testsuites/test_rpcdesign_1/common_helpers.vala \
-	testsuites/test_rpcdesign_1/interfaces.vala \
-	testsuites/test_rpcdesign_1/api.vala \
-	testsuites/test_rpcdesign_1/caller_info.vala \
-	testsuites/test_rpcdesign_1/tasklet_system.vala \
-	testsuites/test_rpcdesign_1/common_skeleton.vala \
-	testsuites/test_rpcdesign_1/common_stub.vala \
-	testsuites/test_rpcdesign_1/tester_skeleton.vala \
-	testsuites/test_rpcdesign_1/tester_stub.vala \
+	testsuites/test_rpcdesign_1/testerrpc/common_helpers.vala \
+	testsuites/test_rpcdesign_1/testerrpc/interfaces.vala \
+	testsuites/test_rpcdesign_1/testerrpc/api.vala \
+	testsuites/test_rpcdesign_1/testerrpc/caller_info.vala \
+	testsuites/test_rpcdesign_1/testerrpc/tasklet_system.vala \
+	testsuites/test_rpcdesign_1/testerrpc/common_skeleton.vala \
+	testsuites/test_rpcdesign_1/testerrpc/common_stub.vala \
+	testsuites/test_rpcdesign_1/testerrpc/tester_skeleton.vala \
+	testsuites/test_rpcdesign_1/testerrpc/tester_stub.vala \
 	zcd.vapi \
 	$(NULL)
 
@@ -351,9 +351,21 @@ libtesterrpc_la_LIBADD = \
 	$(builddir)/libzcd.la \
 	$(NULL)
 
-testsuites/test_rpcdesign_1/api.vala : testsuites/test_rpcdesign_1/interfaces.rpcidl rpcdesign
-	ln -f -s $(shell pwd)/rpcdesign $(srcdir)/testsuites/test_rpcdesign_1/rpcdesign
-	(cd $(srcdir)/testsuites/test_rpcdesign_1; ./rpcdesign)
+TESTERRPC_BUILT_SRC = \
+	testsuites/test_rpcdesign_1/testerrpc/common_helpers.vala \
+	testsuites/test_rpcdesign_1/testerrpc/interfaces.vala \
+	testsuites/test_rpcdesign_1/testerrpc/api.vala \
+	testsuites/test_rpcdesign_1/testerrpc/caller_info.vala \
+	testsuites/test_rpcdesign_1/testerrpc/tasklet_system.vala \
+	testsuites/test_rpcdesign_1/testerrpc/common_skeleton.vala \
+	testsuites/test_rpcdesign_1/testerrpc/common_stub.vala \
+	testsuites/test_rpcdesign_1/testerrpc/tester_skeleton.vala \
+	testsuites/test_rpcdesign_1/testerrpc/tester_stub.vala \
+	$(NULL)
+
+$(TESTERRPC_BUILT_SRC) : testsuites/test_rpcdesign_1/testerrpc/interfaces.rpcidl rpcdesign
+	ln -f -s $(shell pwd)/rpcdesign $(srcdir)/testsuites/test_rpcdesign_1/testerrpc/rpcdesign
+	(cd $(srcdir)/testsuites/test_rpcdesign_1/testerrpc; test -f api.vala || ./rpcdesign)
 
 test_rpcdesign_1_alpha_SOURCES = \
 	testsuites/test_rpcdesign_1/serializables.vala \
@@ -413,6 +425,17 @@ EXTRA_DIST = \
 
 MAINTAINERCLEANFILES = \
 	$(srcdir)/zcd.vapi \
+	$(srcdir)/testsuites/test_rpcdesign_1/testerrpc/rpcdesign \
+	$(srcdir)/testsuites/test_rpcdesign_1/testerrpc/common_helpers.vala \
+	$(srcdir)/testsuites/test_rpcdesign_1/testerrpc/interfaces.vala \
+	$(srcdir)/testsuites/test_rpcdesign_1/testerrpc/api.vala \
+	$(srcdir)/testsuites/test_rpcdesign_1/testerrpc/caller_info.vala \
+	$(srcdir)/testsuites/test_rpcdesign_1/testerrpc/tasklet_system.vala \
+	$(srcdir)/testsuites/test_rpcdesign_1/testerrpc/common_skeleton.vala \
+	$(srcdir)/testsuites/test_rpcdesign_1/testerrpc/common_stub.vala \
+	$(srcdir)/testsuites/test_rpcdesign_1/testerrpc/tester_skeleton.vala \
+	$(srcdir)/testsuites/test_rpcdesign_1/testerrpc/tester_stub.vala \
+	$(srcdir)/testerrpc.vapi \
 	$(NULL)
 
 zcd.vapi: libzcd_la_vala.stamp
