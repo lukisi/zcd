@@ -4,5 +4,8 @@ Tester tester
  Another another
   void nop()
   void print_msg(string msg)
+ Comm comm
+  void greet(string name, string ip)
+  void message(string msg)
 Errors
  OutOfRangeError(GENERIC,TOO_BIG,NEGATIVE)

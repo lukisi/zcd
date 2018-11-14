@@ -1,17 +1,17 @@
 Su uno stesso dominio sono connessi:
- alpha
+ alpha (PID 1234)
   eth0 fe:aa:aa:aa:aa:aa
- beta
+ beta (PID 567)
   eth0 fe:bb:bb:bb:bb:bb
- gamma
+ gamma (PID 890)
   eth0 fe:cc:cc:cc:cc:cc
 
-beta ascolta su eth0 e su 169.254.0.1
+beta ascolta sul suo eth0 e su 169.254.0.1
 
 beta dice in broadcast su eth0 "io sono beta, ho 169.254.0.1"
 ma non sente nessuno
 
-alpha ascolta su eth0 e su 169.254.0.2
+alpha ascolta sul suo eth0 e su 169.254.0.2
 
 alpha dice in broadcast su eth0 "io sono alpha, ho 169.254.0.2"
 beta riceve su eth0 e deduce:
@@ -23,7 +23,7 @@ alpha risponde "OK" e deduce:
   beta ha 169.254.0.1
   beta ha un NIC (nic_beta) sullo stesso dominio del mio eth0
 
-gamma ascolta su eth0 e su 169.254.0.3
+gamma ascolta sul suo eth0 e su 169.254.0.3
 
 gamma dice in broadcast su eth0 "io sono gamma, ho 169.254.0.3"
 beta riceve su eth0 e deduce:
