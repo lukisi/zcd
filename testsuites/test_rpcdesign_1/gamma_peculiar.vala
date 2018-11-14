@@ -5,6 +5,7 @@ using TaskletSystem;
 namespace Tester
 {
     // Node gamma: pid=890, I=eth0
+    const int PID = 890;
     const string DG_LISTEN_PATHNAME = "recv_890_eth0";
     const string DG_PSEUDOMAC = "fe:cc:cc:cc:cc:cc";
     const string DG_SEND_PATHNAME = "send_890_eth0";

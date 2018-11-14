@@ -5,11 +5,21 @@ namespace Tester
 {
     public class UnicastID : Object, IUnicastID
     {
+        public UnicastID(int id)
+        {
+            this.id = id;
+        }
+
         public int id {get; set;}
     }
 
     public class SourceID : Object, ISourceID
     {
+        public SourceID(int id)
+        {
+            this.id = id;
+        }
+
         public int id {get; set;}
     }
 
@@ -21,6 +31,10 @@ namespace Tester
         }
 
         public string mac {get; set;}
+    }
+
+    public class EverybodyBroadcastID : Object, IBroadcastID
+    {
     }
 
     public class Fields : Object, IFields

@@ -7,6 +7,9 @@ namespace Tester
     const bool verbose = true;
     ITasklet tasklet;
     SrcNic my_src_nic;
+    SourceID my_source_id;
+    ArrayList<int> mymsgs;
+    int mynextmsgindex;
 
     void main()
     {
@@ -15,6 +18,11 @@ namespace Tester
         tasklet = PthTaskletImplementer.get_tasklet_system();
         // Pass tasklet system to the SampleRpc library
         init_tasklet_system(tasklet);
+
+        // IDs for my own messages:
+        mymsgs = new ArrayList<int>();
+        for (int i = 1; i < 10; i++) mymsgs.add(PID*1000+i);
+        mynextmsgindex = 0;
 
         // check DG_LISTEN_PATHNAME does not exist
         if (FileUtils.test(DG_LISTEN_PATHNAME, FileTest.EXISTS)) error(@"pathname $(DG_LISTEN_PATHNAME) exists.");
@@ -27,6 +35,7 @@ namespace Tester
         // start tasklet for DG_LISTEN_PATHNAME
         IErrorHandler dg_err = new ServerErrorHandler(@"for datagram_system_listen $(DG_LISTEN_PATHNAME) $(DG_SEND_PATHNAME) $(DG_PSEUDOMAC)");
         my_src_nic = new SrcNic(DG_PSEUDOMAC);
+        my_source_id = new SourceID(PID);
         start_datagram_system_listen(dlg, dg_err, DG_LISTEN_PATHNAME, DG_SEND_PATHNAME, my_src_nic);
         if (verbose) print(@"I am listening for datagrams on $(DG_LISTEN_PATHNAME).\n");
 
