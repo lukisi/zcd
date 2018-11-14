@@ -4,15 +4,30 @@ using TaskletSystem;
 
 namespace Tester
 {
-    const bool verbose = true;
+    bool verbose;
     ITasklet tasklet;
     SrcNic my_src_nic;
     SourceID my_source_id;
     ArrayList<int> mymsgs;
     int mynextmsgindex;
 
-    void main()
+    int main(string[] args)
     {
+        verbose = false; // default
+        OptionContext oc = new OptionContext("<options>");
+        OptionEntry[] entries = new OptionEntry[2];
+        int index = 0;
+        entries[index++] = {"verbose", 'v', 0, OptionArg.NONE, ref verbose, "Be verbose", null};
+        entries[index++] = { null };
+        oc.add_main_entries(entries, null);
+        try {
+            oc.parse(ref args);
+        }
+        catch (OptionError e) {
+            print(@"Error parsing options: $(e.message)\n");
+            return 1;
+        }
+
         // Initialize tasklet system
         PthTaskletImplementer.init();
         tasklet = PthTaskletImplementer.get_tasklet_system();
@@ -52,6 +67,8 @@ namespace Tester
         stop_datagram_system_listen(DG_LISTEN_PATHNAME);
         stop_stream_system_listen(ST_LISTEN_PATHNAME);
         if (verbose) print("I ain't listening anymore.\n");
+
+        return 0;
     }
 
     class TimeoutTasklet : Object, ITaskletSpawnable

@@ -31,5 +31,6 @@ PKG_CHECK_VAR([PTHTASKLET_VAPIDIR], [pth-tasklet], [vapidir])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_FILES([Makefile zcd.pc])
 AC_CONFIG_LINKS([test_datagrams:testsuites/test_datagrams/test_datagrams])
+AC_CONFIG_LINKS([test_rpcdesign_1:testsuites/test_rpcdesign_1/test_rpcdesign_1])
 AC_OUTPUT
 
