@@ -1,3 +1,4 @@
-serializables.c
-rpc_skeleton.c
-main.c
+*_serializables.c
+*_rpc_skeleton.c
+*_main.c
+*_peculiar.c

@@ -1,0 +1,1 @@
+rpc_skeleton.vala

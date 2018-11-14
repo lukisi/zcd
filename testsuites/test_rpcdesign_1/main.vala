@@ -2,16 +2,12 @@ using Gee;
 using SampleRpc;
 using TaskletSystem;
 
-const bool verbose = true;
-// Node alpha: pid=1234, I=eth0
-const string DG_LISTEN_PATHNAME = "recv_1234_eth0";
-const string DG_PSEUDOMAC = "fe:aa:aa:aa:aa:aa";
-const string DG_SEND_PATHNAME = "send_1234_eth0";
-const string ST_LISTEN_PATHNAME = "conn_169.254.0.2";
-
 namespace Tester
 {
+    const bool verbose = true;
     ITasklet tasklet;
+    SrcNic my_src_nic;
+
     void main()
     {
         // Initialize tasklet system
@@ -30,19 +26,19 @@ namespace Tester
 
         // start tasklet for DG_LISTEN_PATHNAME
         IErrorHandler dg_err = new ServerErrorHandler(@"for datagram_system_listen $(DG_LISTEN_PATHNAME) $(DG_SEND_PATHNAME) $(DG_PSEUDOMAC)");
-        SrcNic dg_my_src_nic = new SrcNic(DG_PSEUDOMAC);
-        start_datagram_system_listen(dlg, dg_err, DG_LISTEN_PATHNAME, DG_SEND_PATHNAME, dg_my_src_nic);
+        my_src_nic = new SrcNic(DG_PSEUDOMAC);
+        start_datagram_system_listen(dlg, dg_err, DG_LISTEN_PATHNAME, DG_SEND_PATHNAME, my_src_nic);
         if (verbose) print(@"I am listening for datagrams on $(DG_LISTEN_PATHNAME).\n");
 
         // start tasklet for ST_LISTEN_PATHNAME
         IErrorHandler st_err = new ServerErrorHandler(@"for stream_system_listen $(ST_LISTEN_PATHNAME)");
         start_stream_system_listen(dlg, st_err, ST_LISTEN_PATHNAME);
-        if (verbose) print(@"I am listening for streams on $(DG_LISTEN_PATHNAME).\n");
+        if (verbose) print(@"I am listening for streams on $(ST_LISTEN_PATHNAME).\n");
 
         // start tasklet for timeout error
         tasklet.spawn(new TimeoutTasklet());
 
-        tasklet.ms_wait(50);
+        do_peculiar();
 
         stop_datagram_system_listen(DG_LISTEN_PATHNAME);
         stop_stream_system_listen(ST_LISTEN_PATHNAME);

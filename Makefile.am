@@ -8,6 +8,8 @@ EXTRA_LTLIBRARIES = \
 
 EXTRA_PROGRAMS = \
 	test_rpcdesign_1_alpha \
+	test_rpcdesign_1_beta \
+	test_rpcdesign_1_gamma \
 	$(NULL)
 
 lib_LTLIBRARIES = \
@@ -394,9 +396,10 @@ $(TESTERRPC_BUILT_SRC) : testsuites/test_rpcdesign_1/testerrpc/interfaces.rpcidl
 	(cd $(srcdir)/testsuites/test_rpcdesign_1/testerrpc; test -f api.vala || ./rpcdesign)
 
 test_rpcdesign_1_alpha_SOURCES = \
-	testsuites/test_rpcdesign_1/serializables.vala \
-	testsuites/test_rpcdesign_1/rpc_skeleton.vala \
-	testsuites/test_rpcdesign_1/main.vala \
+	testsuites/test_rpcdesign_1/alpha_serializables.vala \
+	testsuites/test_rpcdesign_1/alpha_rpc_skeleton.vala \
+	testsuites/test_rpcdesign_1/alpha_main.vala \
+	testsuites/test_rpcdesign_1/alpha_peculiar.vala \
 	testerrpc.vapi \
 	$(NULL)
 
@@ -422,6 +425,82 @@ test_rpcdesign_1_alpha_CPPFLAGS = \
 	$(NULL)
 
 test_rpcdesign_1_alpha_LDADD = \
+	$(GOBJECT_LIBS) \
+	$(GEE_LIBS) \
+	$(JSON_LIBS) \
+	$(TASKLETSYSTEM_LIBS) \
+	$(PTHTASKLET_LIBS) \
+	$(builddir)/libtesterrpc.la \
+	$(NULL)
+
+test_rpcdesign_1_beta_SOURCES = \
+	testsuites/test_rpcdesign_1/beta_serializables.vala \
+	testsuites/test_rpcdesign_1/beta_rpc_skeleton.vala \
+	testsuites/test_rpcdesign_1/beta_main.vala \
+	testsuites/test_rpcdesign_1/beta_peculiar.vala \
+	testerrpc.vapi \
+	$(NULL)
+
+test_rpcdesign_1_beta_VALAFLAGS = \
+	--vapidir $(GEE_PREFIX)/share/vala/vapi \
+	--vapidir $(JSON_PREFIX)/share/vala-0.36/vapi \
+	--vapidir $(TASKLETSYSTEM_VAPIDIR) \
+	--vapidir $(PTHTASKLET_VAPIDIR) \
+	--pkg gee-0.8 \
+	--pkg json-glib-1.0 \
+	--pkg tasklet-system \
+	--pkg pth-tasklet \
+	$(NULL)
+
+test_rpcdesign_1_beta_CPPFLAGS = \
+	-w \
+	$(GOBJECT_CFLAGS) \
+	$(GEE_CFLAGS) \
+	$(JSON_CFLAGS) \
+	$(TASKLETSYSTEM_CFLAGS) \
+	$(PTHTASKLET_CFLAGS) \
+	-I$(srcdir) \
+	$(NULL)
+
+test_rpcdesign_1_beta_LDADD = \
+	$(GOBJECT_LIBS) \
+	$(GEE_LIBS) \
+	$(JSON_LIBS) \
+	$(TASKLETSYSTEM_LIBS) \
+	$(PTHTASKLET_LIBS) \
+	$(builddir)/libtesterrpc.la \
+	$(NULL)
+
+test_rpcdesign_1_gamma_SOURCES = \
+	testsuites/test_rpcdesign_1/gamma_serializables.vala \
+	testsuites/test_rpcdesign_1/gamma_rpc_skeleton.vala \
+	testsuites/test_rpcdesign_1/gamma_main.vala \
+	testsuites/test_rpcdesign_1/gamma_peculiar.vala \
+	testerrpc.vapi \
+	$(NULL)
+
+test_rpcdesign_1_gamma_VALAFLAGS = \
+	--vapidir $(GEE_PREFIX)/share/vala/vapi \
+	--vapidir $(JSON_PREFIX)/share/vala-0.36/vapi \
+	--vapidir $(TASKLETSYSTEM_VAPIDIR) \
+	--vapidir $(PTHTASKLET_VAPIDIR) \
+	--pkg gee-0.8 \
+	--pkg json-glib-1.0 \
+	--pkg tasklet-system \
+	--pkg pth-tasklet \
+	$(NULL)
+
+test_rpcdesign_1_gamma_CPPFLAGS = \
+	-w \
+	$(GOBJECT_CFLAGS) \
+	$(GEE_CFLAGS) \
+	$(JSON_CFLAGS) \
+	$(TASKLETSYSTEM_CFLAGS) \
+	$(PTHTASKLET_CFLAGS) \
+	-I$(srcdir) \
+	$(NULL)
+
+test_rpcdesign_1_gamma_LDADD = \
 	$(GOBJECT_LIBS) \
 	$(GEE_LIBS) \
 	$(JSON_LIBS) \
