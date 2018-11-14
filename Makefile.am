@@ -2,16 +2,6 @@ NULL =
 ACLOCAL_AMFLAGS = -I m4
 .PHONY: check
 
-EXTRA_LTLIBRARIES = \
-	libtesterrpc.la \
-	$(NULL)
-
-EXTRA_PROGRAMS = \
-	test_rpcdesign_1_alpha \
-	test_rpcdesign_1_beta \
-	test_rpcdesign_1_gamma \
-	$(NULL)
-
 lib_LTLIBRARIES = \
 	libzcd.la \
 	$(NULL)
@@ -24,6 +14,11 @@ TESTS = \
 	test_json_handling \
 	test_streams \
 	test_datagrams \
+	test_rpcdesign_1 \
+	$(NULL)
+
+check_LTLIBRARIES = \
+	libtesterrpc.la \
 	$(NULL)
 
 check_PROGRAMS = \
@@ -34,6 +29,9 @@ check_PROGRAMS = \
 	test_datagrams_gamma \
 	radio_domain \
 	eth_domain \
+	test_rpcdesign_1_alpha \
+	test_rpcdesign_1_beta \
+	test_rpcdesign_1_gamma \
 	$(NULL)
 
 libzcd_la_SOURCES = \
@@ -508,6 +506,8 @@ test_rpcdesign_1_gamma_LDADD = \
 	$(PTHTASKLET_LIBS) \
 	$(builddir)/libtesterrpc.la \
 	$(NULL)
+
+testerrpc.vapi: libtesterrpc.la
 
 vapidir = $(datadir)/vala/vapi
 dist_vapi_DATA = \
