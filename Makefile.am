@@ -8,6 +8,8 @@ lib_LTLIBRARIES = \
 
 bin_PROGRAMS = \
 	rpcdesign \
+	radio_domain \
+	eth_domain \
 	$(NULL)
 
 TESTS = \
@@ -27,8 +29,6 @@ check_PROGRAMS = \
 	test_datagrams_alpha \
 	test_datagrams_beta \
 	test_datagrams_gamma \
-	radio_domain \
-	eth_domain \
 	test_rpcdesign_1_alpha \
 	test_rpcdesign_1_beta \
 	test_rpcdesign_1_gamma \
@@ -167,7 +167,7 @@ test_streams_LDADD = \
 	$(NULL)
 
 radio_domain_SOURCES = \
-	testsuites/radio_domain/radio_domain.vala \
+	radio_domain_src/radio_domain.vala \
 	$(NULL)
 
 radio_domain_VALAFLAGS = \
@@ -192,7 +192,7 @@ radio_domain_LDADD = \
 	$(NULL)
 
 eth_domain_SOURCES = \
-	testsuites/eth_domain/eth_domain.vala \
+	eth_domain_src/eth_domain.vala \
 	$(NULL)
 
 eth_domain_VALAFLAGS = \

@@ -20,6 +20,9 @@ rpcdesign_output_tasklet_system.c
 rpcdesign_output_xxx_skeleton.c
 rpcdesign_output_xxx_stub.c
 
+eth_domain.c
+radio_domain.c
+
 testerrpc.h
 testerrpc.vapi
 

@@ -2,5 +2,3 @@ test_json_handling.c
 test_streams.c
 party_a.c
 party_b.c
-radio_domain.c
-eth_domain.c
