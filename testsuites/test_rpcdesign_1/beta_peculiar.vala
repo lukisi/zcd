@@ -36,7 +36,32 @@ namespace Tester
 
     void got_greet(string name, string ip, CallerInfo caller)
     {
-        error("not implemented yet");
+        if (name == "alpha")
+        {
+            assert (caller is DatagramCallerInfo);
+            DatagramCallerInfo _caller = (DatagramCallerInfo)caller;
+            assert(_caller.src_nic is SrcNic);
+            alpha_src_nic = (SrcNic)_caller.src_nic;
+            assert(_caller.source_id is SourceID);
+            SourceID alpha_source_id = (SourceID)_caller.source_id;
+            UnicastID alpha_unicast_id = new UnicastID(alpha_source_id.id);
+            if (verbose) print(@"alpha ($(alpha_source_id.id)) has IP $(ip)\n");
+            // greet again
+            int packet_id = mymsgs[mynextmsgindex++];
+            var st = get_tester_stream_system(@"conn_$(ip)", my_source_id, alpha_unicast_id, my_src_nic, true);
+            try {
+                st.comm.greet("beta", "169.254.0.1");
+            } catch (StubError e) {
+                warning(@"StubError while greeting: $(e.message)");
+            } catch (DeserializeError e) {
+                warning(@"DeserializeError while greeting: $(e.message)");
+            }
+        }
+        else if (name == "gamma")
+        {
+            error("not implemented yet");
+        }
+        else error("not implemented yet");
     }
 
     void got_msg(string msg, CallerInfo caller)

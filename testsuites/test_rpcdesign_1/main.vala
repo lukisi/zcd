@@ -34,6 +34,14 @@ namespace Tester
         // Pass tasklet system to the SampleRpc library
         init_tasklet_system(tasklet);
 
+        // register serializable classes
+        typeof(SourceID).class_peek();
+        typeof(SrcNic).class_peek();
+        typeof(UnicastID).class_peek();
+        typeof(BroadcastID).class_peek();
+        typeof(EverybodyBroadcastID).class_peek();
+        typeof(Fields).class_peek();
+
         // IDs for my own messages:
         mymsgs = new ArrayList<int>();
         for (int i = 1; i < 10; i++) mymsgs.add(PID*1000+i);
@@ -64,6 +72,7 @@ namespace Tester
         tasklet.spawn(new TimeoutTasklet());
 
         do_peculiar();
+        tasklet.ms_wait(7000);
 
         stop_datagram_system_listen(DG_LISTEN_PATHNAME);
         stop_stream_system_listen(ST_LISTEN_PATHNAME);
