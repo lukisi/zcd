@@ -45,6 +45,7 @@ namespace Tester
         if (FileUtils.test(ST_LISTEN_PATHNAME, FileTest.EXISTS)) error(@"pathname $(ST_LISTEN_PATHNAME) exists.");
 
         // Common delegate
+        skeleton = new TesterSkeleton();
         IDelegate dlg = new ServerDelegate();
 
         // start tasklet for DG_LISTEN_PATHNAME

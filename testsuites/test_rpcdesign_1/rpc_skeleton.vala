@@ -48,6 +48,7 @@ namespace Tester
         }
     }
 
+    TesterSkeleton skeleton;
     class ServerDelegate : Object, IDelegate
     {
         public Gee.List<ITesterSkeleton> get_tester_set(CallerInfo caller_info)
@@ -73,12 +74,61 @@ namespace Tester
 
         private ITesterSkeleton? get_dispatcher(IUnicastID unicast_id)
         {
-            error("not implemented yet");
+            assert(unicast_id is UnicastID);
+            UnicastID _unicast_id = (UnicastID)unicast_id;
+            assert(_unicast_id.id == PID);
+            return skeleton;
         }
 
         private Gee.List<ITesterSkeleton> get_dispatcher_set(IBroadcastID broadcast_id)
         {
             // Might have many identities in this node
+            if (broadcast_id is EverybodyBroadcastID)
+            {
+                return new ArrayList<ITesterSkeleton>.wrap({skeleton});
+            }
+            else
+            {
+                error("not implemented yet");
+            }
+        }
+    }
+
+    class CommSkeleton : Object, ICommSkeleton
+    {
+        public void greet(string name, string ip, CallerInfo? caller = null)
+        {
+            assert(caller != null);
+            got_greet(name, ip, caller);
+        }
+
+        public void message(string msg, CallerInfo? caller = null)
+        {
+            assert(caller != null);
+            got_msg(msg, caller);
+        }
+    }
+
+    class TesterSkeleton : Object, ITesterSkeleton
+    {
+        public TesterSkeleton()
+        {
+            comm = new CommSkeleton();
+        }
+
+        public unowned IAnotherSkeleton another_getter()
+        {
+            error("not implemented yet");
+        }
+
+        CommSkeleton comm;
+        public unowned ICommSkeleton comm_getter()
+        {
+            return comm;
+        }
+
+        public unowned IModuleSkeleton module_getter()
+        {
             error("not implemented yet");
         }
     }

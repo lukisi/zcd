@@ -5,25 +5,25 @@
 DOMAIN_PID=$!
 
 # launch testers timely
-./test_rpcdesign_1_beta -v > beta_out.txt &
+./test_rpcdesign_1_beta -v > test_rpcdesign_1_beta_out.txt &
 TEST_BETA_PID=$!
 sleep 0.2
-./test_rpcdesign_1_alpha -v > alpha_out.txt &
+./test_rpcdesign_1_alpha -v > test_rpcdesign_1_alpha_out.txt &
 TEST_ALPHA_PID=$!
 sleep 0.4
-./test_rpcdesign_1_gamma -v > gamma_out.txt &
+./test_rpcdesign_1_gamma -v > test_rpcdesign_1_gamma_out.txt &
 TEST_GAMMA_PID=$!
 
 # wait for testers and note down their retval
 wait $TEST_ALPHA_PID
 TEST_ALPHA_RET=$?
-echo $TEST_ALPHA_RET >> alpha_out.txt
+echo $TEST_ALPHA_RET >> test_rpcdesign_1_alpha_out.txt
 wait $TEST_BETA_PID
 TEST_BETA_RET=$?
-echo $TEST_BETA_RET >> beta_out.txt
+echo $TEST_BETA_RET >> test_rpcdesign_1_beta_out.txt
 wait $TEST_GAMMA_PID
 TEST_GAMMA_RET=$?
-echo $TEST_GAMMA_RET >> gamma_out.txt
+echo $TEST_GAMMA_RET >> test_rpcdesign_1_gamma_out.txt
 
 # kill proxy demon
 kill $DOMAIN_PID

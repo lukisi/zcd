@@ -31,6 +31,16 @@ namespace Tester
             warning(@"DeserializeError while greeting: $(e.message)");
         }
         // do something
-        tasklet.ms_wait(100);
+        tasklet.ms_wait(1000);
+    }
+
+    void got_greet(string name, string ip, CallerInfo caller)
+    {
+        error("not implemented yet");
+    }
+
+    void got_msg(string msg, CallerInfo caller)
+    {
+        error("not implemented yet");
     }
 }
