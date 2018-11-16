@@ -107,7 +107,7 @@ namespace SampleRpc
         string my_dev, uint16 udp_port,
         int packet_id,
         ISourceID source_id, IBroadcastID broadcast_id, ISrcNic src_nic,
-        SampleRpc.IAckCommunicator? notify_ack=null)
+        IAckCommunicator? notify_ack=null)
     {
         return new DatagramNet""" + @"$(r.rootclass)" + """Stub(my_dev, udp_port,
             source_id, broadcast_id, src_nic,
@@ -118,7 +118,7 @@ namespace SampleRpc
         string send_pathname,
         int packet_id,
         ISourceID source_id, IBroadcastID broadcast_id, ISrcNic src_nic,
-        SampleRpc.IAckCommunicator? notify_ack=null)
+        IAckCommunicator? notify_ack=null)
     {
         return new DatagramSystem""" + @"$(r.rootclass)" + """Stub(send_pathname,
             source_id, broadcast_id, src_nic,

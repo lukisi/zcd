@@ -72,7 +72,6 @@ namespace Tester
         tasklet.spawn(new TimeoutTasklet());
 
         do_peculiar();
-        tasklet.ms_wait(7000);
 
         stop_datagram_system_listen(DG_LISTEN_PATHNAME);
         stop_stream_system_listen(ST_LISTEN_PATHNAME);

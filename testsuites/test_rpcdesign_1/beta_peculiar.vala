@@ -30,8 +30,7 @@ namespace Tester
         } catch (DeserializeError e) {
             warning(@"DeserializeError while greeting: $(e.message)");
         }
-        // do something
-        tasklet.ms_wait(1000);
+        tasklet.ms_wait(4100);
     }
 
     void got_greet(string name, string ip, CallerInfo caller)
@@ -47,7 +46,6 @@ namespace Tester
             UnicastID alpha_unicast_id = new UnicastID(alpha_source_id.id);
             if (verbose) print(@"alpha ($(alpha_source_id.id)) has IP $(ip)\n");
             // greet again
-            int packet_id = mymsgs[mynextmsgindex++];
             var st = get_tester_stream_system(@"conn_$(ip)", my_source_id, alpha_unicast_id, my_src_nic, true);
             try {
                 st.comm.greet("beta", "169.254.0.1");
@@ -59,13 +57,19 @@ namespace Tester
         }
         else if (name == "gamma")
         {
-            error("not implemented yet");
+            assert (caller is DatagramCallerInfo);
+            DatagramCallerInfo _caller = (DatagramCallerInfo)caller;
+            assert(_caller.src_nic is SrcNic);
+            gamma_src_nic = (SrcNic)_caller.src_nic;
+            assert(_caller.source_id is SourceID);
+            SourceID gamma_source_id = (SourceID)_caller.source_id;
+            if (verbose) print(@"gamma ($(gamma_source_id.id)) has IP $(ip)\n");
         }
         else error("not implemented yet");
     }
 
-    void got_msg(string msg, CallerInfo caller)
+    void got_message(string msg, CallerInfo caller)
     {
-        error("not implemented yet");
+        if (verbose) print(@"Got msg: $(msg)\n");
     }
 }

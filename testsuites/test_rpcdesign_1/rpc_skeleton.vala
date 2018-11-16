@@ -105,7 +105,7 @@ namespace Tester
         public void message(string msg, CallerInfo? caller = null)
         {
             assert(caller != null);
-            got_msg(msg, caller);
+            got_message(msg, caller);
         }
     }
 
