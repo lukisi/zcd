@@ -105,7 +105,6 @@ namespace SampleRpc
 
     public I""" + @"$(r.rootclass)" + """Stub get_""" + @"$(r.rootname)" + """_datagram_net(
         string my_dev, uint16 udp_port,
-        int packet_id,
         ISourceID source_id, IBroadcastID broadcast_id, ISrcNic src_nic,
         IAckCommunicator? notify_ack=null)
     {
@@ -116,7 +115,6 @@ namespace SampleRpc
 
     public I""" + @"$(r.rootclass)" + """Stub get_""" + @"$(r.rootname)" + """_datagram_system(
         string send_pathname,
-        int packet_id,
         ISourceID source_id, IBroadcastID broadcast_id, ISrcNic src_nic,
         IAckCommunicator? notify_ack=null)
     {

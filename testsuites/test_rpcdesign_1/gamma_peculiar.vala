@@ -13,8 +13,7 @@ namespace Tester
 
     void do_peculiar() {
         // greet soon
-        int packet_id = mymsgs[mynextmsgindex++];
-        var st = get_tester_datagram_system(DG_SEND_PATHNAME, packet_id, my_source_id, new EverybodyBroadcastID(), my_src_nic);
+        var st = get_tester_datagram_system(DG_SEND_PATHNAME, my_source_id, new EverybodyBroadcastID(), my_src_nic);
         try {
             st.comm.greet("gamma", "169.254.0.3");
         } catch (StubError e) {

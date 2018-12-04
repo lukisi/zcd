@@ -8,8 +8,6 @@ namespace Tester
     ITasklet tasklet;
     SrcNic my_src_nic;
     SourceID my_source_id;
-    ArrayList<int> mymsgs;
-    int mynextmsgindex;
 
     int main(string[] args)
     {
@@ -41,11 +39,6 @@ namespace Tester
         typeof(BroadcastID).class_peek();
         typeof(EverybodyBroadcastID).class_peek();
         typeof(Fields).class_peek();
-
-        // IDs for my own messages:
-        mymsgs = new ArrayList<int>();
-        for (int i = 1; i < 10; i++) mymsgs.add(PID*1000+i);
-        mynextmsgindex = 0;
 
         // check DG_LISTEN_PATHNAME does not exist
         if (FileUtils.test(DG_LISTEN_PATHNAME, FileTest.EXISTS)) error(@"pathname $(DG_LISTEN_PATHNAME) exists.");

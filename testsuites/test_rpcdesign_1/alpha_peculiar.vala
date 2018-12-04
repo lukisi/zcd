@@ -16,8 +16,7 @@ namespace Tester
 
     void do_peculiar() {
         // greet soon
-        int packet_id = mymsgs[mynextmsgindex++];
-        var st = get_tester_datagram_system(DG_SEND_PATHNAME, packet_id, my_source_id, new EverybodyBroadcastID(), my_src_nic);
+        var st = get_tester_datagram_system(DG_SEND_PATHNAME, my_source_id, new EverybodyBroadcastID(), my_src_nic);
         try {
             st.comm.greet("alpha", "169.254.0.2");
         } catch (StubError e) {
@@ -52,8 +51,7 @@ namespace Tester
             if (verbose) print(@"gamma ($(gamma_source_id.id)) has IP $(ip)\n");
             // wait a bit, then send msg
             tasklet.ms_wait(200);
-            int packet_id = mymsgs[mynextmsgindex++];
-            var st = get_tester_datagram_system(DG_SEND_PATHNAME, packet_id, my_source_id, new EverybodyBroadcastID(), my_src_nic, new AckCommunicator());
+            var st = get_tester_datagram_system(DG_SEND_PATHNAME, my_source_id, new EverybodyBroadcastID(), my_src_nic, new AckCommunicator());
             try {
                 st.comm.message("pippo");
             } catch (StubError e) {
