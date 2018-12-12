@@ -138,7 +138,8 @@ class Writer : Object
                 s.send_to(new UnixSocketAddress(send_pathname), packet.data);
             return null;
         } catch (Error e) {
-            error(e.message);
+            message(e.message);
+            return null;
         }
     }
 }
