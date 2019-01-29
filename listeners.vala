@@ -241,7 +241,7 @@ namespace zcd
                 if (disp == null)
                 {
                     // log message
-                    warning(@"stream_listener: Delegate stream_dlg did not recognize this message.");
+                    debug(@"stream_listener: Delegate stream_dlg did not recognize this message.");
                     // Ignore this msg and terminate tasklet
                     cleanup();
                     return null;
@@ -547,7 +547,7 @@ namespace zcd
                 if (disp == null)
                 {
                     // log message
-                    warning(@"datagram_listener: Delegate datagram_dlg did not recognize this message.");
+                    debug(@"datagram_listener: Delegate datagram_dlg did not recognize this message.");
                     // Ignore this msg and terminate tasklet
                     return null;
                 }
