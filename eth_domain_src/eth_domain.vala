@@ -20,13 +20,16 @@ using Gee;
 
 [CCode (array_length = false, array_null_terminated = true)]
 string[] _pathnames;
+bool verbose;
 
 int main(string[] _args)
 {
+    verbose = false;
     OptionContext oc = new OptionContext("<options>");
-    OptionEntry[] entries = new OptionEntry[2];
+    OptionEntry[] entries = new OptionEntry[3];
     int index = 0;
     entries[index++] = {"in", 'i', 0, OptionArg.STRING_ARRAY, ref _pathnames, "Interfaces (e.g. -i 123_eth0). You can use it multiple times.", null};
+    entries[index++] = {"verbose", 'v', 0, OptionArg.NONE, ref verbose, "Prints messages.", null};
     entries[index++] = { null };
     oc.add_main_entries(entries, null);
     try {
@@ -63,7 +66,7 @@ int main(string[] _args)
     // Wait for SIGINT
     while (true)
     {
-        Thread.usleep(100000);
+        Thread.usleep(10000);
         if (do_me_exit) break;
     }
 
@@ -85,10 +88,12 @@ class Listener : Object
 {
     private string listen_pathname;
     private Gee.List<string> send_pathnames;
+    private int packet_num;
     public Listener(string listen_pathname, Gee.List<string> send_pathnames)
     {
         this.listen_pathname = listen_pathname;
         this.send_pathnames = send_pathnames;
+        packet_num = 0;
     }
 
     public void* thread_func () {
@@ -104,11 +109,13 @@ class Listener : Object
                 if (r <= 0) error(@"receive_from returns $(r)");
                 buffer[r] = 0; // null-terminate string
                 string packet = (string)buffer;
+                packet_num++;
+                if (verbose) print(@"[$(printabletime())] Got packet #$(packet_num) from listener $(listen_pathname): $(packet)\n");
 
                 // start a thread to write to the send_pathnames.
                 foreach (string send_pathname in send_pathnames)
                 {
-                    Writer writer = new Writer(send_pathname, packet);
+                    Writer writer = new Writer(send_pathname, packet, packet_num, listen_pathname);
                     new Thread<void*> ("writer", writer.thread_func);
                 }
             }
@@ -122,10 +129,14 @@ class Writer : Object
 {
     private string send_pathname;
     private string packet;
-    public Writer(string send_pathname, string packet)
+    private int packet_num;
+    private string listen_pathname;
+    public Writer(string send_pathname, string packet, int packet_num, string listen_pathname)
     {
         this.send_pathname = send_pathname;
         this.packet = packet;
+        this.packet_num = packet_num;
+        this.listen_pathname = listen_pathname;
     }
 
     public void* thread_func () {
@@ -135,11 +146,25 @@ class Writer : Object
             assert (s != null);
             // Check send_pathname DOES exist
             if (FileUtils.test(send_pathname, FileTest.EXISTS))
+            {
                 s.send_to(new UnixSocketAddress(send_pathname), packet.data);
+                if (verbose) print(@"[$(printabletime())] Sent packet #$(packet_num) from listener $(listen_pathname) to $(send_pathname).\n");
+            }
             return null;
         } catch (Error e) {
             message(e.message);
             return null;
         }
     }
+}
+
+string printabletime()
+{
+    TimeVal now = TimeVal();
+    now.get_current_time();
+    string s_usec = @"$(now.tv_usec + 1000000)";
+    s_usec = s_usec.substring(1);
+    string s_sec = @"$(now.tv_sec)";
+    s_sec = s_sec.substring(s_sec.length-3);
+    return @"$(s_sec).$(s_usec)";
 }
