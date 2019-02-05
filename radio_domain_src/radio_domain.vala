@@ -120,7 +120,7 @@ class Listener : Object
                 }
             }
         } catch (Error e) {
-            error(e.message);
+            error(@"While reading from $(listen_pathname): $(e.message)");
         }
     }
 }
@@ -150,7 +150,7 @@ class Writer : Object
             }
             return null;
         } catch (Error e) {
-            message(e.message);
+            message(@"While writing to $(send_pathname): $(e.message)");
             return null;
         }
     }
