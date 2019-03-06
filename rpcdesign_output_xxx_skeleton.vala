@@ -325,6 +325,7 @@ namespace SampleRpc
                         critical(@" method-name: $(m_name)");
                         error(@" argument #$(j): $(args[j])");
                     } catch (HelperDeserializeError e) {
+                        debug(@"ZCD: I""" + @"$(r.rootclass)" + """Skeleton: DeserializeError: $(doing): $(e.message)");
                         throw new InSkeletonDeserializeError.GENERIC(@"$(doing): $(e.message)");
                     }
                     j++;
